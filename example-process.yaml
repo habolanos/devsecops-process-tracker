@@ -1,0 +1,195 @@
+process:
+  id: "it-security-audit-2026"
+  name: "Auditoría de Seguridad IT"
+  description: "Proceso completo de auditoría de seguridad de sistemas de información para organizaciones"
+  version: "1.0.0"
+  phases:
+    - id: "phase-1-planning"
+      name: "Fase 1: Planificación y Preparación"
+      description: "Establecer el alcance, objetivos y preparar el entorno para la auditoría"
+      order: 1
+      tasks:
+        - id: "task-1-1"
+          name: "Definir Alcance de la Auditoría"
+          description: "Documentar los sistemas, aplicaciones y áreas que serán auditadas"
+          order: 1
+          references:
+            - label: "ISO 27001 Guidelines"
+              url: "https://www.iso.org/standard/27001"
+            - label: "NIST Cybersecurity Framework"
+              url: "https://www.nist.gov/cyberframework"
+          evidence:
+            type: "both"
+            required: true
+            description: "Documento de alcance firmado y diagrama de arquitectura"
+          dependencies: []
+
+        - id: "task-1-2"
+          name: "Recopilar Información de Sistemas"
+          description: "Obtener documentación técnica, inventarios de activos y políticas de seguridad"
+          order: 2
+          references:
+            - label: "Asset Inventory Template"
+              url: "https://example.com/asset-inventory"
+          evidence:
+            type: "text"
+            required: true
+            description: "Lista completa de activos de TI"
+          dependencies: ["task-1-1"]
+
+        - id: "task-1-3"
+          name: "Preparar Herramientas de Auditoría"
+          description: "Instalar y configurar herramientas de escaneo y análisis de seguridad"
+          order: 3
+          references:
+            - label: "Nmap Security Scanner"
+              url: "https://nmap.org"
+            - label: "OWASP ZAP"
+              url: "https://www.zaproxy.org"
+          evidence:
+            type: "image"
+            required: true
+            description: "Capturas de pantalla de herramientas configuradas"
+          dependencies: ["task-1-1"]
+
+    - id: "phase-2-execution"
+      name: "Fase 2: Ejecución de la Auditoría"
+      description: "Realizar pruebas de seguridad, escaneos y análisis de vulnerabilidades"
+      order: 2
+      tasks:
+        - id: "task-2-1"
+          name: "Escaneo de Vulnerabilidades de Red"
+          description: "Ejecutar escaneo completo de puertos y servicios en la infraestructura"
+          order: 1
+          references:
+            - label: "CVE Database"
+              url: "https://cve.mitre.org"
+            - label: "Vulnerability Scanning Best Practices"
+              url: "https://example.com/vuln-scanning"
+          evidence:
+            type: "both"
+            required: true
+            description: "Reporte de escaneo y capturas de hallazgos críticos"
+          dependencies: ["task-1-3"]
+
+        - id: "task-2-2"
+          name: "Pruebas de Seguridad de Aplicaciones Web"
+          description: "Analizar aplicaciones web en busca de vulnerabilidades OWASP Top 10"
+          order: 2
+          references:
+            - label: "OWASP Top 10"
+              url: "https://owasp.org/www-project-top-ten/"
+            - label: "Web Application Security Testing Guide"
+              url: "https://owasp.org/www-project-web-security-testing-guide/"
+          evidence:
+            type: "both"
+            required: true
+            description: "Informe de pruebas con evidencia de inyecciones SQL, XSS, etc."
+          dependencies: ["task-1-3"]
+
+        - id: "task-2-3"
+          name: "Revisión de Configuraciones de Seguridad"
+          description: "Auditar configuraciones de firewalls, routers, servidores y bases de datos"
+          order: 3
+          references:
+            - label: "CIS Benchmarks"
+              url: "https://www.cisecurity.org/cis-benchmarks/"
+          evidence:
+            type: "text"
+            required: true
+            description: "Documento de hallazgos de configuraciones inseguras"
+          dependencies: ["task-2-1"]
+
+        - id: "task-2-4"
+          name: "Pruebas de Ingeniería Social"
+          description: "Evaluar la conciencia de seguridad del personal mediante simulaciones de phishing"
+          order: 4
+          references:
+            - label: "Social Engineering Toolkit"
+              url: "https://www.social-engineer.org"
+          evidence:
+            type: "both"
+            required: false
+            description: "Resultados de campaña de phishing simulado"
+          dependencies: ["task-1-2"]
+
+        - id: "task-2-5"
+          name: "Análisis de Registros y Logs"
+          description: "Revisar logs de sistemas, aplicaciones y eventos de seguridad"
+          order: 5
+          references:
+            - label: "Log Analysis Guide"
+              url: "https://example.com/log-analysis"
+          evidence:
+            type: "text"
+            required: true
+            description: "Resumen de análisis de logs con eventos sospechosos"
+          dependencies: ["task-2-1", "task-2-3"]
+
+    - id: "phase-3-reporting"
+      name: "Fase 3: Reporte y Recomendaciones"
+      description: "Documentar hallazgos, generar reporte ejecutivo y proponer acciones correctivas"
+      order: 3
+      tasks:
+        - id: "task-3-1"
+          name: "Clasificar y Priorizar Hallazgos"
+          description: "Asignar niveles de severidad (crítico, alto, medio, bajo) a las vulnerabilidades"
+          order: 1
+          references:
+            - label: "CVSS Scoring System"
+              url: "https://www.first.org/cvss/"
+          evidence:
+            type: "both"
+            required: true
+            description: "Matriz de riesgos con clasificación de vulnerabilidades"
+          dependencies: ["task-2-1", "task-2-2", "task-2-3", "task-2-5"]
+
+        - id: "task-3-2"
+          name: "Elaborar Reporte Técnico"
+          description: "Documentar todos los hallazgos técnicos con evidencia detallada"
+          order: 2
+          references:
+            - label: "Security Audit Report Template"
+              url: "https://example.com/audit-template"
+          evidence:
+            type: "text"
+            required: true
+            description: "Reporte técnico completo en PDF"
+          dependencies: ["task-3-1"]
+
+        - id: "task-3-3"
+          name: "Preparar Reporte Ejecutivo"
+          description: "Crear resumen ejecutivo para dirección con gráficos y recomendaciones estratégicas"
+          order: 3
+          references:
+            - label: "Executive Summary Best Practices"
+              url: "https://example.com/exec-summary"
+          evidence:
+            type: "both"
+            required: true
+            description: "Presentación ejecutiva con dashboards y plan de acción"
+          dependencies: ["task-3-2"]
+
+        - id: "task-3-4"
+          name: "Proponer Plan de Remediación"
+          description: "Definir acciones correctivas con plazos y responsables para cada hallazgo"
+          order: 4
+          references:
+            - label: "Remediation Planning Guide"
+              url: "https://example.com/remediation"
+          evidence:
+            type: "text"
+            required: true
+            description: "Cronograma de remediación con acciones asignadas"
+          dependencies: ["task-3-3"]
+
+        - id: "task-3-5"
+          name: "Presentación de Resultados"
+          description: "Realizar presentación formal de hallazgos y recomendaciones al comité de seguridad"
+          order: 5
+          references: []
+          evidence:
+            type: "image"
+            required: false
+            description: "Fotos de la presentación y acta de reunión firmada"
+          dependencies: ["task-3-3", "task-3-4"]
