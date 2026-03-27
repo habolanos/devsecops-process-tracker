@@ -386,7 +386,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="mt-20 py-8 border-t border-gray-200 bg-white">
         <div className="max-w-7xl mx-auto px-6 text-center text-gray-600 text-sm">
-          <p>Process Tracker MVP © 2026</p>
+          <p>Process Tracker MVP by habolanos © 2026</p>
         </div>
       </footer>
     </div>

@@ -6,7 +6,7 @@ import { I18nProvider } from '@/lib/i18n-context';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Process Tracker MVP',
+  title: 'Process Tracker - DevSecOps MVP',
   description: 'Gestiona y ejecuta procesos paso a paso con evidencia completa',
 };
 
