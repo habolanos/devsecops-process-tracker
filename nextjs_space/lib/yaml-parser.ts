@@ -1,5 +1,5 @@
 import yaml from 'js-yaml';
-import { ProcessYAML, ProcessState, PhaseState, TaskState } from './types';
+import { ProcessYAML, ProcessState, PhaseState, TaskState, CapturedVariables } from './types';
 
 export function parseYAMLToProcess(yamlContent: string): ProcessState {
   try {
@@ -9,10 +9,20 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
       throw new Error('Invalid YAML structure: missing "process" key');
     }
 
-    const { id, name, description, version, phases } = parsed.process;
+    const { id, name, description, version, variables, phases } = parsed.process;
 
     if (!id || !name || !phases || !Array.isArray(phases)) {
       throw new Error('Invalid YAML: process must have id, name, and phases array');
+    }
+
+    // Initialize captured variables with default values if provided
+    const initialCapturedVariables: CapturedVariables = {};
+    if (variables && Array.isArray(variables)) {
+      variables.forEach((v) => {
+        if (v.defaultValue) {
+          initialCapturedVariables[v.key] = v.defaultValue;
+        }
+      });
     }
 
     const processState: ProcessState = {
@@ -22,6 +32,8 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
       version: version || '1.0.0',
       loadedAt: new Date().toISOString(),
       progress: 0,
+      variableDefinitions: variables || [],
+      capturedVariables: initialCapturedVariables,
       phases: phases.map((phase) => {
         if (!phase.id || !phase.name || !phase.tasks || !Array.isArray(phase.tasks)) {
           throw new Error(`Invalid phase structure: ${phase?.id || 'unknown'}`);
@@ -33,6 +45,7 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
           description: phase.description || '',
           order: phase.order || 0,
           progress: 0,
+          dynamicLinks: phase.dynamicLinks || [],
           tasks: phase.tasks.map((task) => {
             if (!task.id || !task.name) {
               throw new Error(`Invalid task structure in phase ${phase.id}`);
@@ -50,7 +63,8 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
               evidence: {
                 images: []
               },
-              isBlocked: false
+              isBlocked: false,
+              dynamicLinks: task.dynamicLinks || []
             };
 
             return taskState;

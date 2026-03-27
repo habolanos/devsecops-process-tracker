@@ -6,11 +6,13 @@ import { useProcessStore } from '@/lib/store';
 import { useI18n } from '@/lib/i18n-context';
 import { exportProcessToJSON, downloadJSON } from '@/lib/json-utils';
 import { generateWordDocument, downloadWordDocument } from '@/lib/word-generator';
-import { ArrowLeft, Download, FileText, CheckCircle2, Globe } from 'lucide-react';
+import { ArrowLeft, Download, FileText, CheckCircle2, Globe, Settings } from 'lucide-react';
 import ProcessSidebar from './_components/process-sidebar';
 import TaskCard from './_components/task-card';
 import EvidenceModal from './_components/evidence-modal';
 import ProgressBar from './_components/progress-bar';
+import VariablesForm from './_components/variables-form';
+import { DynamicLinksList } from './_components/dynamic-link-button';
 
 export default function ProcessPage() {
   const router = useRouter();
@@ -24,6 +26,7 @@ export default function ProcessPage() {
   
   const [isExporting, setIsExporting] = useState(false);
   const [showEvidenceModal, setShowEvidenceModal] = useState(false);
+  const [showVariablesForm, setShowVariablesForm] = useState(false);
 
   useEffect(() => {
     if (!process) {
@@ -100,6 +103,17 @@ export default function ProcessPage() {
             </div>
 
             <div className="flex items-center gap-3">
+              {/* Variables Button - only show if process has variables */}
+              {process?.variableDefinitions && process.variableDefinitions.length > 0 && (
+                <button
+                  onClick={() => setShowVariablesForm(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
+                >
+                  <Settings className="w-4 h-4" />
+                  <span className="font-medium">{t('variables.button') || 'Variables'}</span>
+                </button>
+              )}
+
               <button
                 onClick={() => setLanguage?.(language === 'es' ? 'en' : 'es')}
                 className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -163,6 +177,13 @@ export default function ProcessPage() {
                   label={t('phase.progress')}
                   variant="secondary"
                 />
+                
+                {/* Phase-level Dynamic Links */}
+                {currentPhase.dynamicLinks && currentPhase.dynamicLinks.length > 0 && (
+                  <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
+                    <DynamicLinksList links={currentPhase.dynamicLinks} phaseId={currentPhase.id} />
+                  </div>
+                )}
               </div>
 
               <div className="grid gap-4">
@@ -194,6 +215,12 @@ export default function ProcessPage() {
           }}
         />
       )}
+
+      {/* Variables Form Modal */}
+      <VariablesForm
+        isOpen={showVariablesForm}
+        onClose={() => setShowVariablesForm(false)}
+      />
     </div>
   );
 }

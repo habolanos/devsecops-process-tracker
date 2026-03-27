@@ -26,6 +26,16 @@
       "icon": "alert-triangle",
       "file": "incident-response.yaml",
       "version": "1.0.0"
+    },
+    {
+      "id": "devops-pipeline",
+      "name": "Pipeline DevOps (Links Dinámicos)",
+      "description": "Proceso de release con variables parametrizables y links dinámicos a herramientas DevOps",
+      "category": "devops",
+      "icon": "rocket",
+      "file": "devops-pipeline.yaml",
+      "version": "1.0.0",
+      "hasVariables": true
     }
   ]
 }

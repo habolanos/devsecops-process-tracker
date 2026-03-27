@@ -1,11 +1,47 @@
 // Core TypeScript types for Process Tracker
 
+// ============================================
+// Process Variables (User Input at Runtime)
+// ============================================
+
+export interface ProcessVariableYAML {
+  key: string;
+  label: string;
+  type: 'text' | 'select' | 'number';
+  required: boolean;
+  placeholder?: string;
+  options?: string[];        // For type: 'select'
+  defaultValue?: string;
+}
+
+export interface CapturedVariables {
+  [key: string]: string;
+}
+
+// ============================================
+// Dynamic Links
+// ============================================
+
+export interface DynamicLinkYAML {
+  label: string;
+  urlTemplate: string;        // Template with {variable} placeholders
+  behavior: 'auto' | 'click'; // auto-opens or requires click
+  delay?: number;             // Seconds before auto-open (default: 0)
+  newTab?: boolean;           // Open in new tab (default: true)
+  requiresVariables?: string[]; // Variables needed to activate link
+}
+
+// ============================================
+// YAML Structure
+// ============================================
+
 export interface ProcessYAML {
   process: {
     id: string;
     name: string;
     description: string;
     version: string;
+    variables?: ProcessVariableYAML[];  // Global process variables
     phases: PhaseYAML[];
   };
 }
@@ -16,6 +52,7 @@ export interface PhaseYAML {
   description: string;
   order: number;
   tasks: TaskYAML[];
+  dynamicLinks?: DynamicLinkYAML[];  // Phase-level dynamic links
 }
 
 export interface TaskYAML {
@@ -26,6 +63,7 @@ export interface TaskYAML {
   references?: Reference[];
   evidence: EvidenceConfig;
   dependencies?: string[];
+  dynamicLinks?: DynamicLinkYAML[];  // Task-level dynamic links
 }
 
 export interface Reference {
@@ -39,7 +77,10 @@ export interface EvidenceConfig {
   description?: string;
 }
 
-// Runtime state types
+// ============================================
+// Runtime State Types
+// ============================================
+
 export interface ProcessState {
   id: string;
   name: string;
@@ -50,6 +91,8 @@ export interface ProcessState {
   completedAt?: string;
   progress: number;
   phases: PhaseState[];
+  variableDefinitions: ProcessVariableYAML[];  // Variable definitions from YAML
+  capturedVariables: CapturedVariables;        // User-captured values
 }
 
 export interface PhaseState {
@@ -59,6 +102,7 @@ export interface PhaseState {
   order: number;
   progress: number;
   tasks: TaskState[];
+  dynamicLinks: DynamicLinkYAML[];  // Phase-level dynamic links
 }
 
 export interface TaskState {
@@ -73,6 +117,7 @@ export interface TaskState {
   completedAt?: string;
   evidence: TaskEvidence;
   isBlocked: boolean;
+  dynamicLinks: DynamicLinkYAML[];  // Task-level dynamic links
 }
 
 export interface TaskEvidence {

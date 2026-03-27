@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { ProcessState, TaskEvidence } from './types';
+import { ProcessState, TaskEvidence, CapturedVariables } from './types';
 import { updateProgress, updateTaskBlockedStatus } from './helpers';
 
 interface ProcessStore {
@@ -21,10 +21,15 @@ interface ProcessStore {
   uncompleteTask: (phaseId: string, taskId: string) => void;
   
   markProcessComplete: () => void;
+  
+  // Variable Actions
+  updateCapturedVariables: (variables: CapturedVariables) => void;
+  updateSingleVariable: (key: string, value: string) => void;
+  areRequiredVariablesFilled: () => boolean;
 }
 
 export const useProcessStore = create<ProcessStore>()(persist(
-  (set) => ({
+  (set, get) => ({
     process: null,
     currentPhaseId: null,
     currentTaskId: null,
@@ -164,6 +169,50 @@ export const useProcessStore = create<ProcessStore>()(persist(
           }
         };
       });
+    },
+
+    updateCapturedVariables: (variables) => {
+      set((state) => {
+        if (!state.process) return state;
+
+        return {
+          process: {
+            ...state.process,
+            capturedVariables: {
+              ...state.process.capturedVariables,
+              ...variables
+            }
+          }
+        };
+      });
+    },
+
+    updateSingleVariable: (key, value) => {
+      set((state) => {
+        if (!state.process) return state;
+
+        return {
+          process: {
+            ...state.process,
+            capturedVariables: {
+              ...state.process.capturedVariables,
+              [key]: value
+            }
+          }
+        };
+      });
+    },
+
+    areRequiredVariablesFilled: (): boolean => {
+      const currentState = get();
+      if (!currentState.process) return false;
+      
+      const { variableDefinitions, capturedVariables } = currentState.process;
+      if (!variableDefinitions || variableDefinitions.length === 0) return true;
+      
+      return variableDefinitions
+        .filter((v) => v.required)
+        .every((v) => capturedVariables[v.key] && capturedVariables[v.key].trim() !== '');
     }
   }),
   {

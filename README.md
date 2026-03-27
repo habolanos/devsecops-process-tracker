@@ -6,8 +6,10 @@
 
 ## ✨ Características Principales
 
-- � **Procesos Precargados**: Selecciona entre plantillas predefinidas (Auditoría IT, Release DevOps, Respuesta a Incidentes)
-- �📄 **Carga de Procesos YAML**: Define procesos con fases y tareas en formato YAML
+- 📂 **Procesos Precargados**: Selecciona entre plantillas predefinidas (Auditoría IT, Release DevOps, Respuesta a Incidentes)
+- 🔗 **Links Dinámicos**: Links parametrizables con variables que el usuario captura en runtime
+- ⚙️ **Variables de Proceso**: Define variables (organization, projectId, repository) que activan links dinámicos
+- 📄 **Carga de Procesos YAML**: Define procesos con fases y tareas en formato YAML
 - 👣 **Ejecución Paso a Paso**: Navega por fases, visualiza tareas y márcalas como completadas
 - 📸 **Evidencia Completa**: Adjunta texto libre e imágenes (desde archivos locales o URLs)
 - 🔗 **Dependencias entre Tareas**: Las tareas se bloquean automáticamente hasta que sus dependencias estén completadas
@@ -104,11 +106,32 @@ process:
   name: "Nombre del Proceso"
   description: "Descripción general"
   version: "1.0.0"
+  
+  # Variables capturables por el usuario (opcional)
+  variables:
+    - key: "organization"
+      label: "Organización"
+      type: "text"           # text | select | number
+      required: true
+      placeholder: "ej: mi-empresa"
+    - key: "environment"
+      label: "Ambiente"
+      type: "select"
+      required: true
+      options: ["development", "staging", "production"]
+  
   phases:
     - id: "phase-1"
       name: "Fase 1"
       description: "Descripción de la fase"
       order: 1
+      # Links dinámicos a nivel de fase (opcional)
+      dynamicLinks:
+        - label: "Dashboard"
+          urlTemplate: "https://dashboard.com/{organization}"
+          behavior: "auto"   # auto | click
+          delay: 2           # segundos (solo para auto)
+          requiresVariables: ["organization"]
       tasks:
         - id: "task-1-1"
           name: "Tarea 1"
@@ -117,12 +140,29 @@ process:
           references:
             - label: "Documentación"
               url: "https://example.com"
+          # Links dinámicos a nivel de tarea (opcional)
+          dynamicLinks:
+            - label: "GitHub Repo"
+              urlTemplate: "https://github.com/{organization}/{repository}"
+              behavior: "click"
+              newTab: true
+              requiresVariables: ["organization", "repository"]
           evidence:
-            type: "text" # "text" | "image" | "both"
+            type: "text"     # text | image | both
             required: true
             description: "Qué evidencia se necesita"
-          dependencies: [] # IDs de tareas que deben completarse antes
+          dependencies: []   # IDs de tareas que deben completarse antes
 ```
+
+### Variables y Links Dinámicos
+
+Los procesos pueden definir **variables** que el usuario captura al inicio:
+- Los **links dinámicos** usan estas variables para construir URLs parametrizadas
+- Los links permanecen **bloqueados** hasta que se completen las variables requeridas
+- Comportamiento `auto`: el link se abre automáticamente al activarse
+- Comportamiento `click`: requiere que el usuario haga clic
+
+**Ejemplo**: Ver `data/processes/devops-pipeline.yaml` para un proceso completo con variables y links dinámicos.
 
 ## 🐳 Despliegue con Docker
 
@@ -151,7 +191,8 @@ process_tracker/
 │   │       ├── index.json     # Índice de procesos disponibles
 │   │       ├── it-security-audit.yaml
 │   │       ├── devops-release.yaml
-│   │       └── incident-response.yaml
+│   │       ├── incident-response.yaml
+│   │       └── devops-pipeline.yaml  # Con variables y links dinámicos
 │   ├── lib/                   # Lógica de negocio y utilidades
 │   │   ├── types.ts           # Tipos TypeScript
 │   │   ├── store.ts           # Zustand store con persistencia
@@ -191,6 +232,7 @@ Para preguntas o soporte, abre un issue en el repositorio.
 
 | Fecha | Versión | Descripción |
 |-------|---------|-------------|
+| 2026-03-27 | 1.2.0 | Variables de proceso y links dinámicos parametrizables, nuevo template `devops-pipeline.yaml` |
 | 2026-03-27 | 1.1.0 | Procesos precargados (3 plantillas), API `/api/processes`, actualización a Next.js 15.1.3 |
 | 2026-03-01 | 1.0.0 | Versión inicial con carga YAML/JSON, evidencias, exportación Word |
 

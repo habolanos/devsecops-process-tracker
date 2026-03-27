@@ -1,0 +1,225 @@
+process:
+  id: "devops-pipeline-2026"
+  name: "Pipeline DevOps con Links Dinámicos"
+  description: "Proceso de release con variables parametrizables y links dinámicos a herramientas DevOps"
+  version: "1.0.0"
+  
+  variables:
+    - key: "organization"
+      label: "Organización (GitHub/GitLab)"
+      type: "text"
+      required: true
+      placeholder: "ej: mi-empresa"
+    - key: "repository"
+      label: "Nombre del Repositorio"
+      type: "text"
+      required: true
+      placeholder: "ej: backend-api"
+    - key: "projectId"
+      label: "ID del Proyecto"
+      type: "text"
+      required: true
+      placeholder: "ej: PRJ-001"
+    - key: "environment"
+      label: "Ambiente de Despliegue"
+      type: "select"
+      required: true
+      options:
+        - "development"
+        - "staging"
+        - "production"
+    - key: "ticketId"
+      label: "ID del Ticket (Jira)"
+      type: "text"
+      required: false
+      placeholder: "ej: DEVOPS-123"
+
+  phases:
+    - id: "phase-1-preparation"
+      name: "Fase 1: Preparación del Release"
+      description: "Verificar código, dependencias y configuración antes del release"
+      order: 1
+      dynamicLinks:
+        - label: "GitHub Repository"
+          urlTemplate: "https://github.com/{organization}/{repository}"
+          behavior: "click"
+          newTab: true
+          requiresVariables: ["organization", "repository"]
+        - label: "Jira Board"
+          urlTemplate: "https://jira.atlassian.net/browse/{ticketId}"
+          behavior: "click"
+          newTab: true
+          requiresVariables: ["ticketId"]
+      tasks:
+        - id: "task-1-1"
+          name: "Verificar Branch y Commits"
+          description: "Revisar que el branch principal esté actualizado y sin conflictos"
+          order: 1
+          dynamicLinks:
+            - label: "Ver Commits"
+              urlTemplate: "https://github.com/{organization}/{repository}/commits/main"
+              behavior: "click"
+              requiresVariables: ["organization", "repository"]
+            - label: "Pull Requests"
+              urlTemplate: "https://github.com/{organization}/{repository}/pulls"
+              behavior: "auto"
+              delay: 1
+              requiresVariables: ["organization", "repository"]
+          evidence:
+            type: "both"
+            required: true
+            description: "Captura de los últimos commits y estado del branch"
+          dependencies: []
+
+        - id: "task-1-2"
+          name: "Revisar Dependencias"
+          description: "Verificar que todas las dependencias estén actualizadas y sin vulnerabilidades"
+          order: 2
+          dynamicLinks:
+            - label: "Security Advisories"
+              urlTemplate: "https://github.com/{organization}/{repository}/security/advisories"
+              behavior: "click"
+              requiresVariables: ["organization", "repository"]
+          references:
+            - label: "NPM Audit"
+              url: "https://docs.npmjs.com/cli/v8/commands/npm-audit"
+          evidence:
+            type: "text"
+            required: true
+            description: "Resultado del análisis de dependencias"
+          dependencies: ["task-1-1"]
+
+        - id: "task-1-3"
+          name: "Configurar Variables de Ambiente"
+          description: "Verificar y actualizar las variables de configuración para el ambiente target"
+          order: 3
+          dynamicLinks:
+            - label: "Settings del Repo"
+              urlTemplate: "https://github.com/{organization}/{repository}/settings/secrets/actions"
+              behavior: "click"
+              requiresVariables: ["organization", "repository"]
+          evidence:
+            type: "image"
+            required: true
+            description: "Captura de la configuración de secrets (sin mostrar valores)"
+          dependencies: ["task-1-1"]
+
+    - id: "phase-2-build"
+      name: "Fase 2: Build y Testing"
+      description: "Ejecutar pipeline de CI/CD, tests y análisis de código"
+      order: 2
+      dynamicLinks:
+        - label: "GitHub Actions"
+          urlTemplate: "https://github.com/{organization}/{repository}/actions"
+          behavior: "auto"
+          delay: 0
+          requiresVariables: ["organization", "repository"]
+      tasks:
+        - id: "task-2-1"
+          name: "Ejecutar Pipeline de Build"
+          description: "Trigger del pipeline de CI para compilar y empaquetar la aplicación"
+          order: 1
+          dynamicLinks:
+            - label: "Workflows"
+              urlTemplate: "https://github.com/{organization}/{repository}/actions/workflows"
+              behavior: "click"
+              requiresVariables: ["organization", "repository"]
+          evidence:
+            type: "both"
+            required: true
+            description: "Log del build exitoso y artefactos generados"
+          dependencies: ["task-1-2", "task-1-3"]
+
+        - id: "task-2-2"
+          name: "Ejecutar Tests Automatizados"
+          description: "Correr suite de tests unitarios, integración y e2e"
+          order: 2
+          dynamicLinks:
+            - label: "Test Results"
+              urlTemplate: "https://github.com/{organization}/{repository}/actions?query=workflow%3Atest"
+              behavior: "click"
+              requiresVariables: ["organization", "repository"]
+          evidence:
+            type: "both"
+            required: true
+            description: "Reporte de cobertura y resultados de tests"
+          dependencies: ["task-2-1"]
+
+        - id: "task-2-3"
+          name: "Análisis de Código Estático"
+          description: "Ejecutar SonarQube o herramienta similar para análisis de calidad"
+          order: 3
+          dynamicLinks:
+            - label: "SonarCloud"
+              urlTemplate: "https://sonarcloud.io/project/overview?id={organization}_{repository}"
+              behavior: "click"
+              requiresVariables: ["organization", "repository"]
+          references:
+            - label: "SonarQube Docs"
+              url: "https://docs.sonarqube.org/latest/"
+          evidence:
+            type: "image"
+            required: true
+            description: "Dashboard de SonarQube con métricas de calidad"
+          dependencies: ["task-2-1"]
+
+    - id: "phase-3-deploy"
+      name: "Fase 3: Despliegue"
+      description: "Desplegar la aplicación al ambiente seleccionado"
+      order: 3
+      dynamicLinks:
+        - label: "Deployments"
+          urlTemplate: "https://github.com/{organization}/{repository}/deployments"
+          behavior: "auto"
+          delay: 2
+          requiresVariables: ["organization", "repository"]
+      tasks:
+        - id: "task-3-1"
+          name: "Desplegar a Ambiente"
+          description: "Ejecutar el despliegue al ambiente configurado"
+          order: 1
+          dynamicLinks:
+            - label: "Deploy Workflow"
+              urlTemplate: "https://github.com/{organization}/{repository}/actions/workflows/deploy-{environment}.yml"
+              behavior: "click"
+              requiresVariables: ["organization", "repository", "environment"]
+          evidence:
+            type: "both"
+            required: true
+            description: "Log del despliegue exitoso"
+          dependencies: ["task-2-2", "task-2-3"]
+
+        - id: "task-3-2"
+          name: "Verificación Post-Deploy"
+          description: "Ejecutar smoke tests y verificar que la aplicación responde correctamente"
+          order: 2
+          dynamicLinks:
+            - label: "Health Check"
+              urlTemplate: "https://{repository}-{environment}.example.com/health"
+              behavior: "auto"
+              delay: 3
+              requiresVariables: ["repository", "environment"]
+          evidence:
+            type: "both"
+            required: true
+            description: "Resultados de smoke tests y health checks"
+          dependencies: ["task-3-1"]
+
+        - id: "task-3-3"
+          name: "Actualizar Ticket y Documentación"
+          description: "Cerrar ticket de Jira y actualizar documentación de release"
+          order: 3
+          dynamicLinks:
+            - label: "Cerrar Ticket"
+              urlTemplate: "https://jira.atlassian.net/browse/{ticketId}"
+              behavior: "click"
+              requiresVariables: ["ticketId"]
+            - label: "Release Notes"
+              urlTemplate: "https://github.com/{organization}/{repository}/releases/new"
+              behavior: "click"
+              requiresVariables: ["organization", "repository"]
+          evidence:
+            type: "text"
+            required: false
+            description: "Link al ticket cerrado y release notes publicadas"
+          dependencies: ["task-3-2"]

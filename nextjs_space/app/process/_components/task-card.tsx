@@ -5,6 +5,7 @@ import { useProcessStore } from '@/lib/store';
 import { canCompleteTask } from '@/lib/helpers';
 import { useI18n } from '@/lib/i18n-context';
 import { CheckCircle2, Circle, Lock, ExternalLink, FileText, Image as ImageIcon } from 'lucide-react';
+import { DynamicLinksList } from './dynamic-link-button';
 
 interface TaskCardProps {
   task: TaskState;
@@ -131,6 +132,11 @@ export default function TaskCard({ task, phaseId, onViewEvidence }: TaskCardProp
               ))}
             </div>
           </div>
+        )}
+
+        {/* Dynamic Links */}
+        {task?.dynamicLinks && task.dynamicLinks.length > 0 && (
+          <DynamicLinksList links={task.dynamicLinks} taskId={task.id} phaseId={phaseId} />
         )}
 
         {/* Dependencies */}
