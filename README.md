@@ -6,7 +6,8 @@
 
 ## ✨ Características Principales
 
-- 📄 **Carga de Procesos YAML**: Define procesos con fases y tareas en formato YAML
+- � **Procesos Precargados**: Selecciona entre plantillas predefinidas (Auditoría IT, Release DevOps, Respuesta a Incidentes)
+- �📄 **Carga de Procesos YAML**: Define procesos con fases y tareas en formato YAML
 - 👣 **Ejecución Paso a Paso**: Navega por fases, visualiza tareas y márcalas como completadas
 - 📸 **Evidencia Completa**: Adjunta texto libre e imágenes (desde archivos locales o URLs)
 - 🔗 **Dependencias entre Tareas**: Las tareas se bloquean automáticamente hasta que sus dependencias estén completadas
@@ -20,7 +21,7 @@
 
 ## 🛠️ Stack Tecnológico
 
-- **Framework**: Next.js 14 (App Router)
+- **Framework**: Next.js 15 (App Router)
 - **Lenguaje**: TypeScript
 - **Estilos**: TailwindCSS
 - **Estado Global**: Zustand con persistencia
@@ -33,7 +34,7 @@
 
 ### Prerequisitos
 
-- Node.js 18+ y Yarn
+- Node.js 20+ y Yarn
 - (Opcional) Docker y Docker Compose para despliegue
 
 ### Instalación
@@ -69,12 +70,16 @@ AWS_SECRET_ACCESS_KEY=tu-secret-key
 ## 📝 Uso de la Aplicación
 ### 1. Cargar un Proceso
 
-En la pantalla de inicio, tienes dos opciones:
+En la pantalla de inicio, tienes tres opciones:
 
-- **Cargar YAML**: Sube un archivo `.yaml` que defina tu proceso
+- **Procesos Disponibles**: Selecciona una plantilla precargada:
+  - 🛡️ **Auditoría de Seguridad IT** - Proceso completo de auditoría (3 fases, 13 tareas)
+  - 🚀 **Release DevOps** - Liberación de software con validaciones (3 fases, 10 tareas)
+  - ⚠️ **Respuesta a Incidentes** - Procedimiento ante incidentes de seguridad (4 fases, 12 tareas)
+- **Cargar YAML**: Sube un archivo `.yaml` personalizado
 - **Importar JSON**: Carga un JSON previamente exportado para continuar un proceso incompleto
 
-**Ejemplo**: Usa el archivo `example-process.yaml` incluido en la raíz del proyecto (Auditoría de Seguridad IT con 3 fases y múltiples tareas).
+**Ejemplo**: También puedes usar el archivo `example-process.yaml` incluido en la raíz del proyecto.
 
 ### 2. Ejecutar el Proceso
 
@@ -134,11 +139,19 @@ docker-compose up --build
 process_tracker/
 ├── nextjs_space/              # Aplicación Next.js
 │   ├── app/                   # Rutas y páginas (App Router)
-│   │   ├── page.tsx           # Página de inicio (carga YAML/JSON)
+│   │   ├── page.tsx           # Página de inicio (templates + carga YAML/JSON)
 │   │   ├── process/           # Página de ejecución del proceso
 │   │   │   ├── page.tsx
 │   │   │   └── _components/   # Componentes (sidebar, task-card, evidence-modal, etc.)
-│   │   └── api/               # API routes (upload, presigned, complete, delete)
+│   │   └── api/               # API routes
+│   │       ├── upload/        # Upload de archivos
+│   │       └── processes/     # API de procesos precargados
+│   ├── data/                  # Datos estáticos
+│   │   └── processes/         # Plantillas YAML precargadas
+│   │       ├── index.json     # Índice de procesos disponibles
+│   │       ├── it-security-audit.yaml
+│   │       ├── devops-release.yaml
+│   │       └── incident-response.yaml
 │   ├── lib/                   # Lógica de negocio y utilidades
 │   │   ├── types.ts           # Tipos TypeScript
 │   │   ├── store.ts           # Zustand store con persistencia
@@ -168,11 +181,18 @@ Las contribuciones son bienvenidas. Por favor:
 
 ## 📝 Licencia
 
-Este proyecto es un MVP de demostración. Libre para uso educativo y comercial.
+Este proyecto DevSecOps' MVP de demostración. Libre para uso educativo y comercial.
 
 ## 📧 Contacto
 
 Para preguntas o soporte, abre un issue en el repositorio.
+
+## 📋 Historial de Cambios
+
+| Fecha | Versión | Descripción |
+|-------|---------|-------------|
+| 2026-03-27 | 1.1.0 | Procesos precargados (3 plantillas), API `/api/processes`, actualización a Next.js 15.1.3 |
+| 2026-03-01 | 1.0.0 | Versión inicial con carga YAML/JSON, evidencias, exportación Word |
 
 ---
 
