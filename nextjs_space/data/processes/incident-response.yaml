@@ -1,0 +1,181 @@
+process:
+  id: "incident-response-2026"
+  name: "Respuesta a Incidentes de Seguridad"
+  description: "Procedimiento estructurado de respuesta ante incidentes de seguridad informática"
+  version: "1.0.0"
+  phases:
+    - id: "phase-1-detection"
+      name: "Fase 1: Detección e Identificación"
+      description: "Detectar, identificar y clasificar el incidente de seguridad"
+      order: 1
+      tasks:
+        - id: "task-1-1"
+          name: "Registro Inicial del Incidente"
+          description: "Documentar la alerta o reporte inicial del incidente con timestamp y fuente"
+          order: 1
+          references:
+            - label: "NIST Incident Handling Guide"
+              url: "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-61r2.pdf"
+          evidence:
+            type: "text"
+            required: true
+            description: "Descripción inicial del incidente con fecha, hora y fuente de detección"
+          dependencies: []
+
+        - id: "task-1-2"
+          name: "Clasificación de Severidad"
+          description: "Asignar nivel de severidad (Crítico, Alto, Medio, Bajo) según impacto potencial"
+          order: 2
+          references:
+            - label: "Incident Severity Levels"
+              url: "https://www.atlassian.com/incident-management/kpis/severity-levels"
+          evidence:
+            type: "text"
+            required: true
+            description: "Justificación de la clasificación de severidad asignada"
+          dependencies: ["task-1-1"]
+
+        - id: "task-1-3"
+          name: "Notificación al Equipo de Respuesta"
+          description: "Notificar al equipo de respuesta a incidentes según el nivel de severidad"
+          order: 3
+          references:
+            - label: "Incident Response Team Roles"
+              url: "https://www.sans.org/white-papers/incident-handlers-handbook/"
+          evidence:
+            type: "text"
+            required: true
+            description: "Lista de personas notificadas y canales utilizados"
+          dependencies: ["task-1-2"]
+
+    - id: "phase-2-containment"
+      name: "Fase 2: Contención"
+      description: "Contener el incidente para evitar propagación y daños adicionales"
+      order: 2
+      tasks:
+        - id: "task-2-1"
+          name: "Aislamiento de Sistemas Afectados"
+          description: "Aislar sistemas comprometidos de la red para evitar propagación"
+          order: 1
+          references:
+            - label: "Network Isolation Techniques"
+              url: "https://www.crowdstrike.com/cybersecurity-101/incident-response/"
+          evidence:
+            type: "both"
+            required: true
+            description: "Documentación de sistemas aislados y método de aislamiento"
+          dependencies: ["task-1-3"]
+
+        - id: "task-2-2"
+          name: "Preservación de Evidencia"
+          description: "Crear imágenes forenses y preservar logs antes de cualquier remediación"
+          order: 2
+          references:
+            - label: "Digital Forensics Guide"
+              url: "https://www.sans.org/white-papers/digital-forensics-analysis/"
+          evidence:
+            type: "both"
+            required: true
+            description: "Hashes de imágenes forenses y ubicación de backups de evidencia"
+          dependencies: ["task-2-1"]
+
+        - id: "task-2-3"
+          name: "Bloqueo de Vectores de Ataque"
+          description: "Bloquear IPs, dominios, usuarios o accesos identificados como maliciosos"
+          order: 3
+          references:
+            - label: "IOC Blocking Best Practices"
+              url: "https://www.mitre.org/sites/default/files/publications/pr-13-1028-mitre-10-strategies-cyber-ops-center.pdf"
+          evidence:
+            type: "text"
+            required: true
+            description: "Lista de IOCs bloqueados (IPs, dominios, hashes)"
+          dependencies: ["task-2-1"]
+
+    - id: "phase-3-eradication"
+      name: "Fase 3: Erradicación y Recuperación"
+      description: "Eliminar la amenaza y restaurar los sistemas a operación normal"
+      order: 3
+      tasks:
+        - id: "task-3-1"
+          name: "Eliminación de Malware/Amenaza"
+          description: "Remover completamente el malware, backdoors o accesos no autorizados"
+          order: 1
+          references:
+            - label: "Malware Removal Guide"
+              url: "https://www.cisa.gov/news-events/news/security-tip-st04-001"
+          evidence:
+            type: "both"
+            required: true
+            description: "Documentación de artefactos eliminados y herramientas utilizadas"
+          dependencies: ["task-2-2", "task-2-3"]
+
+        - id: "task-3-2"
+          name: "Restauración de Sistemas"
+          description: "Restaurar sistemas desde backups limpios o reimagen según sea necesario"
+          order: 2
+          references:
+            - label: "System Recovery Procedures"
+              url: "https://www.ready.gov/it-disaster-recovery-plan"
+          evidence:
+            type: "both"
+            required: true
+            description: "Evidencia de restauración y verificación de integridad"
+          dependencies: ["task-3-1"]
+
+        - id: "task-3-3"
+          name: "Verificación de Remediación"
+          description: "Ejecutar escaneos de seguridad para confirmar que la amenaza fue eliminada"
+          order: 3
+          references:
+            - label: "Post-Incident Scanning"
+              url: "https://www.nist.gov/cyberframework"
+          evidence:
+            type: "both"
+            required: true
+            description: "Reportes de escaneo post-remediación"
+          dependencies: ["task-3-2"]
+
+    - id: "phase-4-lessons"
+      name: "Fase 4: Lecciones Aprendidas"
+      description: "Documentar el incidente y mejoras para prevenir futuros incidentes"
+      order: 4
+      tasks:
+        - id: "task-4-1"
+          name: "Reunión Post-Mortem"
+          description: "Realizar reunión con todos los involucrados para analizar el incidente"
+          order: 1
+          references:
+            - label: "Blameless Post-Mortem Guide"
+              url: "https://sre.google/sre-book/postmortem-culture/"
+          evidence:
+            type: "text"
+            required: true
+            description: "Acta de reunión post-mortem con asistentes y conclusiones"
+          dependencies: ["task-3-3"]
+
+        - id: "task-4-2"
+          name: "Documentación del Incidente"
+          description: "Crear reporte completo del incidente con timeline, acciones y lecciones"
+          order: 2
+          references:
+            - label: "Incident Report Template"
+              url: "https://www.sans.org/score/incident-forms"
+          evidence:
+            type: "text"
+            required: true
+            description: "Reporte final del incidente"
+          dependencies: ["task-4-1"]
+
+        - id: "task-4-3"
+          name: "Plan de Mejoras"
+          description: "Definir acciones de mejora para prevenir incidentes similares"
+          order: 3
+          references:
+            - label: "Continuous Improvement in Security"
+              url: "https://www.iso.org/standard/27001"
+          evidence:
+            type: "text"
+            required: true
+            description: "Plan de mejoras con responsables y fechas de implementación"
+          dependencies: ["task-4-2"]

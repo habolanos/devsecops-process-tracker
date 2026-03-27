@@ -1,0 +1,152 @@
+process:
+  id: "devops-release-2026"
+  name: "Release DevOps"
+  description: "Proceso de liberación de software con validaciones de calidad y seguridad"
+  version: "1.0.0"
+  phases:
+    - id: "phase-1-preparation"
+      name: "Fase 1: Preparación del Release"
+      description: "Preparar el código, documentación y validaciones previas al release"
+      order: 1
+      tasks:
+        - id: "task-1-1"
+          name: "Revisión de Code Freeze"
+          description: "Verificar que el código está congelado y no hay commits pendientes críticos"
+          order: 1
+          references:
+            - label: "Git Flow Documentation"
+              url: "https://nvie.com/posts/a-successful-git-branching-model/"
+          evidence:
+            type: "text"
+            required: true
+            description: "Lista de últimos commits y confirmación de code freeze"
+          dependencies: []
+
+        - id: "task-1-2"
+          name: "Validación de Tests Unitarios"
+          description: "Ejecutar suite completa de tests unitarios y verificar cobertura mínima"
+          order: 2
+          references:
+            - label: "Jest Documentation"
+              url: "https://jestjs.io/docs/getting-started"
+          evidence:
+            type: "both"
+            required: true
+            description: "Reporte de cobertura y resultados de tests"
+          dependencies: ["task-1-1"]
+
+        - id: "task-1-3"
+          name: "Análisis de Código Estático"
+          description: "Ejecutar SonarQube o herramienta similar para detectar code smells y vulnerabilidades"
+          order: 3
+          references:
+            - label: "SonarQube Documentation"
+              url: "https://docs.sonarqube.org/"
+          evidence:
+            type: "both"
+            required: true
+            description: "Reporte de SonarQube con métricas de calidad"
+          dependencies: ["task-1-1"]
+
+    - id: "phase-2-security"
+      name: "Fase 2: Validaciones de Seguridad"
+      description: "Ejecutar escaneos de seguridad y validar dependencias"
+      order: 2
+      tasks:
+        - id: "task-2-1"
+          name: "Escaneo de Dependencias (SCA)"
+          description: "Verificar vulnerabilidades en dependencias con Snyk, Dependabot o similar"
+          order: 1
+          references:
+            - label: "Snyk Documentation"
+              url: "https://docs.snyk.io/"
+            - label: "OWASP Dependency Check"
+              url: "https://owasp.org/www-project-dependency-check/"
+          evidence:
+            type: "both"
+            required: true
+            description: "Reporte de vulnerabilidades en dependencias"
+          dependencies: ["task-1-3"]
+
+        - id: "task-2-2"
+          name: "Escaneo SAST"
+          description: "Ejecutar análisis de seguridad estático del código fuente"
+          order: 2
+          references:
+            - label: "Semgrep Documentation"
+              url: "https://semgrep.dev/docs/"
+          evidence:
+            type: "both"
+            required: true
+            description: "Reporte SAST con hallazgos y remediaciones"
+          dependencies: ["task-1-3"]
+
+        - id: "task-2-3"
+          name: "Validación de Secrets"
+          description: "Verificar que no hay secrets expuestos en el código con GitLeaks o similar"
+          order: 3
+          references:
+            - label: "GitLeaks Documentation"
+              url: "https://github.com/gitleaks/gitleaks"
+          evidence:
+            type: "text"
+            required: true
+            description: "Confirmación de escaneo de secrets sin hallazgos"
+          dependencies: ["task-1-1"]
+
+    - id: "phase-3-deployment"
+      name: "Fase 3: Despliegue y Validación"
+      description: "Realizar el despliegue y validar el funcionamiento en ambiente destino"
+      order: 3
+      tasks:
+        - id: "task-3-1"
+          name: "Despliegue en Staging"
+          description: "Realizar despliegue en ambiente de staging/pre-producción"
+          order: 1
+          references:
+            - label: "Kubernetes Deployment Guide"
+              url: "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/"
+          evidence:
+            type: "both"
+            required: true
+            description: "Logs de despliegue y confirmación de pods running"
+          dependencies: ["task-2-1", "task-2-2", "task-2-3"]
+
+        - id: "task-3-2"
+          name: "Pruebas de Integración"
+          description: "Ejecutar suite de pruebas de integración en staging"
+          order: 2
+          references:
+            - label: "Integration Testing Best Practices"
+              url: "https://martinfowler.com/bliki/IntegrationTest.html"
+          evidence:
+            type: "both"
+            required: true
+            description: "Resultados de pruebas de integración"
+          dependencies: ["task-3-1"]
+
+        - id: "task-3-3"
+          name: "Smoke Tests en Producción"
+          description: "Ejecutar smoke tests post-despliegue en producción"
+          order: 3
+          references:
+            - label: "Smoke Testing Guide"
+              url: "https://www.guru99.com/smoke-testing.html"
+          evidence:
+            type: "both"
+            required: true
+            description: "Evidencia de smoke tests exitosos"
+          dependencies: ["task-3-2"]
+
+        - id: "task-3-4"
+          name: "Documentar Release Notes"
+          description: "Crear y publicar release notes con cambios, fixes y mejoras"
+          order: 4
+          references:
+            - label: "Keep a Changelog"
+              url: "https://keepachangelog.com/"
+          evidence:
+            type: "text"
+            required: true
+            description: "Release notes publicadas"
+          dependencies: ["task-3-3"]

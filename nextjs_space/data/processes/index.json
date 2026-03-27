@@ -1,0 +1,31 @@
+{
+  "processes": [
+    {
+      "id": "it-security-audit",
+      "name": "Auditoría de Seguridad IT",
+      "description": "Proceso completo de auditoría de seguridad de sistemas de información",
+      "category": "security",
+      "icon": "shield",
+      "file": "it-security-audit.yaml",
+      "version": "1.0.0"
+    },
+    {
+      "id": "devops-release",
+      "name": "Release DevOps",
+      "description": "Proceso de liberación de software con validaciones de calidad y seguridad",
+      "category": "devops",
+      "icon": "rocket",
+      "file": "devops-release.yaml",
+      "version": "1.0.0"
+    },
+    {
+      "id": "incident-response",
+      "name": "Respuesta a Incidentes",
+      "description": "Procedimiento de respuesta ante incidentes de seguridad",
+      "category": "security",
+      "icon": "alert-triangle",
+      "file": "incident-response.yaml",
+      "version": "1.0.0"
+    }
+  ]
+}

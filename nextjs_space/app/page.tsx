@@ -1,12 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { parseYAMLToProcess } from '@/lib/yaml-parser';
 import { importProcessFromJSON } from '@/lib/json-utils';
 import { useProcessStore } from '@/lib/store';
 import { useI18n } from '@/lib/i18n-context';
-import { Upload, FileText, Globe } from 'lucide-react';
+import { Upload, FileText, Globe, Shield, Rocket, AlertTriangle, FolderOpen } from 'lucide-react';
+
+interface ProcessTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  icon: string;
+  file: string;
+  version: string;
+}
 
 export default function HomePage() {
   const router = useRouter();
@@ -15,6 +25,63 @@ export default function HomePage() {
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [templates, setTemplates] = useState<ProcessTemplate[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
+
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const response = await fetch('/api/processes');
+        if (response.ok) {
+          const data = await response.json();
+          setTemplates(data.processes || []);
+        }
+      } catch (err) {
+        console.error('Error loading templates:', err);
+      } finally {
+        setLoadingTemplates(false);
+      }
+    };
+    fetchTemplates();
+  }, []);
+
+  const handleSelectTemplate = async (templateId: string) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/processes/${templateId}`);
+      if (!response.ok) {
+        throw new Error('Error al cargar el proceso');
+      }
+      const data = await response.json();
+      const process = parseYAMLToProcess(data.content);
+      loadProcess?.(process);
+      router.push('/process');
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Error desconocido';
+      setError(errorMsg);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getIconComponent = (iconName: string) => {
+    const icons: Record<string, React.ReactNode> = {
+      'shield': <Shield className="w-8 h-8 text-emerald-600" />,
+      'rocket': <Rocket className="w-8 h-8 text-blue-600" />,
+      'alert-triangle': <AlertTriangle className="w-8 h-8 text-amber-600" />,
+    };
+    return icons[iconName] || <FileText className="w-8 h-8 text-gray-600" />;
+  };
+
+  const getCategoryColor = (category: string) => {
+    const colors: Record<string, string> = {
+      'security': 'bg-emerald-100 text-emerald-700 border-emerald-200',
+      'devops': 'bg-blue-100 text-blue-700 border-blue-200',
+    };
+    return colors[category] || 'bg-gray-100 text-gray-700 border-gray-200';
+  };
 
   const handleFileUpload = async (file: File, type: 'yaml' | 'json') => {
     setIsLoading(true);
@@ -100,6 +167,74 @@ export default function HomePage() {
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             {t('app.subtitle')}
           </p>
+        </div>
+
+        {/* Process Templates Section */}
+        {templates.length > 0 && (
+          <div className="mb-16">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center">
+                <FolderOpen className="w-5 h-5 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900">
+                {language === 'es' ? 'Procesos Disponibles' : 'Available Processes'}
+              </h3>
+            </div>
+            
+            <div className="grid md:grid-cols-3 gap-6">
+              {templates.map((template) => (
+                <button
+                  key={template.id}
+                  onClick={() => handleSelectTemplate(template.id)}
+                  disabled={isLoading}
+                  className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-all text-left group hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed border border-gray-100"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-14 h-14 bg-gray-50 rounded-xl flex items-center justify-center group-hover:bg-gray-100 transition-colors">
+                      {getIconComponent(template.icon)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-gray-900 mb-1 truncate">
+                        {template.name}
+                      </h4>
+                      <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full border ${getCategoryColor(template.category)}`}>
+                        {template.category}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="mt-4 text-sm text-gray-600 line-clamp-2">
+                    {template.description}
+                  </p>
+                  <div className="mt-4 flex items-center justify-between">
+                    <span className="text-xs text-gray-400">v{template.version}</span>
+                    <span className="text-xs text-blue-600 font-medium group-hover:text-blue-700">
+                      {language === 'es' ? 'Seleccionar →' : 'Select →'}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {loadingTemplates && (
+          <div className="mb-16 text-center">
+            <div className="inline-flex items-center gap-3 px-6 py-3 bg-white rounded-lg shadow-md">
+              <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+              <span className="text-gray-700">
+                {language === 'es' ? 'Cargando procesos...' : 'Loading processes...'}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Divider */}
+        <div className="flex items-center gap-4 mb-12 max-w-4xl mx-auto">
+          <div className="flex-1 h-px bg-gray-200" />
+          <span className="text-sm text-gray-500 font-medium">
+            {language === 'es' ? 'O carga tu propio proceso' : 'Or upload your own process'}
+          </span>
+          <div className="flex-1 h-px bg-gray-200" />
         </div>
 
         {/* Upload Cards */}
