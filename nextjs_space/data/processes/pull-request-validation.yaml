@@ -1,0 +1,494 @@
+process:
+  id: "pull-request-validation-2026"
+  name: "Validación de Pull Request"
+  description: "Proceso completo para aceptación de Pull Request incluyendo validación de CI/CD, tags, breakers y evidencia de despliegue"
+  version: "1.0.0"
+  
+  variables:
+    - key: "organization"
+      label: "Organización (GitHub/GitLab)"
+      type: "text"
+      required: true
+      placeholder: "ej: mi-empresa"
+    - key: "repository"
+      label: "Nombre del Repositorio"
+      type: "text"
+      required: true
+      placeholder: "ej: backend-api"
+    - key: "prNumber"
+      label: "Número del Pull Request"
+      type: "text"
+      required: true
+      placeholder: "ej: 123"
+    - key: "targetBranch"
+      label: "Branch Destino"
+      type: "select"
+      required: true
+      options:
+        - "main"
+        - "develop"
+        - "release"
+        - "hotfix"
+    - key: "tagVersion"
+      label: "Versión del Tag"
+      type: "text"
+      required: true
+      placeholder: "ej: v1.2.3"
+    - key: "environment"
+      label: "Ambiente de Validación"
+      type: "select"
+      required: true
+      options:
+        - "development"
+        - "staging"
+        - "uat"
+        - "production"
+    - key: "artifactRegistry"
+      label: "Registry de Artefactos"
+      type: "select"
+      required: false
+      options:
+        - "docker-hub"
+        - "ecr"
+        - "gcr"
+        - "acr"
+        - "nexus"
+      defaultValue: "ecr"
+    - key: "jiraTicket"
+      label: "Ticket Jira Asociado"
+      type: "text"
+      required: false
+      placeholder: "ej: PROJ-456"
+
+  phases:
+    - id: "phase-1-pr-review"
+      name: "Fase 1: Revisión del Pull Request"
+      description: "Validar información básica del PR, commits y conflictos"
+      order: 1
+      dynamicLinks:
+        - label: "Ver Pull Request"
+          urlTemplate: "https://github.com/{organization}/{repository}/pull/{prNumber}"
+          behavior: "auto"
+          delay: 1
+          requiresVariables: ["organization", "repository", "prNumber"]
+        - label: "Jira Ticket"
+          urlTemplate: "https://jira.atlassian.net/browse/{jiraTicket}"
+          behavior: "click"
+          requiresVariables: ["jiraTicket"]
+      tasks:
+        - id: "task-1-1"
+          name: "Verificar Información del PR"
+          description: "Revisar título, descripción, labels y reviewers asignados al Pull Request"
+          order: 1
+          dynamicLinks:
+            - label: "Detalles del PR"
+              urlTemplate: "https://github.com/{organization}/{repository}/pull/{prNumber}"
+              behavior: "click"
+              requiresVariables: ["organization", "repository", "prNumber"]
+            - label: "Conversación"
+              urlTemplate: "https://github.com/{organization}/{repository}/pull/{prNumber}#discussion_bucket"
+              behavior: "click"
+              requiresVariables: ["organization", "repository", "prNumber"]
+          evidence:
+            type: "both"
+            required: true
+            description: "Captura del PR mostrando título, descripción y reviewers"
+          dependencies: []
+
+        - id: "task-1-2"
+          name: "Revisar Commits del PR"
+          description: "Verificar que los commits sigan convenciones (conventional commits) y estén correctamente firmados"
+          order: 2
+          dynamicLinks:
+            - label: "Lista de Commits"
+              urlTemplate: "https://github.com/{organization}/{repository}/pull/{prNumber}/commits"
+              behavior: "auto"
+              delay: 0
+              requiresVariables: ["organization", "repository", "prNumber"]
+          references:
+            - label: "Conventional Commits"
+              url: "https://www.conventionalcommits.org/"
+          evidence:
+            type: "both"
+            required: true
+            description: "Captura de la lista de commits y verificación de convenciones"
+          dependencies: ["task-1-1"]
+
+        - id: "task-1-3"
+          name: "Verificar Ausencia de Conflictos"
+          description: "Confirmar que el PR no tiene conflictos con el branch destino"
+          order: 3
+          dynamicLinks:
+            - label: "Estado del Merge"
+              urlTemplate: "https://github.com/{organization}/{repository}/pull/{prNumber}#partial-pull-merging"
+              behavior: "click"
+              requiresVariables: ["organization", "repository", "prNumber"]
+          evidence:
+            type: "image"
+            required: true
+            description: "Captura mostrando 'This branch has no conflicts with the base branch'"
+          dependencies: ["task-1-2"]
+
+    - id: "phase-2-tag-validation"
+      name: "Fase 2: Validación de Tag y Versionado"
+      description: "Verificar que el tag de versión sea correcto y siga semantic versioning"
+      order: 2
+      dynamicLinks:
+        - label: "Tags del Repo"
+          urlTemplate: "https://github.com/{organization}/{repository}/tags"
+          behavior: "click"
+          requiresVariables: ["organization", "repository"]
+        - label: "Releases"
+          urlTemplate: "https://github.com/{organization}/{repository}/releases"
+          behavior: "click"
+          requiresVariables: ["organization", "repository"]
+      tasks:
+        - id: "task-2-1"
+          name: "Validar Formato del Tag"
+          description: "Verificar que el tag sigue el formato semántico (vX.Y.Z) y es consistente con el changelog"
+          order: 1
+          dynamicLinks:
+            - label: "Ver Tag"
+              urlTemplate: "https://github.com/{organization}/{repository}/releases/tag/{tagVersion}"
+              behavior: "click"
+              requiresVariables: ["organization", "repository", "tagVersion"]
+            - label: "Changelog"
+              urlTemplate: "https://github.com/{organization}/{repository}/blob/{targetBranch}/CHANGELOG.md"
+              behavior: "click"
+              requiresVariables: ["organization", "repository", "targetBranch"]
+          references:
+            - label: "Semantic Versioning"
+              url: "https://semver.org/"
+          evidence:
+            type: "both"
+            required: true
+            description: "Captura del tag y verificación de que coincide con CHANGELOG"
+          dependencies: ["task-1-3"]
+
+        - id: "task-2-2"
+          name: "Verificar Incremento de Versión"
+          description: "Confirmar que la versión se incrementó correctamente según los cambios (major/minor/patch)"
+          order: 2
+          dynamicLinks:
+            - label: "Comparar Versiones"
+              urlTemplate: "https://github.com/{organization}/{repository}/compare/{tagVersion}...{targetBranch}"
+              behavior: "click"
+              requiresVariables: ["organization", "repository", "tagVersion", "targetBranch"]
+          evidence:
+            type: "text"
+            required: true
+            description: "Justificación del tipo de incremento de versión aplicado"
+          dependencies: ["task-2-1"]
+
+        - id: "task-2-3"
+          name: "Validar package.json/pom.xml"
+          description: "Verificar que los archivos de configuración tengan la versión actualizada"
+          order: 3
+          dynamicLinks:
+            - label: "Ver package.json"
+              urlTemplate: "https://github.com/{organization}/{repository}/blob/{targetBranch}/package.json"
+              behavior: "click"
+              requiresVariables: ["organization", "repository", "targetBranch"]
+          evidence:
+            type: "image"
+            required: true
+            description: "Captura del archivo de configuración mostrando la versión correcta"
+          dependencies: ["task-2-1"]
+
+    - id: "phase-3-ci-validation"
+      name: "Fase 3: Validación Pipeline CI"
+      description: "Verificar que el pipeline de CI ejecutó correctamente y el artefacto fue publicado"
+      order: 3
+      dynamicLinks:
+        - label: "GitHub Actions"
+          urlTemplate: "https://github.com/{organization}/{repository}/actions"
+          behavior: "auto"
+          delay: 0
+          requiresVariables: ["organization", "repository"]
+      tasks:
+        - id: "task-3-1"
+          name: "Verificar Ejecución del Pipeline CI"
+          description: "Confirmar que el pipeline de CI se ejecutó exitosamente para el PR"
+          order: 1
+          dynamicLinks:
+            - label: "Checks del PR"
+              urlTemplate: "https://github.com/{organization}/{repository}/pull/{prNumber}/checks"
+              behavior: "auto"
+              delay: 1
+              requiresVariables: ["organization", "repository", "prNumber"]
+            - label: "Workflow Runs"
+              urlTemplate: "https://github.com/{organization}/{repository}/actions?query=branch%3A{targetBranch}"
+              behavior: "click"
+              requiresVariables: ["organization", "repository", "targetBranch"]
+          evidence:
+            type: "both"
+            required: true
+            description: "Captura del pipeline CI mostrando todos los jobs en verde"
+          dependencies: ["task-2-2", "task-2-3"]
+
+        - id: "task-3-2"
+          name: "Verificar Build del Componente"
+          description: "Confirmar que el componente compiló correctamente y los artefactos fueron generados"
+          order: 2
+          dynamicLinks:
+            - label: "Build Logs"
+              urlTemplate: "https://github.com/{organization}/{repository}/actions?query=workflow%3Abuild"
+              behavior: "click"
+              requiresVariables: ["organization", "repository"]
+          evidence:
+            type: "both"
+            required: true
+            description: "Captura del log de build mostrando compilación exitosa y artefactos generados"
+          dependencies: ["task-3-1"]
+
+        - id: "task-3-3"
+          name: "Verificar Publicación de Artefacto"
+          description: "Confirmar que el artefacto/imagen Docker fue publicado al registry correspondiente"
+          order: 3
+          dynamicLinks:
+            - label: "Container Registry"
+              urlTemplate: "https://github.com/{organization}/{repository}/pkgs/container/{repository}"
+              behavior: "click"
+              requiresVariables: ["organization", "repository"]
+          evidence:
+            type: "both"
+            required: true
+            description: "Captura del registry mostrando la imagen con el tag correcto"
+          dependencies: ["task-3-2"]
+
+        - id: "task-3-4"
+          name: "Verificar Tests Automatizados"
+          description: "Confirmar que todos los tests (unit, integration, e2e) pasaron correctamente"
+          order: 4
+          dynamicLinks:
+            - label: "Test Results"
+              urlTemplate: "https://github.com/{organization}/{repository}/actions?query=workflow%3Atest"
+              behavior: "click"
+              requiresVariables: ["organization", "repository"]
+          evidence:
+            type: "both"
+            required: true
+            description: "Captura del reporte de tests mostrando cobertura y resultados"
+          dependencies: ["task-3-1"]
+
+        - id: "task-3-5"
+          name: "Verificar Análisis de Código"
+          description: "Confirmar que el análisis estático (SonarQube, CodeClimate) no tiene issues críticos"
+          order: 5
+          dynamicLinks:
+            - label: "SonarCloud"
+              urlTemplate: "https://sonarcloud.io/project/overview?id={organization}_{repository}"
+              behavior: "click"
+              requiresVariables: ["organization", "repository"]
+            - label: "Security Scan"
+              urlTemplate: "https://github.com/{organization}/{repository}/security/code-scanning"
+              behavior: "click"
+              requiresVariables: ["organization", "repository"]
+          evidence:
+            type: "both"
+            required: true
+            description: "Captura del dashboard de calidad mostrando Quality Gate passed"
+          dependencies: ["task-3-1"]
+
+    - id: "phase-4-breakers-validation"
+      name: "Fase 4: Validación de Circuit Breakers"
+      description: "Verificar que los circuit breakers y feature flags estén configurados correctamente"
+      order: 4
+      tasks:
+        - id: "task-4-1"
+          name: "Verificar Circuit Breakers Activos"
+          description: "Confirmar que los circuit breakers están habilitados y configurados para el ambiente target"
+          order: 1
+          dynamicLinks:
+            - label: "Health Check"
+              urlTemplate: "https://{repository}-{environment}.example.com/actuator/health"
+              behavior: "click"
+              requiresVariables: ["repository", "environment"]
+            - label: "Circuit Breaker Status"
+              urlTemplate: "https://{repository}-{environment}.example.com/actuator/circuitbreakers"
+              behavior: "click"
+              requiresVariables: ["repository", "environment"]
+          references:
+            - label: "Resilience4j Circuit Breaker"
+              url: "https://resilience4j.readme.io/docs/circuitbreaker"
+          evidence:
+            type: "both"
+            required: true
+            description: "Captura del endpoint de health mostrando circuit breakers activos"
+          dependencies: ["task-3-3"]
+
+        - id: "task-4-2"
+          name: "Verificar Feature Flags"
+          description: "Confirmar que los feature flags están configurados correctamente para el release"
+          order: 2
+          dynamicLinks:
+            - label: "LaunchDarkly"
+              urlTemplate: "https://app.launchdarkly.com/default/{environment}/features"
+              behavior: "click"
+              requiresVariables: ["environment"]
+          evidence:
+            type: "both"
+            required: true
+            description: "Captura de la configuración de feature flags para el ambiente"
+          dependencies: ["task-4-1"]
+
+        - id: "task-4-3"
+          name: "Verificar Configuración de Fallbacks"
+          description: "Confirmar que los fallbacks están configurados para servicios externos"
+          order: 3
+          evidence:
+            type: "text"
+            required: true
+            description: "Descripción de los fallbacks configurados y su comportamiento esperado"
+          dependencies: ["task-4-1"]
+
+    - id: "phase-5-cd-validation"
+      name: "Fase 5: Validación Pipeline CD"
+      description: "Verificar despliegue exitoso en el ambiente y ejecución completa del release"
+      order: 5
+      dynamicLinks:
+        - label: "Deployments"
+          urlTemplate: "https://github.com/{organization}/{repository}/deployments"
+          behavior: "auto"
+          delay: 2
+          requiresVariables: ["organization", "repository"]
+      tasks:
+        - id: "task-5-1"
+          name: "Verificar Ejecución Pipeline CD"
+          description: "Confirmar que el pipeline de CD se ejecutó completamente sin errores"
+          order: 1
+          dynamicLinks:
+            - label: "Deploy Workflow"
+              urlTemplate: "https://github.com/{organization}/{repository}/actions?query=workflow%3Adeploy"
+              behavior: "auto"
+              delay: 1
+              requiresVariables: ["organization", "repository"]
+            - label: "Environment Deployments"
+              urlTemplate: "https://github.com/{organization}/{repository}/deployments/activity_log?environment={environment}"
+              behavior: "click"
+              requiresVariables: ["organization", "repository", "environment"]
+          evidence:
+            type: "both"
+            required: true
+            description: "Captura del pipeline CD mostrando todos los stages completados"
+          dependencies: ["task-4-2", "task-4-3"]
+
+        - id: "task-5-2"
+          name: "Verificar Despliegue en Ambiente"
+          description: "Confirmar que la aplicación está corriendo con la versión correcta en el ambiente"
+          order: 2
+          dynamicLinks:
+            - label: "Application URL"
+              urlTemplate: "https://{repository}-{environment}.example.com"
+              behavior: "auto"
+              delay: 3
+              requiresVariables: ["repository", "environment"]
+            - label: "Version Endpoint"
+              urlTemplate: "https://{repository}-{environment}.example.com/api/version"
+              behavior: "click"
+              requiresVariables: ["repository", "environment"]
+          evidence:
+            type: "both"
+            required: true
+            description: "Captura mostrando la aplicación corriendo con la versión del tag"
+          dependencies: ["task-5-1"]
+
+        - id: "task-5-3"
+          name: "Ejecutar Smoke Tests"
+          description: "Ejecutar smoke tests post-deploy para verificar funcionalidad básica"
+          order: 3
+          dynamicLinks:
+            - label: "Smoke Test Workflow"
+              urlTemplate: "https://github.com/{organization}/{repository}/actions?query=workflow%3Asmoke-test"
+              behavior: "click"
+              requiresVariables: ["organization", "repository"]
+          evidence:
+            type: "both"
+            required: true
+            description: "Captura de los resultados de smoke tests exitosos"
+          dependencies: ["task-5-2"]
+
+        - id: "task-5-4"
+          name: "Verificar Logs y Métricas"
+          description: "Revisar que no hay errores en logs y las métricas son normales post-deploy"
+          order: 4
+          dynamicLinks:
+            - label: "Grafana Dashboard"
+              urlTemplate: "https://grafana.example.com/d/{repository}-{environment}"
+              behavior: "click"
+              requiresVariables: ["repository", "environment"]
+            - label: "CloudWatch Logs"
+              urlTemplate: "https://console.aws.amazon.com/cloudwatch/home#logsV2:log-groups/log-group/{repository}-{environment}"
+              behavior: "click"
+              requiresVariables: ["repository", "environment"]
+          evidence:
+            type: "both"
+            required: true
+            description: "Captura de dashboards mostrando métricas saludables y sin errores"
+          dependencies: ["task-5-2"]
+
+    - id: "phase-6-approval"
+      name: "Fase 6: Aprobación Final del PR"
+      description: "Documentar la revisión final y aprobar el Pull Request"
+      order: 6
+      dynamicLinks:
+        - label: "Aprobar PR"
+          urlTemplate: "https://github.com/{organization}/{repository}/pull/{prNumber}/files#submit-review"
+          behavior: "click"
+          requiresVariables: ["organization", "repository", "prNumber"]
+      tasks:
+        - id: "task-6-1"
+          name: "Revisar Checklist de Validación"
+          description: "Confirmar que todas las validaciones anteriores fueron completadas satisfactoriamente"
+          order: 1
+          evidence:
+            type: "text"
+            required: true
+            description: "Resumen de todas las validaciones completadas"
+          dependencies: ["task-5-3", "task-5-4"]
+
+        - id: "task-6-2"
+          name: "Agregar Review Comments"
+          description: "Documentar observaciones o mejoras identificadas durante la revisión"
+          order: 2
+          dynamicLinks:
+            - label: "Agregar Comentario"
+              urlTemplate: "https://github.com/{organization}/{repository}/pull/{prNumber}#issuecomment-new"
+              behavior: "click"
+              requiresVariables: ["organization", "repository", "prNumber"]
+          evidence:
+            type: "text"
+            required: false
+            description: "Comentarios o sugerencias para el autor del PR"
+          dependencies: ["task-6-1"]
+
+        - id: "task-6-3"
+          name: "Aprobar Pull Request"
+          description: "Dar aprobación formal al PR y documentar la decisión"
+          order: 3
+          dynamicLinks:
+            - label: "Submit Review"
+              urlTemplate: "https://github.com/{organization}/{repository}/pull/{prNumber}/files#submit-review"
+              behavior: "auto"
+              delay: 0
+              requiresVariables: ["organization", "repository", "prNumber"]
+          evidence:
+            type: "image"
+            required: true
+            description: "Captura mostrando la aprobación del PR con comentario de revisión"
+          dependencies: ["task-6-1"]
+
+        - id: "task-6-4"
+          name: "Actualizar Ticket Jira"
+          description: "Mover el ticket a estado 'Ready for Merge' y documentar la revisión"
+          order: 4
+          dynamicLinks:
+            - label: "Actualizar Jira"
+              urlTemplate: "https://jira.atlassian.net/browse/{jiraTicket}"
+              behavior: "click"
+              requiresVariables: ["jiraTicket"]
+          evidence:
+            type: "image"
+            required: false
+            description: "Captura del ticket actualizado con el nuevo estado"
+          dependencies: ["task-6-3"]

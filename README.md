@@ -192,7 +192,8 @@ process_tracker/
 │   │       ├── it-security-audit.yaml
 │   │       ├── devops-release.yaml
 │   │       ├── incident-response.yaml
-│   │       └── devops-pipeline.yaml  # Con variables y links dinámicos
+│   │       ├── devops-pipeline.yaml  # Con variables y links dinámicos
+│   │       └── pull-request-validation.yaml  # Validación de PR (6 fases, 21 tareas)
 │   ├── lib/                   # Lógica de negocio y utilidades
 │   │   ├── types.ts           # Tipos TypeScript
 │   │   ├── store.ts           # Zustand store con persistencia
@@ -232,10 +233,11 @@ Para preguntas o soporte, abre un issue en el repositorio.
 
 | Fecha | Versión | Descripción |
 |-------|---------|-------------|
+| 2026-03-27 | 1.3.0 | Nuevo proceso `pull-request-validation.yaml` (6 fases, 21 tareas, 8 variables) |
 | 2026-03-27 | 1.2.0 | Variables de proceso y links dinámicos parametrizables, nuevo template `devops-pipeline.yaml` |
 | 2026-03-27 | 1.1.0 | Procesos precargados (3 plantillas), API `/api/processes`, actualización a Next.js 15.1.3 |
 | 2026-03-01 | 1.0.0 | Versión inicial con carga YAML/JSON, evidencias, exportación Word |
 
 ---
 
-**Process Tracker MVP** © 2026 - Desarrollado con ❤️ usando Next.js y TypeScript
+**Process Tracker MVP** © 2026 - Desarrollado por **Harold Adrian** con ❤️ usando Next.js y TypeScript

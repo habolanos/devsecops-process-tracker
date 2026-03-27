@@ -36,6 +36,16 @@
       "file": "devops-pipeline.yaml",
       "version": "1.0.0",
       "hasVariables": true
+    },
+    {
+      "id": "pull-request-validation",
+      "name": "Validación de Pull Request",
+      "description": "Proceso completo para aceptación de PR: validación CI/CD, tags, breakers y despliegue",
+      "category": "devops",
+      "icon": "git-pull-request",
+      "file": "pull-request-validation.yaml",
+      "version": "1.0.0",
+      "hasVariables": true
     }
   ]
 }

@@ -6,7 +6,7 @@ import { parseYAMLToProcess } from '@/lib/yaml-parser';
 import { importProcessFromJSON } from '@/lib/json-utils';
 import { useProcessStore } from '@/lib/store';
 import { useI18n } from '@/lib/i18n-context';
-import { Upload, FileText, Globe, Shield, Rocket, AlertTriangle, FolderOpen } from 'lucide-react';
+import { Upload, FileText, Globe, Shield, Rocket, AlertTriangle, FolderOpen, GitPullRequest } from 'lucide-react';
 
 interface ProcessTemplate {
   id: string;
@@ -71,6 +71,7 @@ export default function HomePage() {
       'shield': <Shield className="w-8 h-8 text-emerald-600" />,
       'rocket': <Rocket className="w-8 h-8 text-blue-600" />,
       'alert-triangle': <AlertTriangle className="w-8 h-8 text-amber-600" />,
+      'git-pull-request': <GitPullRequest className="w-8 h-8 text-purple-600" />,
     };
     return icons[iconName] || <FileText className="w-8 h-8 text-gray-600" />;
   };
