@@ -1,0 +1,76 @@
+{
+  "version": "1.0.0",
+  
+  "engineer": {
+    "name": "Harold Adrian",
+    "email": "harold.bolanos@empresa.com"
+  },
+  
+  "azureDevOps": {
+    "organization": "mi-organizacion",
+    "pat": "",
+    "projects": ["proyecto-principal", "proyecto-secundario"],
+    "repositories": ["backend-api", "frontend-app", "shared-libs"],
+    "environments": ["development", "staging", "uat", "production"],
+    "pipelines": ["CI-Pipeline", "CD-Pipeline", "Release-Pipeline"]
+  },
+  
+  "aws": {
+    "accountId": "123456789012",
+    "regions": ["us-east-1", "us-west-2", "eu-west-1"],
+    "clusters": [
+      { "name": "eks-prod-us-east", "region": "us-east-1", "environment": "production" },
+      { "name": "eks-staging-us-east", "region": "us-east-1", "environment": "staging" },
+      { "name": "eks-dev-us-west", "region": "us-west-2", "environment": "development" }
+    ],
+    "ecrRepositories": ["backend-api", "frontend-app", "worker-jobs"],
+    "s3Buckets": ["artifacts-prod", "artifacts-staging", "logs-prod"]
+  },
+  
+  "gcp": {
+    "projects": [
+      { "id": "mi-proyecto-prod", "name": "Producción" },
+      { "id": "mi-proyecto-dev", "name": "Desarrollo" }
+    ],
+    "regions": ["us-central1", "us-east1", "europe-west1"],
+    "clusters": [
+      { "name": "gke-prod-central", "project": "mi-proyecto-prod", "region": "us-central1", "environment": "production" },
+      { "name": "gke-staging-central", "project": "mi-proyecto-prod", "region": "us-central1", "environment": "staging" },
+      { "name": "gke-dev-east", "project": "mi-proyecto-dev", "region": "us-east1", "environment": "development" }
+    ],
+    "gcrRepositories": ["backend-api", "frontend-app", "batch-processor"],
+    "gcsBuckets": ["artifacts-prod", "backups-prod"]
+  },
+  
+  "azure": {
+    "subscriptionId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+    "resourceGroups": ["rg-production", "rg-staging", "rg-development"],
+    "regions": ["eastus", "westus", "eastus2"],
+    "clusters": [
+      { "name": "aks-prod-eastus", "resourceGroup": "rg-production", "region": "eastus", "environment": "production" },
+      { "name": "aks-staging-eastus", "resourceGroup": "rg-staging", "region": "eastus", "environment": "staging" },
+      { "name": "aks-dev-westus", "resourceGroup": "rg-development", "region": "westus", "environment": "development" }
+    ],
+    "acrRepositories": ["backend-api", "frontend-app", "nginx-proxy"]
+  },
+  
+  "namespaces": ["default", "backend", "frontend", "monitoring", "ingress"],
+  
+  "artifactRegistries": ["acr-production", "ecr-production", "gcr-production", "nexus-internal"],
+  
+  "jira": {
+    "baseUrl": "https://mi-empresa.atlassian.net",
+    "projectKeys": ["DEVOPS", "BACKEND", "INFRA"]
+  },
+  
+  "defaults": {
+    "project": "proyecto-principal",
+    "repository": "backend-api",
+    "environment": "staging",
+    "targetBranch": "main",
+    "cloudProvider": "azure",
+    "cluster": "aks-staging-eastus",
+    "namespace": "default",
+    "artifactRegistry": "acr-production"
+  }
+}

@@ -6,13 +6,15 @@ import { useProcessStore } from '@/lib/store';
 import { useI18n } from '@/lib/i18n-context';
 import { exportProcessToJSON, downloadJSON } from '@/lib/json-utils';
 import { generateWordDocument, downloadWordDocument } from '@/lib/word-generator';
-import { ArrowLeft, Download, FileText, CheckCircle2, Globe, Settings } from 'lucide-react';
+import { ArrowLeft, Download, FileText, CheckCircle2, Globe, Settings, FileJson } from 'lucide-react';
 import ProcessSidebar from './_components/process-sidebar';
 import TaskCard from './_components/task-card';
 import EvidenceModal from './_components/evidence-modal';
 import ProgressBar from './_components/progress-bar';
 import VariablesForm from './_components/variables-form';
+import { ConfigUpload } from './_components/config-upload';
 import { DynamicLinksList } from './_components/dynamic-link-button';
+import { useConfigStore } from '@/lib/config-store';
 
 export default function ProcessPage() {
   const router = useRouter();
@@ -27,6 +29,11 @@ export default function ProcessPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [showEvidenceModal, setShowEvidenceModal] = useState(false);
   const [showVariablesForm, setShowVariablesForm] = useState(false);
+  const [showConfigUpload, setShowConfigUpload] = useState(false);
+  
+  // Config store
+  const configIsLoaded = useConfigStore((state) => state.isLoaded);
+  const configFileName = useConfigStore((state) => state.fileName);
 
   useEffect(() => {
     if (!process) {
@@ -103,6 +110,20 @@ export default function ProcessPage() {
             </div>
 
             <div className="flex items-center gap-3">
+              {/* Config Upload Button */}
+              <button
+                onClick={() => setShowConfigUpload(true)}
+                className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors ${
+                  configIsLoaded 
+                    ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' 
+                    : 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100'
+                }`}
+                title={configIsLoaded ? `Config: ${configFileName}` : 'Cargar configuración DevOps'}
+              >
+                <FileJson className="w-4 h-4" />
+                <span className="font-medium">{configIsLoaded ? 'Config ✓' : 'Config'}</span>
+              </button>
+
               {/* Variables Button - only show if process has variables */}
               {process?.variableDefinitions && process.variableDefinitions.length > 0 && (
                 <button
@@ -221,6 +242,11 @@ export default function ProcessPage() {
         isOpen={showVariablesForm}
         onClose={() => setShowVariablesForm(false)}
       />
+
+      {/* Config Upload Modal */}
+      {showConfigUpload && (
+        <ConfigUpload onClose={() => setShowConfigUpload(false)} />
+      )}
     </div>
   );
 }

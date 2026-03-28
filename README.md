@@ -9,7 +9,8 @@
 - 📂 **Procesos Precargados**: Selecciona entre plantillas predefinidas (Auditoría IT, Release DevOps, Respuesta a Incidentes)
 - 🔗 **Links Dinámicos**: Links parametrizables con variables que el usuario captura en runtime
 - ⚙️ **Variables de Proceso**: Define variables (organization, projectId, repository) que activan links dinámicos
-- 📄 **Carga de Procesos YAML**: Define procesos con fases y tareas en formato YAML
+- � **Configuración DevOps**: Carga un archivo JSON con tu configuración de Azure DevOps, AWS, GCP y Azure para auto-llenar variables
+- � **Carga de Procesos YAML**: Define procesos con fases y tareas en formato YAML
 - 👣 **Ejecución Paso a Paso**: Navega por fases, visualiza tareas y márcalas como completadas
 - 📸 **Evidencia Completa**: Adjunta texto libre e imágenes (desde archivos locales o URLs)
 - 🔗 **Dependencias entre Tareas**: Las tareas se bloquean automáticamente hasta que sus dependencias estén completadas
@@ -164,6 +165,65 @@ Los procesos pueden definir **variables** que el usuario captura al inicio:
 
 **Ejemplo**: Ver `data/processes/devops-pipeline.yaml` para un proceso completo con variables y links dinámicos.
 
+### Configuración DevOps (Auto-fill)
+
+Puedes cargar un archivo `devops-config.json` para **auto-llenar variables** en los procesos:
+
+1. Haz clic en el botón **"Config"** en la barra de herramientas
+2. **Opción A**: Genera un template personalizado con **"Generar Config para este proceso"** (incluye solo las secciones necesarias)
+3. **Opción B**: Descarga la plantilla completa de ejemplo
+4. Edita el archivo JSON con tu información
+5. Arrastra o selecciona tu archivo de configuración
+6. Al abrir el formulario de Variables, usa el botón **"Auto-fill"** para llenar automáticamente
+
+**Template de configuración** (`devops-config.json`):
+
+```json
+{
+  "version": "1.0.0",
+  "engineer": {
+    "name": "Tu Nombre",
+    "email": "tu.email@empresa.com"
+  },
+  "azureDevOps": {
+    "organization": "mi-organizacion",
+    "projects": ["proyecto-1", "proyecto-2"],
+    "repositories": ["backend-api", "frontend-app"],
+    "environments": ["development", "staging", "uat", "production"],
+    "pipelines": ["CI-Pipeline", "CD-Pipeline"]
+  },
+  "aws": {
+    "accountId": "123456789012",
+    "regions": ["us-east-1", "us-west-2"],
+    "clusters": [
+      { "name": "eks-prod", "region": "us-east-1", "environment": "production" }
+    ]
+  },
+  "gcp": {
+    "projects": [{ "id": "mi-proyecto", "name": "Producción" }],
+    "regions": ["us-central1"],
+    "clusters": [
+      { "name": "gke-prod", "project": "mi-proyecto", "region": "us-central1", "environment": "production" }
+    ]
+  },
+  "azure": {
+    "resourceGroups": ["rg-production", "rg-staging"],
+    "clusters": [
+      { "name": "aks-prod", "resourceGroup": "rg-production", "region": "eastus", "environment": "production" }
+    ]
+  },
+  "namespaces": ["default", "backend", "frontend"],
+  "artifactRegistries": ["acr-production", "ecr-production"],
+  "defaults": {
+    "project": "proyecto-1",
+    "environment": "staging",
+    "cluster": "aks-prod"
+  }
+}
+```
+
+Ver `data/devops-config.example.json` para un template completo.
+
 ## 🐳 Despliegue con Docker
 
 ```bash
@@ -187,6 +247,7 @@ process_tracker/
 │   │       ├── upload/        # Upload de archivos
 │   │       └── processes/     # API de procesos precargados
 │   ├── data/                  # Datos estáticos
+│   │   ├── devops-config.example.json  # Template de configuración DevOps
 │   │   └── processes/         # Plantillas YAML precargadas
 │   │       ├── index.json     # Índice de procesos disponibles
 │   │       ├── it-security-audit.yaml
@@ -197,6 +258,9 @@ process_tracker/
 │   ├── lib/                   # Lógica de negocio y utilidades
 │   │   ├── types.ts           # Tipos TypeScript
 │   │   ├── store.ts           # Zustand store con persistencia
+│   │   ├── config-store.ts    # Store para configuración DevOps
+│   │   ├── config-loader.ts   # Carga y parseo de config JSON
+│   │   ├── devops-config-types.ts  # Tipos para configuración DevOps
 │   │   ├── yaml-parser.ts     # Parseo de YAML
 │   │   ├── json-utils.ts      # Exportación/importación JSON
 │   │   ├── word-generator.ts  # Generación de Word con docx
@@ -233,6 +297,8 @@ Para preguntas o soporte, abre un issue en el repositorio.
 
 | Fecha | Versión | Descripción |
 |-------|---------|-------------|
+| 2026-03-27 | 1.4.1 | Generación automática de template JSON basado en variables del proceso |
+| 2026-03-27 | 1.4.0 | Configuración DevOps con auto-fill de variables (Azure DevOps, AWS, GCP, Azure) |
 | 2026-03-27 | 1.3.0 | Nuevo proceso `pull-request-validation.yaml` (6 fases, 21 tareas, 8 variables) |
 | 2026-03-27 | 1.2.0 | Variables de proceso y links dinámicos parametrizables, nuevo template `devops-pipeline.yaml` |
 | 2026-03-27 | 1.1.0 | Procesos precargados (3 plantillas), API `/api/processes`, actualización a Next.js 15.1.3 |

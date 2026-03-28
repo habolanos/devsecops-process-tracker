@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useProcessStore } from '@/lib/store';
+import { useConfigStore } from '@/lib/config-store';
 import { ProcessVariableYAML, CapturedVariables } from '@/lib/types';
 import { useI18n } from '@/lib/i18n-context';
-import { Settings, Check, AlertCircle } from 'lucide-react';
+import { Settings, Check, AlertCircle, Zap, FileJson } from 'lucide-react';
 
 interface VariablesFormProps {
   isOpen: boolean;
@@ -17,14 +18,46 @@ export default function VariablesForm({ isOpen, onClose }: VariablesFormProps) {
   const updateCapturedVariables = useProcessStore((state) => state?.updateCapturedVariables);
   const areRequiredVariablesFilled = useProcessStore((state) => state?.areRequiredVariablesFilled);
   
+  // Config store para auto-fill
+  const configIsLoaded = useConfigStore((state) => state.isLoaded);
+  const getValueForVariable = useConfigStore((state) => state.getValueForVariable);
+  const getOptionsForVariable = useConfigStore((state) => state.getOptionsForVariable);
+  const configFileName = useConfigStore((state) => state.fileName);
+  
   const [localVariables, setLocalVariables] = useState<CapturedVariables>({});
   const [hasChanges, setHasChanges] = useState(false);
+  const [autoFilledKeys, setAutoFilledKeys] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (process?.capturedVariables) {
       setLocalVariables({ ...process.capturedVariables });
     }
   }, [process?.capturedVariables]);
+
+  // Auto-fill desde configuración DevOps cuando se abre el formulario
+  const handleAutoFill = () => {
+    if (!configIsLoaded || !process?.variableDefinitions) return;
+    
+    const newVariables: CapturedVariables = { ...localVariables };
+    const filledKeys = new Set<string>();
+    
+    process.variableDefinitions.forEach((variable) => {
+      // Solo auto-llenar si el campo está vacío
+      if (!newVariables[variable.key] || newVariables[variable.key].trim() === '') {
+        const configValue = getValueForVariable(variable.key);
+        if (configValue) {
+          newVariables[variable.key] = configValue;
+          filledKeys.add(variable.key);
+        }
+      }
+    });
+    
+    if (filledKeys.size > 0) {
+      setLocalVariables(newVariables);
+      setAutoFilledKeys(filledKeys);
+      setHasChanges(true);
+    }
+  };
 
   if (!isOpen || !process?.variableDefinitions || process.variableDefinitions.length === 0) {
     return null;
@@ -61,36 +94,56 @@ export default function VariablesForm({ isOpen, onClose }: VariablesFormProps) {
   const renderInput = (variable: ProcessVariableYAML) => {
     const value = localVariables[variable.key] || '';
     const isEmpty = variable.required && !value.trim();
+    const wasAutoFilled = autoFilledKeys.has(variable.key);
+    
+    // Obtener opciones desde config si están disponibles
+    const configOptions = getOptionsForVariable(variable.key);
+    const options = variable.options || configOptions;
 
-    if (variable.type === 'select' && variable.options) {
+    // Si hay opciones (del YAML o de la config), mostrar select
+    if (options && options.length > 0) {
       return (
-        <select
-          value={value}
-          onChange={(e) => handleChange(variable.key, e.target.value)}
-          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-            isEmpty ? 'border-red-300 bg-red-50' : 'border-gray-300'
-          }`}
-        >
-          <option value="">{variable.placeholder || 'Seleccionar...'}</option>
-          {variable.options.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
-          ))}
-        </select>
+        <div className="relative">
+          <select
+            value={value}
+            onChange={(e) => handleChange(variable.key, e.target.value)}
+            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              isEmpty ? 'border-red-300 bg-red-50' : wasAutoFilled ? 'border-green-300 bg-green-50' : 'border-gray-300'
+            }`}
+          >
+            <option value="">{variable.placeholder || 'Seleccionar...'}</option>
+            {options.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
+          {wasAutoFilled && (
+            <span className="absolute right-8 top-1/2 -translate-y-1/2 text-green-500">
+              <Zap className="w-4 h-4" />
+            </span>
+          )}
+        </div>
       );
     }
 
     return (
-      <input
-        type={variable.type === 'number' ? 'number' : 'text'}
-        value={value}
-        onChange={(e) => handleChange(variable.key, e.target.value)}
-        placeholder={variable.placeholder}
-        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-          isEmpty ? 'border-red-300 bg-red-50' : 'border-gray-300'
-        }`}
-      />
+      <div className="relative">
+        <input
+          type={variable.type === 'number' ? 'number' : 'text'}
+          value={value}
+          onChange={(e) => handleChange(variable.key, e.target.value)}
+          placeholder={variable.placeholder}
+          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+            isEmpty ? 'border-red-300 bg-red-50' : wasAutoFilled ? 'border-green-300 bg-green-50' : 'border-gray-300'
+          }`}
+        />
+        {wasAutoFilled && (
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500">
+            <Zap className="w-4 h-4" />
+          </span>
+        )}
+      </div>
     );
   };
 
@@ -99,15 +152,33 @@ export default function VariablesForm({ isOpen, onClose }: VariablesFormProps) {
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <Settings className="w-6 h-6 text-white" />
-            <h2 className="text-xl font-semibold text-white">
-              {t('variables.title') || 'Configuración de Variables'}
-            </h2>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Settings className="w-6 h-6 text-white" />
+              <h2 className="text-xl font-semibold text-white">
+                {t('variables.title') || 'Configuración de Variables'}
+              </h2>
+            </div>
+            {configIsLoaded && (
+              <button
+                onClick={handleAutoFill}
+                className="flex items-center gap-2 px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-sm rounded-lg transition-colors"
+                title={`Auto-llenar desde ${configFileName}`}
+              >
+                <Zap className="w-4 h-4" />
+                Auto-fill
+              </button>
+            )}
           </div>
           <p className="text-blue-100 text-sm mt-1">
             {t('variables.description') || 'Complete las variables para activar los links dinámicos'}
           </p>
+          {configIsLoaded && (
+            <div className="flex items-center gap-2 mt-2 text-xs text-blue-200">
+              <FileJson className="w-3 h-3" />
+              <span>Config: {configFileName}</span>
+            </div>
+          )}
         </div>
 
         {/* Form */}
