@@ -1,0 +1,98 @@
+process:
+  id: "complex-dependencies-process"
+  name: "Proceso con Dependencias Complejas"
+  description: "Proceso para tests E2E con dependencias múltiples y paralelas"
+  version: "1.0.0"
+
+  phases:
+    - id: "phase-1"
+      name: "Fase 1: Setup"
+      description: "Configuración inicial"
+      order: 1
+      tasks:
+        - id: "task-setup-1"
+          name: "Setup: Configurar Repo"
+          description: "Configurar repositorio"
+          order: 1
+          evidence:
+            type: "text"
+            required: false
+          dependencies: []
+
+        - id: "task-setup-2"
+          name: "Setup: Configurar CI/CD"
+          description: "Configurar pipelines"
+          order: 2
+          evidence:
+            type: "text"
+            required: false
+          dependencies: []
+
+    - id: "phase-2"
+      name: "Fase 2: Paralelo A"
+      description: "Tareas paralelas del track A"
+      order: 2
+      tasks:
+        - id: "task-a-1"
+          name: "Task A1: Análisis"
+          description: "Análisis de requisitos"
+          order: 1
+          evidence:
+            type: "text"
+            required: true
+          dependencies: ["task-setup-1"]
+
+        - id: "task-a-2"
+          name: "Task A2: Diseño"
+          description: "Diseño de arquitectura"
+          order: 2
+          evidence:
+            type: "both"
+            required: true
+          dependencies: ["task-a-1"]
+
+    - id: "phase-3"
+      name: "Fase 3: Paralelo B"
+      description: "Tareas paralelas del track B"
+      order: 3
+      tasks:
+        - id: "task-b-1"
+          name: "Task B1: Infraestructura"
+          description: "Configurar infraestructura"
+          order: 1
+          evidence:
+            type: "text"
+            required: true
+          dependencies: ["task-setup-2"]
+
+        - id: "task-b-2"
+          name: "Task B2: Seguridad"
+          description: "Configurar seguridad"
+          order: 2
+          evidence:
+            type: "image"
+            required: true
+          dependencies: ["task-b-1"]
+
+    - id: "phase-4"
+      name: "Fase 4: Integración"
+      description: "Integración de tracks paralelos"
+      order: 4
+      tasks:
+        - id: "task-merge"
+          name: "Task Merge: Integrar A y B"
+          description: "Integrar resultados de ambos tracks"
+          order: 1
+          evidence:
+            type: "both"
+            required: true
+          dependencies: ["task-a-2", "task-b-2"]
+
+        - id: "task-final"
+          name: "Task Final: Deploy"
+          description: "Despliegue final"
+          order: 2
+          evidence:
+            type: "image"
+            required: true
+          dependencies: ["task-merge"]

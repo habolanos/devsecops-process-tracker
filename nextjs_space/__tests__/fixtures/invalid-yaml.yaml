@@ -1,0 +1,6 @@
+proceso_invalido:
+  esto_no_es_un_proceso_valido
+  - item1
+  - item2
+  
+malformado: [

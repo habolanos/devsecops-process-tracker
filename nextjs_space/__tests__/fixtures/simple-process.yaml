@@ -1,0 +1,75 @@
+process:
+  id: "simple-test-process"
+  name: "Proceso Simple de Prueba"
+  description: "Proceso simple para tests E2E con dependencias lineales"
+  version: "1.0.0"
+
+  phases:
+    - id: "phase-1"
+      name: "Fase 1: Preparación"
+      description: "Fase inicial de preparación"
+      order: 1
+      tasks:
+        - id: "task-1-1"
+          name: "Tarea 1.1: Configuración Inicial"
+          description: "Configurar el ambiente de trabajo"
+          order: 1
+          evidence:
+            type: "text"
+            required: false
+          dependencies: []
+
+        - id: "task-1-2"
+          name: "Tarea 1.2: Verificación de Requisitos"
+          description: "Verificar que todos los requisitos estén presentes"
+          order: 2
+          evidence:
+            type: "both"
+            required: true
+          dependencies: ["task-1-1"]
+
+    - id: "phase-2"
+      name: "Fase 2: Implementación"
+      description: "Fase de implementación principal"
+      order: 2
+      tasks:
+        - id: "task-2-1"
+          name: "Tarea 2.1: Desarrollo"
+          description: "Desarrollar la funcionalidad"
+          order: 1
+          evidence:
+            type: "text"
+            required: true
+          dependencies: ["task-1-2"]
+
+        - id: "task-2-2"
+          name: "Tarea 2.2: Testing"
+          description: "Ejecutar tests de la funcionalidad"
+          order: 2
+          evidence:
+            type: "image"
+            required: true
+          dependencies: ["task-2-1"]
+
+    - id: "phase-3"
+      name: "Fase 3: Finalización"
+      description: "Fase de cierre y entrega"
+      order: 3
+      tasks:
+        - id: "task-3-1"
+          name: "Tarea 3.1: Documentación"
+          description: "Documentar los cambios realizados"
+          order: 1
+          evidence:
+            type: "text"
+            required: false
+          dependencies: ["task-2-2"]
+
+        - id: "task-3-2"
+          name: "Tarea 3.2: Aprobación Final"
+          description: "Obtener aprobación final del equipo"
+          order: 2
+          evidence:
+            type: "image"
+            required: true
+          dependencies: ["task-3-1"]

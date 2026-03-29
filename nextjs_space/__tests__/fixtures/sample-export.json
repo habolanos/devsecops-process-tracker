@@ -1,0 +1,56 @@
+{
+  "id": "json-import-test",
+  "name": "Proceso Importado desde JSON",
+  "description": "Proceso de prueba para validar importación JSON",
+  "version": "1.0.0",
+  "phases": [
+    {
+      "id": "json-phase-1",
+      "name": "Fase JSON 1",
+      "description": "Primera fase del proceso JSON",
+      "order": 1,
+      "progress": 0.5,
+      "tasks": [
+        {
+          "id": "json-task-1",
+          "name": "Tarea JSON 1",
+          "description": "Primera tarea",
+          "order": 1,
+          "completed": true,
+          "isBlocked": false,
+          "progress": 1,
+          "evidenceConfig": null,
+          "evidence": {
+            "text": "Evidencia de prueba",
+            "images": []
+          },
+          "dependencies": [],
+          "references": []
+        },
+        {
+          "id": "json-task-2",
+          "name": "Tarea JSON 2",
+          "description": "Segunda tarea",
+          "order": 2,
+          "completed": false,
+          "isBlocked": false,
+          "progress": 0,
+          "evidenceConfig": {
+            "type": "text",
+            "required": true
+          },
+          "evidence": {
+            "text": "",
+            "images": []
+          },
+          "dependencies": ["json-task-1"],
+          "references": []
+        }
+      ]
+    }
+  ],
+  "progress": 0.25,
+  "currentPhaseId": "json-phase-1",
+  "completed": false,
+  "exportTimestamp": "2024-01-15T10:30:00.000Z"
+}

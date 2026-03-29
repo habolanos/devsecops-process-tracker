@@ -221,12 +221,14 @@ process:
             required: false
 `;
 
-    const before = new Date().toISOString();
+    const before = new Date();
     const result = parseYAMLToProcess(yaml);
-    const after = new Date().toISOString();
+    const after = new Date();
 
-    expect(result.loadedAt).toBeGreaterThanOrEqual(before);
-    expect(result.loadedAt).toBeLessThanOrEqual(after);
+    expect(result.loadedAt).toBeDefined();
+    const loadedAt = new Date(result.loadedAt!);
+    expect(loadedAt.getTime()).toBeGreaterThanOrEqual(before.getTime());
+    expect(loadedAt.getTime()).toBeLessThanOrEqual(after.getTime());
   });
 });
 

@@ -4,10 +4,10 @@ import path from 'path';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     
     // Load index to find the file
     const indexPath = path.join(process.cwd(), 'data', 'processes', 'index.json');

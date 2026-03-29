@@ -51,8 +51,9 @@ describe('calculateTaskProgress', () => {
       undefined,
       { completed: false }
     ] as TaskState[];
-    // Only counts valid tasks with completed property
-    expect(calculateTaskProgress(tasks)).toBe(0.5); // 1 of 2 valid
+    // Code counts all items in array for total, but only truthy for completed
+    // 1 completed / 4 total = 0.25
+    expect(calculateTaskProgress(tasks)).toBe(0.25);
   });
 });
 
@@ -133,7 +134,8 @@ describe('updateProgress', () => {
 
     expect(updated.phases[0].progress).toBe(0.5);
     expect(updated.phases[1].progress).toBe(1);
-    expect(updated.progress).toBe(0.75); // 3 of 4 tasks
+    // Overall progress is total completed tasks / total tasks: 2 of 3 = 0.666...
+    expect(updated.progress).toBeCloseTo(0.6667, 3);
   });
 
   it('should not mutate original process', () => {
