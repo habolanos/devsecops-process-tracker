@@ -146,6 +146,7 @@ export default function ProcessPage() {
               <button
                 onClick={handleExportJSON}
                 disabled={isExporting}
+                data-testid="export-json-btn"
                 className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors disabled:opacity-50"
               >
                 <Download className="w-4 h-4" />
@@ -155,6 +156,7 @@ export default function ProcessPage() {
               <button
                 onClick={handleExportWord}
                 disabled={isExporting}
+                data-testid="export-word-btn"
                 className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors disabled:opacity-50"
               >
                 <FileText className="w-4 h-4" />
@@ -164,6 +166,7 @@ export default function ProcessPage() {
               <button
                 onClick={handleCompleteProcess}
                 disabled={isExporting}
+                data-testid="complete-process-btn"
                 className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50"
               >
                 <CheckCircle2 className="w-4 h-4" />

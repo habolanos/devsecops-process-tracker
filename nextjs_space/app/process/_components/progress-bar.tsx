@@ -11,7 +11,7 @@ export default function ProgressBar({ progress, label, variant = 'primary' }: Pr
   const colorClass = variant === 'primary' ? 'bg-blue-500' : 'bg-indigo-500';
 
   return (
-    <div>
+    <div data-testid="progress-bar">
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm font-medium text-gray-700">{label}</span>
         <span className="text-sm font-bold text-gray-900">{percentage}%</span>

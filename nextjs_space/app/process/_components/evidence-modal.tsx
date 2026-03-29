@@ -215,7 +215,7 @@ export default function EvidenceModal({ task, phaseId, onClose }: EvidenceModalP
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div data-testid="evidence-modal" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -225,6 +225,7 @@ export default function EvidenceModal({ task, phaseId, onClose }: EvidenceModalP
           </div>
           <button
             onClick={onClose}
+            data-testid="modal-close-btn"
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <X className="w-6 h-6 text-gray-600" />
@@ -244,6 +245,7 @@ export default function EvidenceModal({ task, phaseId, onClose }: EvidenceModalP
               <textarea
                 value={textEvidence}
                 onChange={(e) => setTextEvidence(e.target.value)}
+                data-testid="evidence-textarea"
                 placeholder={t('evidence.text.placeholder')}
                 className="w-full h-32 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               />
@@ -341,6 +343,7 @@ export default function EvidenceModal({ task, phaseId, onClose }: EvidenceModalP
           </button>
           <button
             onClick={handleSave}
+            data-testid="save-evidence-btn"
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
           >
             {t('evidence.save')}

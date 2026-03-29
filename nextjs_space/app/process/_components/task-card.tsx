@@ -37,6 +37,7 @@ export default function TaskCard({ task, phaseId, onViewEvidence }: TaskCardProp
 
   return (
     <div
+      data-testid={`task-card-${task?.id}`}
       className={`bg-white rounded-lg shadow-sm border-2 transition-all ${
         isCompleted
           ? 'border-green-500 bg-green-50/50'
@@ -52,10 +53,11 @@ export default function TaskCard({ task, phaseId, onViewEvidence }: TaskCardProp
             <button
               onClick={handleToggleComplete}
               disabled={isBlocked}
+              data-testid="task-checkbox"
               className="flex-shrink-0 mt-1 disabled:cursor-not-allowed"
             >
               {isBlocked ? (
-                <Lock className="w-6 h-6 text-gray-400" />
+                <Lock data-testid="lock-icon" className="w-6 h-6 text-gray-400" />
               ) : isCompleted ? (
                 <CheckCircle2 className="w-6 h-6 text-green-500" />
               ) : (
@@ -89,12 +91,12 @@ export default function TaskCard({ task, phaseId, onViewEvidence }: TaskCardProp
 
                 {/* Evidence indicators */}
                 {hasTextEvidence && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs">
+                  <span data-testid="evidence-text-badge" className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs">
                     <FileText className="w-3 h-3" />
                   </span>
                 )}
                 {hasImageEvidence && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-50 text-purple-600 rounded text-xs">
+                  <span data-testid="evidence-image-badge" className="inline-flex items-center gap-1 px-2 py-1 bg-purple-50 text-purple-600 rounded text-xs">
                     <ImageIcon className="w-3 h-3" />
                     <span>{task.evidence.images.length}</span>
                   </span>
@@ -105,6 +107,7 @@ export default function TaskCard({ task, phaseId, onViewEvidence }: TaskCardProp
 
           <button
             onClick={onViewEvidence}
+            data-testid="view-evidence-btn"
             className="px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors text-sm font-medium"
           >
             {t('task.view')}

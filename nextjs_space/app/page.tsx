@@ -140,7 +140,7 @@ export default function HomePage() {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3" data-testid="app-header">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
               <FileText className="w-6 h-6 text-white" />
             </div>
@@ -188,6 +188,7 @@ export default function HomePage() {
                   key={template.id}
                   onClick={() => handleSelectTemplate(template.id)}
                   disabled={isLoading}
+                  data-testid="process-template"
                   className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-all text-left group hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed border border-gray-100"
                 >
                   <div className="flex items-start gap-4">
@@ -337,7 +338,7 @@ export default function HomePage() {
 
         {error && (
           <div className="mt-8 max-w-2xl mx-auto">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4" data-testid="error-message">
               <p className="text-red-800 font-medium">{t('upload.error')}</p>
               <p className="text-red-600 text-sm mt-1">{error}</p>
             </div>

@@ -11,7 +11,7 @@ export default function ProcessSidebar() {
   if (!process) return null;
 
   return (
-    <aside className="w-80 bg-white border-r border-gray-200 min-h-[calc(100vh-130px)] p-6">
+    <aside data-testid="process-sidebar" className="w-80 bg-white border-r border-gray-200 min-h-[calc(100vh-130px)] p-6">
       <h3 className="text-lg font-bold text-gray-900 mb-4">Fases</h3>
       
       <div className="space-y-2">
@@ -25,6 +25,7 @@ export default function ProcessSidebar() {
             <button
               key={phase?.id}
               onClick={() => setCurrentPhase?.(phase?.id ?? '')}
+              data-testid={`phase-${phase?.id}`}
               className={`w-full text-left p-4 rounded-lg transition-all ${
                 isActive
                   ? 'bg-blue-50 border-2 border-blue-500'
@@ -59,7 +60,7 @@ export default function ProcessSidebar() {
                   </p>
                   
                   {/* Mini progress bar */}
-                  <div className="mt-2 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                  <div data-testid="sidebar-progress" className="mt-2 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                     <div
                       className={`h-full transition-all ${
                         isCompleted ? 'bg-green-500' : 'bg-blue-500'
