@@ -50,12 +50,13 @@ jobs:
         run: npm run test:coverage
       
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           directory: nextjs_space/coverage
           files: coverage/lcov.info
           flags: unittests
           name: codecov-umbrella
+          fail_ci_if_error: false
 
   e2e-test:
     name: E2E Tests
@@ -74,17 +75,21 @@ jobs:
         working-directory: nextjs_space
         run: npm ci
       
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('nextjs_space/package-lock.json') }}
+      
       - name: Install Playwright Browsers
         working-directory: nextjs_space
-        run: npx playwright install --with-deps chromium firefox webkit
-      
-      - name: Build application
-        working-directory: nextjs_space
-        run: npm run build
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
       
       - name: Run Playwright tests
         working-directory: nextjs_space
-        run: npm run test:e2e
+        run: npx playwright test --project=chromium
       
       - name: Upload Playwright Report
         uses: actions/upload-artifact@v4

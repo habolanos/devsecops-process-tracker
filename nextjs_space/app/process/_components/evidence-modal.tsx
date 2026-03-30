@@ -25,6 +25,16 @@ export default function EvidenceModal({ task, phaseId, onClose }: EvidenceModalP
   const needsText = evidenceConfig?.type === 'text' || evidenceConfig?.type === 'both';
   const needsImage = evidenceConfig?.type === 'image' || evidenceConfig?.type === 'both';
 
+  // Helper to convert file to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -43,7 +53,29 @@ export default function EvidenceModal({ task, phaseId, onClose }: EvidenceModalP
       });
 
       if (!presignedRes.ok) throw new Error('Failed to get upload URL');
-      const { uploadUrl, cloudStoragePath } = await presignedRes.json();
+      const presignedData = await presignedRes.json();
+
+      // Local mode: convert file to base64 directly
+      if (presignedData.localMode) {
+        const base64 = await fileToBase64(file);
+        const newImage: EvidenceImage = {
+          id: `${Date.now()}-${file.name}`,
+          name: file.name,
+          cloudStoragePath: '',
+          isPublic: false,
+          url: base64,
+          source: 'file',
+          uploadedAt: new Date().toISOString()
+        };
+
+        const currentImages = task?.evidence?.images ?? [];
+        updateTaskEvidence?.(phaseId, task?.id ?? '', {
+          images: [...currentImages, newImage]
+        });
+        return;
+      }
+
+      const { uploadUrl, cloudStoragePath } = presignedData;
 
       // Step 2: Upload file to S3
       const uploadHeaders: HeadersInit = {
@@ -117,7 +149,7 @@ export default function EvidenceModal({ task, phaseId, onClose }: EvidenceModalP
       const blob = await response.blob();
       const file = new File([blob], fileName, { type: blob.type || 'image/jpeg' });
 
-      // Upload to S3
+      // Check S3 config
       const presignedRes = await fetch('/api/upload/presigned', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -129,7 +161,31 @@ export default function EvidenceModal({ task, phaseId, onClose }: EvidenceModalP
       });
 
       if (!presignedRes.ok) throw new Error('Failed to get upload URL');
-      const { uploadUrl, cloudStoragePath } = await presignedRes.json();
+      const presignedData = await presignedRes.json();
+
+      // Local mode: convert to base64
+      if (presignedData.localMode) {
+        const base64 = await fileToBase64(file);
+        const newImage: EvidenceImage = {
+          id: `${Date.now()}-${fileName}`,
+          name: fileName,
+          cloudStoragePath: '',
+          isPublic: false,
+          url: base64,
+          source: 'url',
+          originalUrl: imageUrl,
+          uploadedAt: new Date().toISOString()
+        };
+
+        const currentImages = task?.evidence?.images ?? [];
+        updateTaskEvidence?.(phaseId, task?.id ?? '', {
+          images: [...currentImages, newImage]
+        });
+        setImageUrl('');
+        return;
+      }
+
+      const { uploadUrl, cloudStoragePath } = presignedData;
 
       const uploadHeaders: HeadersInit = {
         'Content-Type': file.type

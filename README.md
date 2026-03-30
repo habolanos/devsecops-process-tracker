@@ -224,6 +224,104 @@ Puedes cargar un archivo `devops-config.json` para **auto-llenar variables** en 
 
 Ver `data/devops-config.example.json` para un template completo.
 
+## 🧪 Testing
+
+El proyecto incluye tests unitarios con **Vitest** y tests E2E con **Playwright**.
+
+### Tests Unitarios (Vitest)
+
+```bash
+# Ejecutar tests unitarios en modo watch
+npm run test
+
+# Ejecutar tests unitarios una sola vez
+npm run test:run
+
+# Ejecutar con cobertura
+npm run test:coverage
+```
+
+**Ubicación**: `__tests__/unit/`
+
+### Tests E2E (Playwright)
+
+#### Preparación
+
+1. Instalar dependencias:
+```bash
+npm install
+```
+
+2. Instalar navegadores de Playwright:
+```bash
+npx playwright install chromium
+```
+
+#### Ejecución de Tests E2E
+
+**Opción A - Servidor automático** (Playwright levanta el servidor):
+```bash
+npm run test:e2e
+```
+
+**Opción B - Manual** (más control, mejor para debugging):
+
+Terminal 1 - Levantar servidor:
+```bash
+npm run dev
+```
+
+Terminal 2 - Ejecutar tests:
+```bash
+# Ejecutar todos los tests
+npx playwright test
+
+# Ejecutar solo en Chromium
+npx playwright test --project=chromium
+
+# Ejecutar tests específicos
+npx playwright test load-process
+n
+# Modo UI para debugging
+npx playwright test --ui
+
+# Modo headed (ver el navegador)
+npx playwright test --headed
+```
+
+#### Estructura de Tests E2E
+
+```
+__tests__/e2e/
+├── flows/
+│   ├── load-process.spec.ts    # Carga de procesos (templates, YAML, JSON)
+│   ├── dependencies.spec.ts    # Dependencias entre tareas
+│   └── export-results.spec.ts  # Exportación JSON y Word
+└── fixtures/                   # Archivos de prueba
+    ├── simple-process.yaml
+    ├── complex-dependencies.yaml
+    ├── sample-export.json
+    └── invalid-yaml.yaml
+```
+
+#### Selectores data-testid
+
+Los componentes UI tienen `data-testid` para tests estables:
+- `app-header` - Header de la aplicación
+- `process-template` - Cards de plantillas
+- `process-sidebar` - Sidebar de fases
+- `task-card-{id}` - Cards de tareas
+- `task-checkbox` - Checkbox de completado
+- `progress-bar` - Barra de progreso
+- `export-json-btn`, `export-word-btn` - Botones de exportación
+
+#### Reportes
+
+Después de ejecutar tests E2E:
+- **HTML Report**: `playwright-report/index.html`
+- **JSON Results**: `test-results.json`
+- **Screenshots/Videos**: `test-results/` (solo en fallos)
+
 ## 🐳 Despliegue con Docker
 
 ```bash
