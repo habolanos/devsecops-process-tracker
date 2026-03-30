@@ -1,0 +1,257 @@
+# GitLab CI/CD Pipeline - DevSecOps Process Tracker
+# This pipeline runs tests, builds the application, and deploys
+
+image: node:18-alpine
+
+# Define pipeline stages
+stages:
+  - install
+  - test
+  - security
+  - build
+  - deploy
+
+# Cache configuration
+cache:
+  key:
+    files:
+      - nextjs_space/package-lock.json
+  paths:
+    - nextjs_space/node_modules/
+    - nextjs_space/.next/cache/
+
+# Global variables
+variables:
+  NODE_ENV: "development"
+  npm_config_cache: "$CI_PROJECT_DIR/.npm"
+  CYPRESS_CACHE_FOLDER: "$CI_PROJECT_DIR/cache/Cypress"
+
+# Install dependencies
+install_dependencies:
+  stage: install
+  script:
+    - cd nextjs_space
+    - npm ci --cache .npm --prefer-offline
+  artifacts:
+    paths:
+      - nextjs_space/node_modules/
+    expire_in: 1 hour
+  only:
+    - main
+    - develop
+    - merge_requests
+
+# Unit tests with Vitest
+unit_tests:
+  stage: test
+  needs: ["install_dependencies"]
+  script:
+    - cd nextjs_space
+    - npm run test:run
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+  artifacts:
+    when: always
+    reports:
+      junit: nextjs_space/test-results.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: nextjs_space/coverage/cobertura-coverage.xml
+    paths:
+      - nextjs_space/coverage/
+    expire_in: 30 days
+  only:
+    - main
+    - develop
+    - merge_requests
+
+# Unit tests with coverage
+unit_tests_coverage:
+  stage: test
+  needs: ["install_dependencies"]
+  script:
+    - cd nextjs_space
+    - npm run test:coverage
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+  artifacts:
+    when: always
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: nextjs_space/coverage/cobertura-coverage.xml
+    paths:
+      - nextjs_space/coverage/
+    expire_in: 30 days
+  only:
+    - main
+    - develop
+    - merge_requests
+
+# E2E tests with Playwright
+e2e_tests:
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.40.0-focal
+  needs: ["install_dependencies"]
+  script:
+    - cd nextjs_space
+    - npm ci
+    - npx playwright install --with-deps
+    - npm run test:e2e
+  artifacts:
+    when: always
+    paths:
+      - nextjs_space/playwright-report/
+      - nextjs_space/test-results/
+    expire_in: 30 days
+  only:
+    - main
+    - develop
+    - merge_requests
+  allow_failure: false
+
+# Linting
+lint:
+  stage: test
+  needs: ["install_dependencies"]
+  script:
+    - cd nextjs_space
+    - npm run lint
+  only:
+    - main
+    - develop
+    - merge_requests
+  allow_failure: true
+
+# Security: npm audit
+security_audit:
+  stage: security
+  needs: ["install_dependencies"]
+  script:
+    - cd nextjs_space
+    - npm audit --audit-level=moderate
+  allow_failure: true
+  only:
+    - main
+    - develop
+    - merge_requests
+
+# Security: Dependency scanning (GitLab Ultimate)
+dependency_scanning:
+  stage: security
+  needs: []
+  script:
+    - echo "Running dependency scanning..."
+  artifacts:
+    reports:
+      dependency_scanning: gl-dependency-scanning-report.json
+  only:
+    - main
+    - develop
+    - merge_requests
+  allow_failure: true
+
+# Security: SAST (GitLab Ultimate)
+sast:
+  stage: security
+  needs: []
+  script:
+    - echo "Running SAST scanning..."
+  artifacts:
+    reports:
+      sast: gl-sast-report.json
+  only:
+    - main
+    - develop
+    - merge_requests
+  allow_failure: true
+
+# Build Next.js application
+build_app:
+  stage: build
+  needs: 
+    - unit_tests
+    - e2e_tests
+    - security_audit
+  script:
+    - cd nextjs_space
+    - npm ci
+    - npm run build
+  artifacts:
+    paths:
+      - nextjs_space/.next/
+      - nextjs_space/public/
+      - nextjs_space/package.json
+      - nextjs_space/package-lock.json
+    expire_in: 1 week
+  only:
+    - main
+  environment:
+    name: production
+    action: prepare
+
+# Deploy to staging
+deploy_staging:
+  stage: deploy
+  needs: ["build_app"]
+  script:
+    - echo "Deploying to staging environment..."
+    - cd nextjs_space
+    # Add your staging deployment commands here
+    # Example for Vercel:
+    # - npm install -g vercel
+    # - vercel --token $VERCEL_TOKEN --prod
+    # Example for custom server:
+    # - scp -r .next/ user@staging-server:/path/to/app/
+    # - ssh user@staging-server "cd /path/to/app && pm2 restart app"
+  environment:
+    name: staging
+    url: https://staging.example.com
+  only:
+    - develop
+  when: manual
+
+# Deploy to production
+deploy_production:
+  stage: deploy
+  needs: ["build_app"]
+  script:
+    - echo "Deploying to production environment..."
+    - cd nextjs_space
+    # Add your production deployment commands here
+    # Example for Vercel:
+    # - npm install -g vercel
+    # - vercel --token $VERCEL_TOKEN --prod
+    # Example for Docker:
+    # - docker build -t devsecops-tracker:$CI_COMMIT_SHA .
+    # - docker push devsecops-tracker:$CI_COMMIT_SHA
+    # - kubectl set image deployment/devsecops-tracker app=devsecops-tracker:$CI_COMMIT_SHA
+  environment:
+    name: production
+    url: https://production.example.com
+  only:
+    - main
+  when: manual
+
+# Docker build (optional)
+docker_build:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  needs: ["build_app"]
+  script:
+    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE:latest .
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    - docker push $CI_REGISTRY_IMAGE:latest
+  only:
+    - main
+  when: manual
+
+# Cleanup old artifacts
+cleanup:
+  stage: .post
+  script:
+    - echo "Cleaning up temporary files..."
+    - rm -rf nextjs_space/node_modules/.cache
+    - rm -rf nextjs_space/.next/cache
+  when: always

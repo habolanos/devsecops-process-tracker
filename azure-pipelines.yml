@@ -1,0 +1,238 @@
+# Azure DevOps Pipeline - DevSecOps Process Tracker
+# This pipeline runs tests, builds the application, and deploys to Azure
+
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+  paths:
+    exclude:
+      - README.md
+      - docs/**
+      - .gitignore
+
+pr:
+  branches:
+    include:
+      - main
+      - develop
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  nodeVersion: '18.x'
+  npmCacheFolder: $(Pipeline.Workspace)/.npm
+
+stages:
+  - stage: Test
+    displayName: 'Test Stage'
+    jobs:
+      - job: UnitTests
+        displayName: 'Run Unit Tests'
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js'
+            inputs:
+              versionSpec: $(nodeVersion)
+
+          - task: Cache@2
+            displayName: 'Cache npm dependencies'
+            inputs:
+              key: 'npm | "$(Agent.OS)" | nextjs_space/package-lock.json'
+              restoreKeys: |
+                npm | "$(Agent.OS)"
+              path: $(npmCacheFolder)
+
+          - script: |
+              cd nextjs_space
+              npm ci --cache $(npmCacheFolder)
+            displayName: 'Install dependencies'
+
+          - script: |
+              cd nextjs_space
+              npm run test:run
+            displayName: 'Run Vitest unit tests'
+
+          - script: |
+              cd nextjs_space
+              npm run test:coverage
+            displayName: 'Generate test coverage'
+
+          - task: PublishTestResults@2
+            displayName: 'Publish test results'
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: '**/test-results.xml'
+              failTaskOnFailedTests: true
+
+          - task: PublishCodeCoverageResults@1
+            displayName: 'Publish code coverage'
+            condition: succeededOrFailed()
+            inputs:
+              codeCoverageTool: 'Cobertura'
+              summaryFileLocation: '$(System.DefaultWorkingDirectory)/nextjs_space/coverage/cobertura-coverage.xml'
+
+      - job: E2ETests
+        displayName: 'Run E2E Tests'
+        dependsOn: UnitTests
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js'
+            inputs:
+              versionSpec: $(nodeVersion)
+
+          - task: Cache@2
+            displayName: 'Cache npm dependencies'
+            inputs:
+              key: 'npm | "$(Agent.OS)" | nextjs_space/package-lock.json'
+              restoreKeys: |
+                npm | "$(Agent.OS)"
+              path: $(npmCacheFolder)
+
+          - script: |
+              cd nextjs_space
+              npm ci --cache $(npmCacheFolder)
+            displayName: 'Install dependencies'
+
+          - script: |
+              cd nextjs_space
+              npx playwright install --with-deps
+            displayName: 'Install Playwright browsers'
+
+          - script: |
+              cd nextjs_space
+              npm run test:e2e
+            displayName: 'Run Playwright E2E tests'
+
+          - task: PublishTestResults@2
+            displayName: 'Publish E2E test results'
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: '**/playwright-report/results.xml'
+              failTaskOnFailedTests: true
+
+          - task: PublishPipelineArtifact@1
+            displayName: 'Publish Playwright artifacts'
+            condition: failed()
+            inputs:
+              targetPath: 'nextjs_space/playwright-report'
+              artifact: 'playwright-report'
+              publishLocation: 'pipeline'
+
+  - stage: SecurityScan
+    displayName: 'Security Scan Stage'
+    dependsOn: Test
+    jobs:
+      - job: DependencyScan
+        displayName: 'Dependency Security Scan'
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js'
+            inputs:
+              versionSpec: $(nodeVersion)
+
+          - script: |
+              cd nextjs_space
+              npm ci
+            displayName: 'Install dependencies'
+
+          - script: |
+              cd nextjs_space
+              npm audit --audit-level=moderate
+            displayName: 'Run npm audit'
+            continueOnError: true
+
+          - script: |
+              cd nextjs_space
+              npx eslint . --ext .ts,.tsx,.js,.jsx --max-warnings 0
+            displayName: 'Run ESLint'
+            continueOnError: true
+
+  - stage: Build
+    displayName: 'Build Stage'
+    dependsOn: 
+      - Test
+      - SecurityScan
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - job: BuildApp
+        displayName: 'Build Next.js Application'
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js'
+            inputs:
+              versionSpec: $(nodeVersion)
+
+          - task: Cache@2
+            displayName: 'Cache npm dependencies'
+            inputs:
+              key: 'npm | "$(Agent.OS)" | nextjs_space/package-lock.json'
+              restoreKeys: |
+                npm | "$(Agent.OS)"
+              path: $(npmCacheFolder)
+
+          - script: |
+              cd nextjs_space
+              npm ci --cache $(npmCacheFolder)
+            displayName: 'Install dependencies'
+
+          - script: |
+              cd nextjs_space
+              npm run build
+            displayName: 'Build Next.js app'
+            env:
+              NODE_ENV: production
+
+          - task: ArchiveFiles@2
+            displayName: 'Archive build artifacts'
+            inputs:
+              rootFolderOrFile: 'nextjs_space/.next'
+              includeRootFolder: false
+              archiveType: 'zip'
+              archiveFile: '$(Build.ArtifactStagingDirectory)/nextjs-app-$(Build.BuildId).zip'
+              replaceExistingArchive: true
+
+          - task: PublishPipelineArtifact@1
+            displayName: 'Publish build artifacts'
+            inputs:
+              targetPath: '$(Build.ArtifactStagingDirectory)'
+              artifact: 'build-artifacts'
+              publishLocation: 'pipeline'
+
+  - stage: Deploy
+    displayName: 'Deploy Stage'
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: DeployToProduction
+        displayName: 'Deploy to Azure App Service'
+        environment: 'production'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: DownloadPipelineArtifact@2
+                  displayName: 'Download build artifacts'
+                  inputs:
+                    buildType: 'current'
+                    artifactName: 'build-artifacts'
+                    targetPath: '$(Pipeline.Workspace)/artifacts'
+
+                - task: AzureWebApp@1
+                  displayName: 'Deploy to Azure Web App'
+                  inputs:
+                    azureSubscription: '$(azureSubscription)'
+                    appType: 'webAppLinux'
+                    appName: '$(webAppName)'
+                    package: '$(Pipeline.Workspace)/artifacts/nextjs-app-$(Build.BuildId).zip'
+                    runtimeStack: 'NODE|18-lts'
+                    startUpCommand: 'npm start'
+
+                - script: |
+                    echo "Deployment completed successfully!"
+                    echo "Application URL: https://$(webAppName).azurewebsites.net"
+                  displayName: 'Deployment summary'

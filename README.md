@@ -589,7 +589,93 @@ docker-compose up --build
 # Acceder en http://localhost:3000
 ```
 
-## 📊 Historial de Cambios
+## � CI/CD Pipelines
+
+El proyecto incluye configuraciones de CI/CD para Azure DevOps y GitLab que automatizan el proceso de testing, seguridad, build y deployment.
+
+### Azure DevOps Pipeline
+
+**Archivo:** `azure-pipelines.yml`
+
+El pipeline de Azure DevOps incluye 4 stages principales:
+
+1. **Test Stage**
+   - Tests unitarios con Vitest (51 tests)
+   - Tests E2E con Playwright
+   - Publicación de resultados y cobertura de código
+   - Cache de dependencias npm para optimización
+
+2. **Security Scan Stage**
+   - `npm audit` para vulnerabilidades de dependencias
+   - ESLint para análisis estático de código
+   - Ejecución en paralelo con stage de tests
+
+3. **Build Stage**
+   - Build de producción de Next.js
+   - Generación de artefactos comprimidos
+   - Solo se ejecuta en branch `main`
+
+4. **Deploy Stage**
+   - Deployment a Azure App Service
+   - Ambiente de producción con aprobación manual
+   - Configuración de runtime Node.js 18 LTS
+
+**Variables requeridas:**
+- `azureSubscription`: Conexión de servicio de Azure
+- `webAppName`: Nombre del Azure Web App
+
+### GitLab CI/CD Pipeline
+
+**Archivo:** `.gitlab-ci.yml`
+
+El pipeline de GitLab incluye 5 stages:
+
+1. **Install Stage**
+   - Instalación de dependencias con cache
+   - Artifacts compartidos entre jobs
+
+2. **Test Stage**
+   - Tests unitarios con Vitest
+   - Tests E2E con Playwright (imagen Docker específica)
+   - Linting con ESLint
+   - Reportes de cobertura integrados
+
+3. **Security Stage**
+   - `npm audit` para escaneo de dependencias
+   - Dependency Scanning (GitLab Ultimate)
+   - SAST - Static Application Security Testing (GitLab Ultimate)
+
+4. **Build Stage**
+   - Build de Next.js para producción
+   - Build de imagen Docker (opcional, manual)
+   - Artifacts con expiración de 1 semana
+
+5. **Deploy Stage**
+   - Deploy a staging (branch `develop`, manual)
+   - Deploy a producción (branch `main`, manual)
+   - Soporte para Vercel, Docker, Kubernetes
+
+**Características:**
+- Cache inteligente basado en `package-lock.json`
+- Reportes de cobertura visualizados en merge requests
+- Cleanup automático de archivos temporales
+- Soporte para múltiples estrategias de deployment
+
+### Configuración Inicial
+
+#### Azure DevOps
+1. Crear Service Connection a Azure
+2. Configurar variables `azureSubscription` y `webAppName`
+3. Importar `azure-pipelines.yml` en Azure Pipelines
+4. Configurar branch policies para `main`
+
+#### GitLab
+1. Configurar variables de entorno en Settings > CI/CD
+2. Habilitar GitLab Runner
+3. Configurar deployment tokens si es necesario
+4. El pipeline se ejecuta automáticamente en push/merge request
+
+## �📊 Historial de Cambios
 
 | Fecha | Versión | Descripción |
 |-------|---------|-------------|
