@@ -10,12 +10,17 @@ Aplicación web para gestión y seguimiento de procesos DevSecOps con soporte pa
 | **TypeScript** | 5.2.2 | Tipado estático |
 | **Tailwind CSS** | 3.3.3 + shadcn/ui | Estilos y componentes UI |
 | **Zustand** | 5.0.12 | Estado global con persistencia localStorage |
-| **Vitest** | 1.0.4 | Tests unitarios |
+| **Vitest** | 4.1.2 | Tests unitarios |
 | **Playwright** | 1.40.0 | Tests E2E |
-| **AWS SDK** | 3.758.0 | Integración S3 (opcional) |
+| **Vite** | 6.4.1 | Build tool y dev server para tests |
+| **AWS SDK** | 3.1019.0 | Integración S3 (opcional) |
+| **next-auth** | 4.24.13 | Autenticación (opcional) |
+| **Prisma** | 6.7.0 | ORM para base de datos (opcional) |
 | **js-yaml** | 4.1.1 | Parseo de YAML |
 | **docx** | 9.6.1 | Generación de documentos Word |
 | **Lucide React** | 0.446.0 | Iconos |
+| **lodash** | 4.17.23 | Utilidades JavaScript |
+| **webpack** | 5.105.4 | Bundler (usado por Next.js) |
 
 ## 📁 Estructura del Proyecto
 
@@ -96,7 +101,7 @@ nextjs_space/
 
 ### Prerequisitos
 - Node.js 20+
-- npm (recomendado usar `--legacy-peer-deps`)
+- npm 8+
 
 ### Instalación
 
@@ -104,8 +109,8 @@ nextjs_space/
 # Entrar al directorio
 cd nextjs_space
 
-# Instalar dependencias (usar legacy-peer-deps por conflictos de versiones)
-npm install --legacy-peer-deps
+# Instalar dependencias
+npm install
 
 # Iniciar servidor de desarrollo
 npm run dev
@@ -198,48 +203,96 @@ Template para autocompletado de variables:
 
 ## 🧪 Testing
 
-El proyecto tiene **51 tests unitarios** y tests E2E con Playwright.
+El proyecto tiene **51 tests unitarios** (100% pasando) y tests E2E con Playwright.
 
 ### Tests Unitarios (Vitest)
+
 ```bash
-npm run test       # Modo watch
-npm run test:run   # Una vez
-npm run test:coverage  # Con cobertura
+npm run test              # Modo watch interactivo
+npm run test:run          # Ejecutar una vez
+npm run test:coverage     # Con reporte de cobertura
 ```
 
-**Tests incluyen**:
-- Cálculo de progreso (`calculateTaskProgress`, `calculatePhaseProgress`)
+**Cobertura de Tests**:
+- ✅ **51 tests** pasando en 3 archivos
+- Cálculo de progreso (`calculateTaskProgress`, `calculatePhaseProgress`, `calculateProcessProgress`)
 - Gestión de dependencias (`checkTaskDependencies`, `updateTaskBlockedStatus`)
-- Validación de evidencias (`validateTaskEvidence`)
-- Parseo de YAML (`parseYAMLToProcess`)
-- Import/Export JSON (`importProcessFromJSON`, `exportProcessToJSON`)
+- Validación de evidencias (`validateTaskEvidence`, `canCompleteTask`)
+- Parseo de YAML (`parseYAMLToProcess`) - 14 tests
+- Import/Export JSON (`importProcessFromJSON`, `exportProcessToJSON`) - 6 tests
+- Helpers de proceso (`updateProgress`) - 31 tests
+
+**Ubicación**: `__tests__/unit/lib/`
 
 ### Tests E2E (Playwright)
-```bash
-# Opción 1: Playwright levanta servidor automáticamente
-npm run test:e2e
 
-# Opción 2: Manual (mejor para debug)
-# Terminal 1:
-npm run dev
-# Terminal 2:
-npx playwright test --project=chromium
+#### Preparación
+```bash
+# Instalar navegadores de Playwright (solo primera vez)
+npx playwright install chromium
 ```
 
-**Flujos testeados**:
-1. **Load Process**: Carga desde plantillas, YAML, JSON
-2. **Dependencies**: Verifica bloqueo/desbloqueo de tareas
-3. **Export**: Exportación JSON y Word con evidencias
+#### Ejecución
 
-**Selectores data-testid** para tests:
-- `app-header`, `process-template`, `process-sidebar`
-- `task-card-{id}`, `task-checkbox`, `progress-bar`
-- `export-json-btn`, `export-word-btn`
+**Opción A - Automático** (Playwright levanta el servidor):
+```bash
+npm run test:e2e          # Ejecutar todos los tests E2E
+npm run test:e2e:ui       # Modo UI interactivo
+```
 
-### Reportes
-- HTML: `playwright-report/index.html`
-- JSON: `test-results.json`
-- Screenshots: `test-results/` (solo fallos)
+**Opción B - Manual** (mejor para debugging):
+```bash
+# Terminal 1: Servidor de desarrollo
+npm run dev
+
+# Terminal 2: Ejecutar tests
+npx playwright test --project=chromium
+npx playwright test --headed              # Ver navegador
+npx playwright test --ui                  # Modo UI
+npx playwright test load-process          # Test específico
+```
+
+#### Flujos E2E Cubiertos
+
+1. **Load Process** (`load-process.spec.ts`):
+   - Carga desde plantillas predefinidas
+   - Upload de archivos YAML
+   - Importación de JSON exportado
+   - Validación de errores en YAML inválido
+
+2. **Dependencies** (`dependencies.spec.ts`):
+   - Bloqueo de tareas con dependencias
+   - Desbloqueo al completar dependencias
+   - Cadenas de dependencias múltiples
+
+3. **Export Results** (`export-results.spec.ts`):
+   - Exportación a JSON con evidencias
+   - Generación de documentos Word
+   - Verificación de contenido exportado
+
+#### Selectores data-testid
+
+Componentes con selectores estables para tests:
+- `app-header` - Header principal
+- `process-template` - Cards de plantillas
+- `process-sidebar` - Navegación de fases
+- `task-card-{id}` - Tarjetas de tareas
+- `task-checkbox` - Checkbox de completado
+- `progress-bar` - Barra de progreso
+- `export-json-btn`, `export-word-btn` - Botones de exportación
+
+#### Reportes y Artefactos
+
+- **HTML Report**: `playwright-report/index.html` (abrir en navegador)
+- **JSON Results**: `test-results.json`
+- **Screenshots**: `test-results/` (solo en fallos)
+- **Videos**: `test-results/` (si está habilitado)
+
+### Ejecutar Todos los Tests
+
+```bash
+npm run test:all          # Unitarios + E2E en secuencia
+```
 
 ## 📚 Estructura de Procesos YAML
 
@@ -441,20 +494,49 @@ Upload de configuración:
 
 ## 🛠️ Desarrollo
 
+### Comandos Disponibles
+
 ```bash
-# Instalar dependencias
-npm install --legacy-peer-deps
+# Instalación
+npm install              # Instalar todas las dependencias
 
 # Desarrollo
-npm run dev              # Servidor en localhost:3000
+npm run dev              # Servidor en localhost:3000 (o 3001)
+npm run build            # Build de producción
+npm run start            # Ejecutar build de producción
+npm run lint             # Linting con ESLint
 
 # Testing
-npm run test:run         # Tests unitarios (51 tests)
-npm run test:e2e         # Tests E2E (Playwright)
+npm run test             # Tests unitarios (modo watch)
+npm run test:run         # Tests unitarios (una vez)
+npm run test:coverage    # Tests con cobertura
+npm run test:e2e         # Tests E2E con Playwright
+npm run test:e2e:ui      # Tests E2E en modo UI
+npm run test:all         # Todos los tests (unitarios + E2E)
+```
 
-# Build
-npm run build            # Producción
-npm run lint             # Linting
+### Scripts de Desarrollo
+
+- **dev**: Inicia servidor de desarrollo con hot-reload
+- **build**: Genera build optimizado para producción
+- **start**: Ejecuta la aplicación en modo producción
+- **lint**: Verifica código con ESLint
+- **test**: Ejecuta Vitest en modo watch
+- **test:run**: Ejecuta tests unitarios una sola vez
+- **test:coverage**: Genera reporte de cobertura de código
+- **test:e2e**: Ejecuta tests E2E (levanta servidor automáticamente)
+- **test:e2e:ui**: Abre interfaz interactiva de Playwright
+- **test:all**: Ejecuta todos los tests en secuencia
+
+### Estructura de Desarrollo
+
+```bash
+# Workflow típico de desarrollo
+1. npm install           # Instalar dependencias
+2. npm run dev           # Levantar servidor
+3. npm run test          # Tests en modo watch (opcional)
+4. npm run build         # Verificar build antes de commit
+5. npm run test:all      # Ejecutar todos los tests
 ```
 
 ## 🐳 Docker
@@ -470,7 +552,7 @@ docker-compose up --build
 
 | Fecha | Versión | Descripción |
 |-------|---------|-------------|
-| 2026-03-29 | 1.5.0 | Tests E2E con Playwright, modo local para imágenes, vulnerabilidades parcheadas |
+| 2026-03-29 | 1.5.0 | Tests E2E con Playwright, modo local base64 para imágenes, 0 vulnerabilidades, actualización Next.js 15.5.14 |
 | 2026-03-27 | 1.4.1 | Generación automática de template JSON basado en variables |
 | 2026-03-27 | 1.4.0 | Configuración DevOps con auto-fill de variables |
 | 2026-03-27 | 1.3.0 | Nuevo proceso `pull-request-validation.yaml` (6 fases, 21 tareas) |
