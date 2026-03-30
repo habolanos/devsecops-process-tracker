@@ -2,7 +2,226 @@
 
 Aplicación web para gestión y seguimiento de procesos DevSecOps con soporte para evidencias, dependencias entre tareas, links dinámicos y exportación de resultados.
 
-## 🚀 Stack Tecnológico
+## � Diagramas
+
+### Flujo del Proceso de la Aplicación
+
+```mermaid
+flowchart TD
+    Start([Usuario Inicia App]) --> HomePage[Página Principal]
+    HomePage --> Choice{Seleccionar Origen}
+    
+    Choice -->|Plantilla| Template[Seleccionar Template]
+    Choice -->|YAML| UploadYAML[Upload Archivo YAML]
+    Choice -->|JSON| UploadJSON[Upload JSON Exportado]
+    
+    Template --> Parse[Parser YAML]
+    UploadYAML --> Parse
+    UploadJSON --> ImportJSON[Importar Estado JSON]
+    
+    Parse --> Store[Zustand Store]
+    ImportJSON --> Store
+    
+    Store --> ProcessPage[Página de Proceso]
+    
+    ProcessPage --> Sidebar[Sidebar: Navegación Fases]
+    ProcessPage --> TaskCards[Task Cards]
+    ProcessPage --> ProgressBar[Barra de Progreso]
+    
+    TaskCards --> CheckDeps{Tiene Dependencias?}
+    CheckDeps -->|Sí| Blocked[Tarea Bloqueada]
+    CheckDeps -->|No| Available[Tarea Disponible]
+    
+    Blocked --> WaitDeps[Esperar Completar Dependencias]
+    WaitDeps --> Available
+    
+    Available --> Complete{Completar Tarea?}
+    Complete -->|Sí| Evidence{Requiere Evidencia?}
+    
+    Evidence -->|Sí| EvidenceModal[Modal de Evidencias]
+    Evidence -->|No| MarkComplete[Marcar Completada]
+    
+    EvidenceModal --> UploadType{Tipo de Upload}
+    UploadType -->|S3 Configurado| S3Upload[Upload a S3]
+    UploadType -->|Modo Local| Base64[Convertir a Base64]
+    
+    S3Upload --> SaveEvidence[Guardar Evidencia]
+    Base64 --> SaveEvidence
+    
+    SaveEvidence --> MarkComplete
+    MarkComplete --> UpdateProgress[Actualizar Progreso]
+    
+    UpdateProgress --> UnblockTasks[Desbloquear Tareas Dependientes]
+    UnblockTasks --> ProcessPage
+    
+    ProcessPage --> Variables{Usar Variables?}
+    Variables -->|Sí| VarModal[Modal de Variables]
+    VarModal --> ConfigUpload{Cargar Config DevOps?}
+    ConfigUpload -->|Sí| AutoFill[Auto-fill Variables]
+    ConfigUpload -->|No| ManualInput[Input Manual]
+    AutoFill --> DynamicLinks[Links Dinámicos Activos]
+    ManualInput --> DynamicLinks
+    DynamicLinks --> ProcessPage
+    
+    ProcessPage --> Export{Exportar?}
+    Export -->|JSON| ExportJSON[Exportar a JSON]
+    Export -->|Word| ExportWord[Generar Documento Word]
+    
+    ExportJSON --> Download[Descargar Archivo]
+    ExportWord --> Download
+    Download --> End([Fin])
+    
+    Complete -->|No| ProcessPage
+    Variables -->|No| ProcessPage
+    Export -->|No| ProcessPage
+    
+    style Start fill:#4ade80
+    style End fill:#f87171
+    style Store fill:#60a5fa
+    style ProcessPage fill:#fbbf24
+    style EvidenceModal fill:#a78bfa
+    style ExportJSON fill:#34d399
+    style ExportWord fill:#34d399
+```
+
+### Arquitectura del Sistema
+
+```mermaid
+graph TB
+    subgraph "Frontend - Next.js 15 App Router"
+        UI["🎨 UI Layer<br/>(React + Tailwind + shadcn/ui)"]
+        Pages["📄 Pages<br/>app/page.tsx<br/>app/process/page.tsx"]
+        Components["🧩 Components<br/>TaskCard, Sidebar, Modals"]
+    end
+    
+    subgraph "State Management"
+        Zustand["💾 Zustand Store<br/>+ localStorage persistence"]
+        ConfigStore["⚙️ Config Store<br/>DevOps Configuration"]
+    end
+    
+    subgraph "Business Logic - lib/"
+        Parser["📝 YAML Parser<br/>yaml-parser.ts"]
+        Helpers["🔧 Helpers<br/>Progress, Dependencies, Validation"]
+        JSONUtils["📦 JSON Utils<br/>Import/Export"]
+        WordGen["📄 Word Generator<br/>docx generation"]
+        S3Utils["☁️ S3 Utils<br/>Upload/Download"]
+        I18n["🌐 i18n Context<br/>ES/EN"]
+    end
+    
+    subgraph "API Routes - app/api/"
+        ProcessAPI["🔌 /api/processes<br/>GET templates"]
+        UploadAPI["📤 /api/upload/*<br/>presigned, complete, delete"]
+    end
+    
+    subgraph "Data Sources"
+        Templates["📁 data/processes/<br/>5 YAML templates"]
+        DevOpsConfig["⚙️ devops-config.json<br/>Environment configs"]
+    end
+    
+    subgraph "External Services (Optional)"
+        S3["☁️ AWS S3<br/>Image storage"]
+        Auth["🔐 NextAuth<br/>Authentication"]
+        DB["🗄️ Prisma + DB<br/>Persistence"]
+    end
+    
+    subgraph "Testing"
+        Vitest["🧪 Vitest<br/>51 unit tests"]
+        Playwright["🎭 Playwright<br/>E2E tests"]
+    end
+    
+    UI --> Pages
+    Pages --> Components
+    Components --> Zustand
+    Components --> ConfigStore
+    
+    Pages --> Parser
+    Pages --> Helpers
+    Pages --> JSONUtils
+    Pages --> WordGen
+    Pages --> I18n
+    
+    Components --> S3Utils
+    S3Utils -.->|Optional| S3
+    S3Utils -.->|Fallback| LocalBase64["💾 Base64 Local Storage"]
+    
+    Pages --> ProcessAPI
+    Pages --> UploadAPI
+    
+    ProcessAPI --> Templates
+    ConfigStore --> DevOpsConfig
+    
+    UploadAPI --> S3Utils
+    
+    Pages -.->|Optional| Auth
+    Zustand -.->|Optional| DB
+    
+    Vitest -.-> Helpers
+    Vitest -.-> Parser
+    Vitest -.-> JSONUtils
+    
+    Playwright -.-> Pages
+    Playwright -.-> Components
+    
+    style UI fill:#60a5fa
+    style Zustand fill:#a78bfa
+    style Parser fill:#fbbf24
+    style S3 fill:#34d399
+    style Vitest fill:#f472b6
+    style Playwright fill:#f472b6
+```
+
+### Flujo de Datos
+
+```mermaid
+sequenceDiagram
+    participant U as Usuario
+    participant HP as HomePage
+    participant API as API Routes
+    participant Parser as YAML Parser
+    participant Store as Zustand Store
+    participant PP as ProcessPage
+    participant Modal as Evidence Modal
+    participant S3 as S3/Local Storage
+    
+    U->>HP: Selecciona template
+    HP->>API: GET /api/processes/[id]
+    API-->>HP: YAML content
+    HP->>Parser: parseYAMLToProcess(yaml)
+    Parser-->>HP: ProcessState
+    HP->>Store: loadProcess(state)
+    Store-->>HP: Estado guardado
+    HP->>PP: Navegar a /process
+    
+    U->>PP: Click en tarea
+    PP->>Modal: Abrir modal evidencias
+    U->>Modal: Upload imagen
+    Modal->>API: POST /api/upload/presigned
+    
+    alt S3 Configurado
+        API-->>Modal: {uploadUrl, cloudStoragePath}
+        Modal->>S3: PUT imagen a S3
+        S3-->>Modal: 200 OK
+        Modal->>API: POST /api/upload/complete
+        API-->>Modal: {finalUrl}
+    else Modo Local
+        API-->>Modal: {localMode: true}
+        Modal->>Modal: fileToBase64(file)
+        Modal-->>Modal: base64String
+    end
+    
+    Modal->>Store: addEvidence(taskId, evidence)
+    Store->>Store: updateProgress()
+    Store->>Store: updateTaskBlockedStatus()
+    Store-->>PP: Estado actualizado
+    PP->>U: UI actualizada
+    
+    U->>PP: Click exportar JSON
+    PP->>Store: getState()
+    Store-->>PP: ProcessState completo
+    PP->>U: Descargar JSON
+```
+
+## �🚀 Stack Tecnológico
 
 | Tecnología | Versión | Descripción |
 |------------|---------|-------------|
