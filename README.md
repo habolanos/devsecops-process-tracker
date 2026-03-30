@@ -2,7 +2,7 @@
 
 Aplicación web para gestión y seguimiento de procesos DevSecOps con soporte para evidencias, dependencias entre tareas, links dinámicos y exportación de resultados.
 
-## � Diagramas
+## 📊 Diagramas
 
 ### Flujo del Proceso de la Aplicación
 
@@ -221,7 +221,7 @@ sequenceDiagram
     PP->>U: Descargar JSON
 ```
 
-## �🚀 Stack Tecnológico
+## 🚀 Stack Tecnológico
 
 | Tecnología | Versión | Descripción |
 |------------|---------|-------------|
