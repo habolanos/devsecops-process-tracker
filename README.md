@@ -1,182 +1,142 @@
-# Process Tracker MVP
+# DevSecOps Process Tracker
 
-## 📊 Descripción
+Aplicación web para gestión y seguimiento de procesos DevSecOps con soporte para evidencias, dependencias entre tareas, links dinámicos y exportación de resultados.
 
-**Process Tracker** es una aplicación web desarrollada en Next.js que permite gestionar y ejecutar procesos complejos paso a paso, adjuntando evidencia completa (texto e imágenes) para cada tarea. Ideal para auditorías, procesos de calidad, onboarding, proyectos estructurados y cualquier flujo de trabajo que requiera documentación y trazabilidad.
+## 🚀 Stack Tecnológico
 
-## ✨ Características Principales
+| Tecnología | Versión | Descripción |
+|------------|---------|-------------|
+| **Next.js** | 15.5.14 | Framework React con App Router |
+| **TypeScript** | 5.2.2 | Tipado estático |
+| **Tailwind CSS** | 3.3.3 + shadcn/ui | Estilos y componentes UI |
+| **Zustand** | 5.0.12 | Estado global con persistencia localStorage |
+| **Vitest** | 1.0.4 | Tests unitarios |
+| **Playwright** | 1.40.0 | Tests E2E |
+| **AWS SDK** | 3.758.0 | Integración S3 (opcional) |
+| **js-yaml** | 4.1.1 | Parseo de YAML |
+| **docx** | 9.6.1 | Generación de documentos Word |
+| **Lucide React** | 0.446.0 | Iconos |
 
-- 📂 **Procesos Precargados**: Selecciona entre plantillas predefinidas (Auditoría IT, Release DevOps, Respuesta a Incidentes)
-- 🔗 **Links Dinámicos**: Links parametrizables con variables que el usuario captura en runtime
-- ⚙️ **Variables de Proceso**: Define variables (organization, projectId, repository) que activan links dinámicos
-- � **Configuración DevOps**: Carga un archivo JSON con tu configuración de Azure DevOps, AWS, GCP y Azure para auto-llenar variables
-- � **Carga de Procesos YAML**: Define procesos con fases y tareas en formato YAML
-- 👣 **Ejecución Paso a Paso**: Navega por fases, visualiza tareas y márcalas como completadas
-- 📸 **Evidencia Completa**: Adjunta texto libre e imágenes (desde archivos locales o URLs)
-- 🔗 **Dependencias entre Tareas**: Las tareas se bloquean automáticamente hasta que sus dependencias estén completadas
-- 📊 **Progreso en Tiempo Real**: Barras de progreso global y por fase
-- 📥 **Exportación Profesional**: 
-  - **JSON** con evidencia en base64 (para continuar procesos incompletos)
-  - **Word (.docx)** con toda la evidencia organizada por fases y tareas
-- 💾 **Persistencia Local**: Auto-guardado en `localStorage` con Zustand
-- 🌐 **Multiidioma**: Español e Inglés (toggle en la interfaz)
-- 📦 **Almacenamiento en la Nube**: Imágenes subidas a AWS S3 (requiere configuración)
+## 📁 Estructura del Proyecto
 
-## 🛠️ Stack Tecnológico
-
-- **Framework**: Next.js 15 (App Router)
-- **Lenguaje**: TypeScript
-- **Estilos**: TailwindCSS
-- **Estado Global**: Zustand con persistencia
-- **Parseo YAML**: js-yaml
-- **Generación de Word**: docx
-- **Almacenamiento**: AWS S3 (AWS SDK v3)
-- **Iconos**: Lucide React
+```
+nextjs_space/
+├── app/                          # Next.js App Router
+│   ├── page.tsx                 # Página principal - selección de plantillas
+│   ├── layout.tsx               # Layout raíz con providers
+│   ├── globals.css              # Estilos globales + Tailwind
+│   ├── process/                 # Página de proceso activo
+│   │   ├── page.tsx            # Vista principal del proceso
+│   │   └── _components/        # Componentes específicos del proceso
+│   │       ├── task-card.tsx       # Tarjeta de tarea individual
+│   │       ├── process-sidebar.tsx # Sidebar de navegación de fases
+│   │       ├── progress-bar.tsx    # Barra de progreso visual
+│   │       ├── evidence-modal.tsx  # Modal de gestión de evidencias
+│   │       ├── variables-form.tsx  # Formulario de variables dinámicas
+│   │       ├── config-upload.tsx   # Upload de configuración DevOps
+│   │       └── dynamic-link-button.tsx # Botones con URLs dinámicas
+│   └── api/                     # API Routes (Next.js)
+│       ├── processes/          # GET /api/processes - listar plantillas
+│       │   └── [id]/          # GET /api/processes/[id] - detalle
+│       └── upload/             # Gestión de uploads
+│           ├── presigned/     # POST - URL prefirmada S3 o modo local
+│           ├── complete/      # POST - URL final del archivo
+│           └── delete/        # POST - eliminar de S3
+│
+├── components/                  # Componentes UI reutilizables (50+ de shadcn)
+│   └── ui/                     # Botones, inputs, modals, etc.
+│
+├── lib/                         # Lógica de negocio central
+│   ├── types.ts                # Tipos TypeScript principales
+│   ├── store.ts                # Zustand store - proceso actual
+│   ├── config-store.ts         # Zustand store - config DevOps
+│   ├── helpers.ts              # Funciones: progreso, dependencias, validación
+│   ├── yaml-parser.ts          # Parser YAML → ProcessState
+│   ├── json-utils.ts           # Import/Export JSON con evidencias
+│   ├── word-generator.ts       # Generador de documentos Word
+│   ├── i18n-context.tsx        # Contexto de internacionalización (ES/EN)
+│   ├── aws-config.ts           # Config AWS S3 (modo local si no hay credenciales)
+│   ├── s3.ts                   # Utilidades S3 (upload, download, delete)
+│   ├── config-loader.ts        # Carga y parseo de config DevOps
+│   └── devops-config-types.ts  # Tipos para configuración DevOps
+│
+├── data/                        # Datos estáticos
+│   ├── processes/              # Procesos YAML predefinidos
+│   │   ├── index.json         # Catálogo: 5 plantillas
+│   │   ├── it-security-audit.yaml      # 3 fases, 13 tareas
+│   │   ├── devops-release.yaml         # 3 fases, 10 tareas
+│   │   ├── incident-response.yaml        # 4 fases, 12 tareas
+│   │   ├── devops-pipeline.yaml        # Con variables y links dinámicos
+│   │   └── pull-request-validation.yaml # 6 fases, 21 tareas, 8 variables
+│   └── devops-config.example.json      # Template de configuración
+│
+├── __tests__/                   # Tests
+│   ├── unit/lib/               # Tests unitarios (51 tests)
+│   │   ├── helpers.test.ts    # Progreso, dependencias, validación
+│   │   ├── yaml-parser.test.ts # Parseo YAML
+│   │   └── json-utils.test.ts  # Import/export JSON
+│   ├── e2e/flows/              # Tests E2E con Playwright
+│   │   ├── load-process.spec.ts    # Carga plantillas/YAML/JSON
+│   │   ├── dependencies.spec.ts    # Flujo de dependencias
+│   │   └── export-results.spec.ts  # Exportación JSON y Word
+│   └── fixtures/               # Archivos de prueba
+│       ├── simple-process.yaml
+│       ├── complex-dependencies.yaml
+│       ├── sample-export.json
+│       └── invalid-yaml.yaml
+│
+├── prisma/
+│   └── schema.prisma           # Schema opcional para persistencia
+│
+└── scripts/
+    └── safe-seed.ts            # Seed de datos iniciales
+```
 
 ## 🚀 Inicio Rápido
 
 ### Prerequisitos
-
-- Node.js 20+ y Yarn
-- (Opcional) Docker y Docker Compose para despliegue
+- Node.js 20+
+- npm (recomendado usar `--legacy-peer-deps`)
 
 ### Instalación
+
 ```bash
-# Clonar el repositorio
-git clone <repo-url>
-cd process_tracker
-
-# Instalar dependencias
+# Entrar al directorio
 cd nextjs_space
-yarn install
 
-# Ejecutar en modo desarrollo
-yarn dev
+# Instalar dependencias (usar legacy-peer-deps por conflictos de versiones)
+npm install --legacy-peer-deps
+
+# Iniciar servidor de desarrollo
+npm run dev
 ```
 
-Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
+La aplicación estará disponible en `http://localhost:3000` (o `3001` si 3000 está ocupado).
 
-### Configuración de AWS S3 (Opcional)
+## 🔧 Configuración
 
-Para habilitar la subida de imágenes a la nube, crea un archivo `.env.local` en `nextjs_space/`:
+### Variables de Entorno (Opcional)
+
+Crear `.env.local` para activar modo S3 (sin esto, usa base64 local):
 
 ```env
+# AWS S3 Configuration
 AWS_BUCKET_NAME=tu-bucket-s3
 AWS_FOLDER_PREFIX=process-tracker/
 AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=tu-access-key
 AWS_SECRET_ACCESS_KEY=tu-secret-key
+
+# Opcional: NextAuth
+NEXTAUTH_SECRET=tu-secret
+NEXTAUTH_URL=http://localhost:3000
 ```
 
-**Nota**: Si no configuras S3, la aplicación seguirá funcionando pero las imágenes se guardarán en memoria durante la sesión.
+**Sin configurar S3**: Las imágenes se convierten a base64 y se almacenan en localStorage.
 
-## 📝 Uso de la Aplicación
-### 1. Cargar un Proceso
+### Configuración DevOps (JSON)
 
-En la pantalla de inicio, tienes tres opciones:
-
-- **Procesos Disponibles**: Selecciona una plantilla precargada:
-  - 🛡️ **Auditoría de Seguridad IT** - Proceso completo de auditoría (3 fases, 13 tareas)
-  - 🚀 **Release DevOps** - Liberación de software con validaciones (3 fases, 10 tareas)
-  - ⚠️ **Respuesta a Incidentes** - Procedimiento ante incidentes de seguridad (4 fases, 12 tareas)
-- **Cargar YAML**: Sube un archivo `.yaml` personalizado
-- **Importar JSON**: Carga un JSON previamente exportado para continuar un proceso incompleto
-
-**Ejemplo**: También puedes usar el archivo `example-process.yaml` incluido en la raíz del proyecto.
-
-### 2. Ejecutar el Proceso
-
-- **Navega por Fases**: Usa el sidebar izquierdo para cambiar entre fases
-- **Visualiza Tareas**: Cada tarea muestra su estado (Completada, Pendiente, Bloqueada)
-- **Adjunta Evidencia**: Haz clic en "Ver Detalles" para abrir el modal de evidencia
-  - Adjunta texto libre
-  - Sube imágenes desde tu dispositivo o pega URLs
-- **Marca como Completada**: La tarea solo se puede completar si la evidencia requerida está adjunta
-
-### 3. Exportar Resultados
-
-- **Exportar JSON**: Guarda el progreso actual (incluye evidencia en base64)
-- **Exportar Word**: Genera un documento `.docx` profesional con toda la evidencia
-- **Finalizar Proceso**: Marca el proceso como completado y exporta ambos formatos automáticamente
-
-## 📁 Estructura de un Proceso YAML
-
-```yaml
-process:
-  id: "unique-id"
-  name: "Nombre del Proceso"
-  description: "Descripción general"
-  version: "1.0.0"
-  
-  # Variables capturables por el usuario (opcional)
-  variables:
-    - key: "organization"
-      label: "Organización"
-      type: "text"           # text | select | number
-      required: true
-      placeholder: "ej: mi-empresa"
-    - key: "environment"
-      label: "Ambiente"
-      type: "select"
-      required: true
-      options: ["development", "staging", "production"]
-  
-  phases:
-    - id: "phase-1"
-      name: "Fase 1"
-      description: "Descripción de la fase"
-      order: 1
-      # Links dinámicos a nivel de fase (opcional)
-      dynamicLinks:
-        - label: "Dashboard"
-          urlTemplate: "https://dashboard.com/{organization}"
-          behavior: "auto"   # auto | click
-          delay: 2           # segundos (solo para auto)
-          requiresVariables: ["organization"]
-      tasks:
-        - id: "task-1-1"
-          name: "Tarea 1"
-          description: "Descripción de la tarea"
-          order: 1
-          references:
-            - label: "Documentación"
-              url: "https://example.com"
-          # Links dinámicos a nivel de tarea (opcional)
-          dynamicLinks:
-            - label: "GitHub Repo"
-              urlTemplate: "https://github.com/{organization}/{repository}"
-              behavior: "click"
-              newTab: true
-              requiresVariables: ["organization", "repository"]
-          evidence:
-            type: "text"     # text | image | both
-            required: true
-            description: "Qué evidencia se necesita"
-          dependencies: []   # IDs de tareas que deben completarse antes
-```
-
-### Variables y Links Dinámicos
-
-Los procesos pueden definir **variables** que el usuario captura al inicio:
-- Los **links dinámicos** usan estas variables para construir URLs parametrizadas
-- Los links permanecen **bloqueados** hasta que se completen las variables requeridas
-- Comportamiento `auto`: el link se abre automáticamente al activarse
-- Comportamiento `click`: requiere que el usuario haga clic
-
-**Ejemplo**: Ver `data/processes/devops-pipeline.yaml` para un proceso completo con variables y links dinámicos.
-
-### Configuración DevOps (Auto-fill)
-
-Puedes cargar un archivo `devops-config.json` para **auto-llenar variables** en los procesos:
-
-1. Haz clic en el botón **"Config"** en la barra de herramientas
-2. **Opción A**: Genera un template personalizado con **"Generar Config para este proceso"** (incluye solo las secciones necesarias)
-3. **Opción B**: Descarga la plantilla completa de ejemplo
-4. Edita el archivo JSON con tu información
-5. Arrastra o selecciona tu archivo de configuración
-6. Al abrir el formulario de Variables, usa el botón **"Auto-fill"** para llenar automáticamente
-
-**Template de configuración** (`devops-config.json`):
+Template para autocompletado de variables:
 
 ```json
 {
@@ -186,222 +146,342 @@ Puedes cargar un archivo `devops-config.json` para **auto-llenar variables** en 
     "email": "tu.email@empresa.com"
   },
   "azureDevOps": {
-    "organization": "mi-organizacion",
-    "projects": ["proyecto-1", "proyecto-2"],
-    "repositories": ["backend-api", "frontend-app"],
-    "environments": ["development", "staging", "uat", "production"],
-    "pipelines": ["CI-Pipeline", "CD-Pipeline"]
+    "organization": "mi-org",
+    "projects": ["proyecto-1"],
+    "repositories": ["backend-api"],
+    "environments": ["dev", "staging", "prod"]
   },
   "aws": {
-    "accountId": "123456789012",
-    "regions": ["us-east-1", "us-west-2"],
-    "clusters": [
-      { "name": "eks-prod", "region": "us-east-1", "environment": "production" }
-    ]
+    "regions": ["us-east-1"],
+    "clusters": [{"name": "eks-prod", "region": "us-east-1"}],
+    "s3Buckets": ["artifacts"]
   },
-  "gcp": {
-    "projects": [{ "id": "mi-proyecto", "name": "Producción" }],
-    "regions": ["us-central1"],
-    "clusters": [
-      { "name": "gke-prod", "project": "mi-proyecto", "region": "us-central1", "environment": "production" }
-    ]
-  },
-  "azure": {
-    "resourceGroups": ["rg-production", "rg-staging"],
-    "clusters": [
-      { "name": "aks-prod", "resourceGroup": "rg-production", "region": "eastus", "environment": "production" }
-    ]
-  },
-  "namespaces": ["default", "backend", "frontend"],
-  "artifactRegistries": ["acr-production", "ecr-production"],
   "defaults": {
     "project": "proyecto-1",
-    "environment": "staging",
-    "cluster": "aks-prod"
+    "environment": "staging"
   }
 }
 ```
 
-Ver `data/devops-config.example.json` para un template completo.
+## ✨ Funcionalidades Principales
+
+### 1. Gestión de Procesos
+- **5 Plantillas predefinidas**: Auditoría IT, DevOps Release, Incident Response, Pipeline DevOps, PR Validation
+- **Carga YAML**: Importar procesos personalizados
+- **Importación JSON**: Cargar estado guardado
+- **Progreso visual**: Barras de progreso por fase y global
+
+### 2. Sistema de Tareas
+- **Fases organizadas**: Agrupación lógica de tareas
+- **Dependencias**: Tareas bloqueadas hasta completar dependencias
+- **Evidencias**: Soporte texto + imágenes (archivo o URL)
+- **Estados**: Visualización de Completado/Pendiente/Bloqueado
+
+### 3. Evidencias
+| Tipo | Modo S3 | Modo Local |
+|------|---------|------------|
+| **Texto** | Guardado en JSON | Guardado en localStorage |
+| **Imágenes archivo** | Upload a S3 | Conversión base64 |
+| **Imágenes URL** | Descarga + S3 | Descarga + base64 |
+
+**Ventaja modo local**: Funciona sin internet, sin costos AWS, portable.
+
+### 4. Variables y Configuración
+- **Variables dinámicas**: Definidas en YAML (texto, select, número)
+- **Config DevOps**: JSON con datos de entornos, clusters, repositorios
+- **Auto-fill**: Variables se completan automáticamente desde config
+- **Links dinámicos**: URLs con variables interpoladas (ej: `https://github.com/{org}/{repo}`)
+
+### 5. Exportación
+- **JSON**: Estado completo con evidencias base64 (para reanudar)
+- **Word**: Documento formal con portada, fases, tareas, evidencias
 
 ## 🧪 Testing
 
-El proyecto incluye tests unitarios con **Vitest** y tests E2E con **Playwright**.
+El proyecto tiene **51 tests unitarios** y tests E2E con Playwright.
 
 ### Tests Unitarios (Vitest)
-
 ```bash
-# Ejecutar tests unitarios en modo watch
-npm run test
-
-# Ejecutar tests unitarios una sola vez
-npm run test:run
-
-# Ejecutar con cobertura
-npm run test:coverage
+npm run test       # Modo watch
+npm run test:run   # Una vez
+npm run test:coverage  # Con cobertura
 ```
 
-**Ubicación**: `__tests__/unit/`
+**Tests incluyen**:
+- Cálculo de progreso (`calculateTaskProgress`, `calculatePhaseProgress`)
+- Gestión de dependencias (`checkTaskDependencies`, `updateTaskBlockedStatus`)
+- Validación de evidencias (`validateTaskEvidence`)
+- Parseo de YAML (`parseYAMLToProcess`)
+- Import/Export JSON (`importProcessFromJSON`, `exportProcessToJSON`)
 
 ### Tests E2E (Playwright)
-
-#### Preparación
-
-1. Instalar dependencias:
 ```bash
-npm install
-```
-
-2. Instalar navegadores de Playwright:
-```bash
-npx playwright install chromium
-```
-
-#### Ejecución de Tests E2E
-
-**Opción A - Servidor automático** (Playwright levanta el servidor):
-```bash
+# Opción 1: Playwright levanta servidor automáticamente
 npm run test:e2e
-```
 
-**Opción B - Manual** (más control, mejor para debugging):
-
-Terminal 1 - Levantar servidor:
-```bash
+# Opción 2: Manual (mejor para debug)
+# Terminal 1:
 npm run dev
-```
-
-Terminal 2 - Ejecutar tests:
-```bash
-# Ejecutar todos los tests
-npx playwright test
-
-# Ejecutar solo en Chromium
+# Terminal 2:
 npx playwright test --project=chromium
-
-# Ejecutar tests específicos
-npx playwright test load-process
-n
-# Modo UI para debugging
-npx playwright test --ui
-
-# Modo headed (ver el navegador)
-npx playwright test --headed
 ```
 
-#### Estructura de Tests E2E
+**Flujos testeados**:
+1. **Load Process**: Carga desde plantillas, YAML, JSON
+2. **Dependencies**: Verifica bloqueo/desbloqueo de tareas
+3. **Export**: Exportación JSON y Word con evidencias
 
+**Selectores data-testid** para tests:
+- `app-header`, `process-template`, `process-sidebar`
+- `task-card-{id}`, `task-checkbox`, `progress-bar`
+- `export-json-btn`, `export-word-btn`
+
+### Reportes
+- HTML: `playwright-report/index.html`
+- JSON: `test-results.json`
+- Screenshots: `test-results/` (solo fallos)
+
+## 📚 Estructura de Procesos YAML
+
+```yaml
+process:
+  id: example-process
+  name: Ejemplo de Proceso
+  description: Descripción
+  version: "1.0.0"
+  
+  # Variables globales
+  variables:
+    - key: project
+      label: Proyecto
+      type: text          # text | select | number
+      required: true
+    - key: environment
+      label: Ambiente
+      type: select
+      options: ["dev", "staging", "prod"]
+  
+  phases:
+    - id: phase-1
+      name: Fase Inicial
+      order: 1
+      
+      # Links dinámicos a nivel de fase
+      dynamicLinks:
+        - label: "Dashboard"
+          urlTemplate: "https://dash.com/{project}"
+          behavior: click           # auto | click
+          requiresVariables: ["project"]
+      
+      tasks:
+        - id: task-1
+          name: Primera Tarea
+          order: 1
+          evidence:
+            type: both          # text | image | both
+            required: true
+          references:
+            - text: "Documentación"
+              url: "https://docs.example.com"
+          
+        - id: task-2
+          name: Segunda Tarea
+          order: 2
+          dependencies: ["task-1"]    # Depende de task-1
+          evidence:
+            type: text
+            required: false
 ```
-__tests__/e2e/
-├── flows/
-│   ├── load-process.spec.ts    # Carga de procesos (templates, YAML, JSON)
-│   ├── dependencies.spec.ts    # Dependencias entre tareas
-│   └── export-results.spec.ts  # Exportación JSON y Word
-└── fixtures/                   # Archivos de prueba
-    ├── simple-process.yaml
-    ├── complex-dependencies.yaml
-    ├── sample-export.json
-    └── invalid-yaml.yaml
+
+### Tipos de Datos TypeScript
+
+**ProcessState** - Estado completo del proceso:
+```typescript
+interface ProcessState {
+  id: string;
+  name: string;
+  description: string;
+  version: string;
+  phases: PhaseState[];
+  progress: number;              # 0.0 - 1.0
+  variableDefinitions: ProcessVariableYAML[];
+  capturedVariables: Record<string, string>;
+  loadedAt?: string;
+  exportedAt?: string;
+  completedAt?: string;
+}
 ```
 
-#### Selectores data-testid
+**TaskState** - Tarea individual:
+```typescript
+interface TaskState {
+  id: string;
+  name: string;
+  description: string;
+  completed: boolean;
+  completedAt?: string;
+  evidenceConfig: { type: 'text' | 'image' | 'both'; required: boolean };
+  evidence?: { text?: string; images?: EvidenceImage[] };
+  dependencies: string[];          # IDs de tareas requeridas
+  isBlocked?: boolean;             # Calculado automáticamente
+  dynamicLinks?: DynamicLink[];
+}
+```
 
-Los componentes UI tienen `data-testid` para tests estables:
-- `app-header` - Header de la aplicación
-- `process-template` - Cards de plantillas
-- `process-sidebar` - Sidebar de fases
-- `task-card-{id}` - Cards de tareas
-- `task-checkbox` - Checkbox de completado
-- `progress-bar` - Barra de progreso
-- `export-json-btn`, `export-word-btn` - Botones de exportación
+**EvidenceImage** - Imagen de evidencia:
+```typescript
+interface EvidenceImage {
+  id: string;
+  name: string;
+  cloudStoragePath?: string;     # Solo modo S3
+  url: string;                   # URL S3 o data URL base64
+  isPublic: boolean;
+  source: 'file' | 'url';
+  originalUrl?: string;          # Para imágenes de URL
+  uploadedAt: string;
+}
+```
 
-#### Reportes
+## 🔌 API Routes
 
-Después de ejecutar tests E2E:
-- **HTML Report**: `playwright-report/index.html`
-- **JSON Results**: `test-results.json`
-- **Screenshots/Videos**: `test-results/` (solo en fallos)
+### GET /api/processes
+Retorna catálogo de plantillas disponibles.
 
-## 🐳 Despliegue con Docker
+**Response**:
+```json
+{
+  "processes": [
+    {
+      "id": "it-security-audit",
+      "name": "Auditoría de Seguridad IT",
+      "description": "Proceso completo de auditoría...",
+      "category": "security",
+      "icon": "shield",
+      "file": "it-security-audit.yaml",
+      "version": "1.0.0"
+    }
+  ]
+}
+```
+
+### GET /api/processes/[id]
+Retorna contenido YAML de un proceso específico.
+
+### POST /api/upload/presigned
+Genera URL prefirmada para S3 o indica modo local.
+
+**Request**:
+```json
+{
+  "fileName": "imagen.jpg",
+  "contentType": "image/jpeg",
+  "isPublic": false
+}
+```
+
+**Response Modo S3**:
+```json
+{
+  "uploadUrl": "https://s3.amazonaws.com/...",
+  "cloudStoragePath": "uploads/1234567890-imagen.jpg"
+}
+```
+
+**Response Modo Local**:
+```json
+{
+  "localMode": true,
+  "fileName": "imagen.jpg",
+  "contentType": "image/jpeg"
+}
+```
+
+## 🧩 Componentes UI Principales
+
+### TaskCard
+```typescript
+interface TaskCardProps {
+  task: TaskState;
+  phaseId: string;
+  onOpenEvidence: () => void;
+}
+```
+- Checkbox de completado (deshabilitado si bloqueado)
+- Badge de evidencias (texto/imagen)
+- Icono de bloqueo si tiene dependencias
+- Botón "Ver Detalles" para evidencias
+
+### EvidenceModal
+Modal de gestión de evidencias:
+- **Tab Texto**: Textarea para notas
+- **Tab Imágenes**: 
+  - Upload drag & drop de archivos
+  - Input URL para imágenes externas
+  - Grid de previews con botón eliminar
+- Conversión automática a base64 en modo local
+
+### ProcessSidebar
+Sidebar izquierdo:
+- Lista de fases con badge de progreso
+- Navegación por click
+- Resumen de tareas completadas/total
+
+### VariablesForm
+Formulario dinámico:
+- Generado desde `variableDefinitions`
+- Soporte: text, select, number
+- Validación de requeridos
+- Botón "Auto-fill" desde config DevOps
+
+### ConfigUpload
+Upload de configuración:
+- Drag & drop de JSON
+- Validación de estructura
+- Template generator basado en variables del proceso
+
+## 🛠️ Desarrollo
 
 ```bash
-# Construir y ejecutar con Docker Compose
+# Instalar dependencias
+npm install --legacy-peer-deps
+
+# Desarrollo
+npm run dev              # Servidor en localhost:3000
+
+# Testing
+npm run test:run         # Tests unitarios (51 tests)
+npm run test:e2e         # Tests E2E (Playwright)
+
+# Build
+npm run build            # Producción
+npm run lint             # Linting
+```
+
+## 🐳 Docker
+
+```bash
+# Construir y ejecutar
 docker-compose up --build
 
-# La aplicación estará disponible en http://localhost:3000
+# Acceder en http://localhost:3000
 ```
 
-## 📚 Estructura del Proyecto
-
-```
-process_tracker/
-├── nextjs_space/              # Aplicación Next.js
-│   ├── app/                   # Rutas y páginas (App Router)
-│   │   ├── page.tsx           # Página de inicio (templates + carga YAML/JSON)
-│   │   ├── process/           # Página de ejecución del proceso
-│   │   │   ├── page.tsx
-│   │   │   └── _components/   # Componentes (sidebar, task-card, evidence-modal, etc.)
-│   │   └── api/               # API routes
-│   │       ├── upload/        # Upload de archivos
-│   │       └── processes/     # API de procesos precargados
-│   ├── data/                  # Datos estáticos
-│   │   ├── devops-config.example.json  # Template de configuración DevOps
-│   │   └── processes/         # Plantillas YAML precargadas
-│   │       ├── index.json     # Índice de procesos disponibles
-│   │       ├── it-security-audit.yaml
-│   │       ├── devops-release.yaml
-│   │       ├── incident-response.yaml
-│   │       ├── devops-pipeline.yaml  # Con variables y links dinámicos
-│   │       └── pull-request-validation.yaml  # Validación de PR (6 fases, 21 tareas)
-│   ├── lib/                   # Lógica de negocio y utilidades
-│   │   ├── types.ts           # Tipos TypeScript
-│   │   ├── store.ts           # Zustand store con persistencia
-│   │   ├── config-store.ts    # Store para configuración DevOps
-│   │   ├── config-loader.ts   # Carga y parseo de config JSON
-│   │   ├── devops-config-types.ts  # Tipos para configuración DevOps
-│   │   ├── yaml-parser.ts     # Parseo de YAML
-│   │   ├── json-utils.ts      # Exportación/importación JSON
-│   │   ├── word-generator.ts  # Generación de Word con docx
-│   │   ├── helpers.ts         # Helpers (progreso, dependencias, validación)
-│   │   ├── i18n-context.tsx   # Contexto de traducción (ES/EN)
-│   │   ├── aws-config.ts      # Configuración de AWS S3
-│   │   └── s3.ts              # Utilidades S3 (upload, download, delete)
-│   └── ...
-├── example-process.yaml   # Proceso de ejemplo (Auditoría IT)
-├── Dockerfile              # Imagen Docker multi-stage
-├── docker-compose.yml      # Orquestación Docker
-└── README.md               # Este archivo
-```
-
-## 🤝 Contribuciones
-
-Las contribuciones son bienvenidas. Por favor:
-
-1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
-
-## 📝 Licencia
-
-Este proyecto DevSecOps' MVP de demostración. Libre para uso educativo y comercial.
-
-## 📧 Contacto
-
-Para preguntas o soporte, abre un issue en el repositorio.
-
-## 📋 Historial de Cambios
+## 📊 Historial de Cambios
 
 | Fecha | Versión | Descripción |
 |-------|---------|-------------|
-| 2026-03-27 | 1.4.1 | Generación automática de template JSON basado en variables del proceso |
-| 2026-03-27 | 1.4.0 | Configuración DevOps con auto-fill de variables (Azure DevOps, AWS, GCP, Azure) |
-| 2026-03-27 | 1.3.0 | Nuevo proceso `pull-request-validation.yaml` (6 fases, 21 tareas, 8 variables) |
-| 2026-03-27 | 1.2.0 | Variables de proceso y links dinámicos parametrizables, nuevo template `devops-pipeline.yaml` |
-| 2026-03-27 | 1.1.0 | Procesos precargados (3 plantillas), API `/api/processes`, actualización a Next.js 15.1.3 |
+| 2026-03-29 | 1.5.0 | Tests E2E con Playwright, modo local para imágenes, vulnerabilidades parcheadas |
+| 2026-03-27 | 1.4.1 | Generación automática de template JSON basado en variables |
+| 2026-03-27 | 1.4.0 | Configuración DevOps con auto-fill de variables |
+| 2026-03-27 | 1.3.0 | Nuevo proceso `pull-request-validation.yaml` (6 fases, 21 tareas) |
+| 2026-03-27 | 1.2.0 | Variables de proceso y links dinámicos parametrizables |
+| 2026-03-27 | 1.1.0 | Procesos precargados, API `/api/processes` |
 | 2026-03-01 | 1.0.0 | Versión inicial con carga YAML/JSON, evidencias, exportación Word |
+
+## 📄 Licencia
+
+MIT License - Libre para uso educativo y comercial.
 
 ---
 
-**Process Tracker MVP** © 2026 - Desarrollado por **Harold Adrian** con ❤️ usando Next.js y TypeScript
+**DevSecOps Process Tracker** © 2026 - Desarrollado por **Harold Adrian** con ❤️ usando Next.js y TypeScript
