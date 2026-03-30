@@ -4,170 +4,273 @@ Aplicación web para gestión y seguimiento de procesos DevSecOps con soporte pa
 
 ## 📊 Diagramas
 
-### Flujo del Proceso de la Aplicación
+### Flujo del Proceso de la Aplicación (BPMN)
 
-```mermaid
-flowchart TD
-    Start([Usuario Inicia App]) --> HomePage[Página Principal]
-    HomePage --> Choice{Seleccionar Origen}
+```plantuml
+@startuml
+!define RECTANGLE class
+
+skinparam activity {
+  BackgroundColor<<Start>> LightGreen
+  BackgroundColor<<End>> LightCoral
+  BackgroundColor<<Task>> LightBlue
+  BackgroundColor<<Gateway>> Gold
+}
+
+start
+:Usuario Inicia App;
+:Página Principal<<Task>>;
+
+if (Seleccionar Origen?) then (Plantilla)
+  :Seleccionar Template<<Task>>;
+  :Parser YAML<<Task>>;
+elseif (YAML) then
+  :Upload Archivo YAML<<Task>>;
+  :Parser YAML<<Task>>;
+else (JSON)
+  :Upload JSON Exportado<<Task>>;
+  :Importar Estado JSON<<Task>>;
+endif
+
+:Guardar en Zustand Store<<Task>>;
+:Navegar a Página de Proceso<<Task>>;
+
+partition "Ejecución de Proceso" {
+  :Mostrar Sidebar, TaskCards, ProgressBar<<Task>>;
+  
+  repeat
+    :Usuario selecciona tarea<<Task>>;
     
-    Choice -->|Plantilla| Template[Seleccionar Template]
-    Choice -->|YAML| UploadYAML[Upload Archivo YAML]
-    Choice -->|JSON| UploadJSON[Upload JSON Exportado]
+    if (¿Tiene Dependencias?) then (Sí)
+      :Tarea Bloqueada<<Task>>;
+      :Esperar Completar Dependencias<<Task>>;
+    else (No)
+      :Tarea Disponible<<Task>>;
+    endif
     
-    Template --> Parse[Parser YAML]
-    UploadYAML --> Parse
-    UploadJSON --> ImportJSON[Importar Estado JSON]
+    if (¿Completar Tarea?) then (Sí)
+      if (¿Requiere Evidencia?) then (Sí)
+        :Abrir Modal de Evidencias<<Task>>;
+        
+        if (¿Tipo de Upload?) then (S3 Configurado)
+          :Upload a S3<<Task>>;
+        else (Modo Local)
+          :Convertir a Base64<<Task>>;
+        endif
+        
+        :Guardar Evidencia<<Task>>;
+      endif
+      
+      :Marcar Completada<<Task>>;
+      :Actualizar Progreso<<Task>>;
+      :Desbloquear Tareas Dependientes<<Task>>;
+    endif
     
-    Parse --> Store[Zustand Store]
-    ImportJSON --> Store
+    if (¿Usar Variables?) then (Sí)
+      :Abrir Modal de Variables<<Task>>;
+      
+      if (¿Cargar Config DevOps?) then (Sí)
+        :Auto-fill Variables<<Task>>;
+      else (No)
+        :Input Manual<<Task>>;
+      endif
+      
+      :Activar Links Dinámicos<<Task>>;
+    endif
     
-    Store --> ProcessPage[Página de Proceso]
-    
-    ProcessPage --> Sidebar[Sidebar: Navegación Fases]
-    ProcessPage --> TaskCards[Task Cards]
-    ProcessPage --> ProgressBar[Barra de Progreso]
-    
-    TaskCards --> CheckDeps{Tiene Dependencias?}
-    CheckDeps -->|Sí| Blocked[Tarea Bloqueada]
-    CheckDeps -->|No| Available[Tarea Disponible]
-    
-    Blocked --> WaitDeps[Esperar Completar Dependencias]
-    WaitDeps --> Available
-    
-    Available --> Complete{Completar Tarea?}
-    Complete -->|Sí| Evidence{Requiere Evidencia?}
-    
-    Evidence -->|Sí| EvidenceModal[Modal de Evidencias]
-    Evidence -->|No| MarkComplete[Marcar Completada]
-    
-    EvidenceModal --> UploadType{Tipo de Upload}
-    UploadType -->|S3 Configurado| S3Upload[Upload a S3]
-    UploadType -->|Modo Local| Base64[Convertir a Base64]
-    
-    S3Upload --> SaveEvidence[Guardar Evidencia]
-    Base64 --> SaveEvidence
-    
-    SaveEvidence --> MarkComplete
-    MarkComplete --> UpdateProgress[Actualizar Progreso]
-    
-    UpdateProgress --> UnblockTasks[Desbloquear Tareas Dependientes]
-    UnblockTasks --> ProcessPage
-    
-    ProcessPage --> Variables{Usar Variables?}
-    Variables -->|Sí| VarModal[Modal de Variables]
-    VarModal --> ConfigUpload{Cargar Config DevOps?}
-    ConfigUpload -->|Sí| AutoFill[Auto-fill Variables]
-    ConfigUpload -->|No| ManualInput[Input Manual]
-    AutoFill --> DynamicLinks[Links Dinámicos Activos]
-    ManualInput --> DynamicLinks
-    DynamicLinks --> ProcessPage
-    
-    ProcessPage --> Export{Exportar?}
-    Export -->|JSON| ExportJSON[Exportar a JSON]
-    Export -->|Word| ExportWord[Generar Documento Word]
-    
-    ExportJSON --> Download[Descargar Archivo]
-    ExportWord --> Download
-    Download --> End([Fin])
-    
-    Complete -->|No| ProcessPage
-    Variables -->|No| ProcessPage
-    Export -->|No| ProcessPage
-    
-    style Start fill:#4ade80
-    style End fill:#f87171
-    style Store fill:#60a5fa
-    style ProcessPage fill:#fbbf24
-    style EvidenceModal fill:#a78bfa
-    style ExportJSON fill:#34d399
-    style ExportWord fill:#34d399
+  repeat while (¿Continuar con proceso?) is (Sí)
+  
+  if (¿Exportar?) then (JSON)
+    :Exportar a JSON<<Task>>;
+    :Descargar Archivo<<Task>>;
+  elseif (Word) then
+    :Generar Documento Word<<Task>>;
+    :Descargar Archivo<<Task>>;
+  endif
+}
+
+stop
+
+@enduml
 ```
 
-### Arquitectura del Sistema
+### Arquitectura del Sistema (Diagrama de Componentes)
 
-```mermaid
-graph TB
-    subgraph "Frontend - Next.js 15 App Router"
-        UI["🎨 UI Layer<br/>(React + Tailwind + shadcn/ui)"]
-        Pages["📄 Pages<br/>app/page.tsx<br/>app/process/page.tsx"]
-        Components["🧩 Components<br/>TaskCard, Sidebar, Modals"]
-    end
-    
-    subgraph "State Management"
-        Zustand["💾 Zustand Store<br/>+ localStorage persistence"]
-        ConfigStore["⚙️ Config Store<br/>DevOps Configuration"]
-    end
-    
-    subgraph "Business Logic - lib/"
-        Parser["📝 YAML Parser<br/>yaml-parser.ts"]
-        Helpers["🔧 Helpers<br/>Progress, Dependencies, Validation"]
-        JSONUtils["📦 JSON Utils<br/>Import/Export"]
-        WordGen["📄 Word Generator<br/>docx generation"]
-        S3Utils["☁️ S3 Utils<br/>Upload/Download"]
-        I18n["🌐 i18n Context<br/>ES/EN"]
-    end
-    
-    subgraph "API Routes - app/api/"
-        ProcessAPI["🔌 /api/processes<br/>GET templates"]
-        UploadAPI["📤 /api/upload/*<br/>presigned, complete, delete"]
-    end
-    
-    subgraph "Data Sources"
-        Templates["📁 data/processes/<br/>5 YAML templates"]
-        DevOpsConfig["⚙️ devops-config.json<br/>Environment configs"]
-    end
-    
-    subgraph "External Services (Optional)"
-        S3["☁️ AWS S3<br/>Image storage"]
-        Auth["🔐 NextAuth<br/>Authentication"]
-        DB["🗄️ Prisma + DB<br/>Persistence"]
-    end
-    
-    subgraph "Testing"
-        Vitest["🧪 Vitest<br/>51 unit tests"]
-        Playwright["🎭 Playwright<br/>E2E tests"]
-    end
-    
-    UI --> Pages
-    Pages --> Components
-    Components --> Zustand
-    Components --> ConfigStore
-    
-    Pages --> Parser
-    Pages --> Helpers
-    Pages --> JSONUtils
-    Pages --> WordGen
-    Pages --> I18n
-    
-    Components --> S3Utils
-    S3Utils -.->|Optional| S3
-    S3Utils -.->|Fallback| LocalBase64["💾 Base64 Local Storage"]
-    
-    Pages --> ProcessAPI
-    Pages --> UploadAPI
-    
-    ProcessAPI --> Templates
-    ConfigStore --> DevOpsConfig
-    
-    UploadAPI --> S3Utils
-    
-    Pages -.->|Optional| Auth
-    Zustand -.->|Optional| DB
-    
-    Vitest -.-> Helpers
-    Vitest -.-> Parser
-    Vitest -.-> JSONUtils
-    
-    Playwright -.-> Pages
-    Playwright -.-> Components
-    
-    style UI fill:#60a5fa
-    style Zustand fill:#a78bfa
-    style Parser fill:#fbbf24
-    style S3 fill:#34d399
-    style Vitest fill:#f472b6
-    style Playwright fill:#f472b6
+```plantuml
+@startuml
+!define COMPONENT_COLOR #60a5fa
+!define STORAGE_COLOR #a78bfa
+!define SERVICE_COLOR #34d399
+!define TEST_COLOR #f472b6
+
+skinparam component {
+  BackgroundColor COMPONENT_COLOR
+  BorderColor #1e40af
+}
+
+skinparam database {
+  BackgroundColor STORAGE_COLOR
+  BorderColor #6b21a8
+}
+
+package "Frontend Layer" {
+  component "UI Components" as UI {
+    [TaskCard]
+    [ProcessSidebar]
+    [EvidenceModal]
+    [VariablesForm]
+    [ConfigUpload]
+    [ProgressBar]
+  }
+  
+  component "Pages" as Pages {
+    [HomePage]
+    [ProcessPage]
+  }
+  
+  component "Layouts" as Layouts {
+    [RootLayout]
+  }
+}
+
+package "State Management" {
+  database "Zustand Store" as Store {
+    + ProcessState
+    + localStorage persistence
+  }
+  
+  database "Config Store" as ConfigStore {
+    + DevOps Configuration
+  }
+}
+
+package "Business Logic (lib/)" {
+  component "YAML Parser" as Parser {
+    + parseYAMLToProcess()
+  }
+  
+  component "Helpers" as Helpers {
+    + calculateProgress()
+    + checkDependencies()
+    + validateEvidence()
+  }
+  
+  component "JSON Utils" as JSONUtils {
+    + importProcessFromJSON()
+    + exportProcessToJSON()
+  }
+  
+  component "Word Generator" as WordGen {
+    + generateWordDocument()
+  }
+  
+  component "S3 Utils" as S3Utils {
+    + uploadToS3()
+    + getPresignedUrl()
+    + deleteFromS3()
+  }
+  
+  component "i18n Context" as I18n {
+    + ES/EN translations
+  }
+}
+
+package "API Routes (app/api/)" {
+  component "Process API" as ProcessAPI {
+    GET /api/processes
+    GET /api/processes/[id]
+  }
+  
+  component "Upload API" as UploadAPI {
+    POST /api/upload/presigned
+    POST /api/upload/complete
+    POST /api/upload/delete
+  }
+}
+
+package "Data Sources" {
+  database "YAML Templates" as Templates {
+    it-security-audit.yaml
+    devops-release.yaml
+    incident-response.yaml
+    devops-pipeline.yaml
+    pull-request-validation.yaml
+  }
+  
+  database "DevOps Config" as DevOpsConfigFile {
+    devops-config.json
+  }
+}
+
+package "External Services" <<Cloud>> {
+  component "AWS S3" as S3 #SERVICE_COLOR {
+    Image Storage
+  }
+  
+  component "NextAuth" as Auth #SERVICE_COLOR {
+    Authentication
+  }
+  
+  database "Prisma + DB" as DB #SERVICE_COLOR {
+    Persistence
+  }
+}
+
+package "Testing" {
+  component "Vitest" as Vitest #TEST_COLOR {
+    51 unit tests
+  }
+  
+  component "Playwright" as Playwright #TEST_COLOR {
+    E2E tests
+  }
+}
+
+' Frontend connections
+Pages --> UI : uses
+Layouts --> Pages : contains
+UI --> Store : reads/writes
+UI --> ConfigStore : reads/writes
+
+' Business Logic connections
+Pages --> Parser : uses
+Pages --> Helpers : uses
+Pages --> JSONUtils : uses
+Pages --> WordGen : uses
+Pages --> I18n : uses
+UI --> S3Utils : uses
+
+' API connections
+Pages --> ProcessAPI : calls
+Pages --> UploadAPI : calls
+ProcessAPI --> Templates : reads
+ConfigStore --> DevOpsConfigFile : loads
+UploadAPI --> S3Utils : uses
+
+' External Services (optional)
+S3Utils ..> S3 : optional
+S3Utils ..> "Base64\nLocal Storage" : fallback
+Pages ..> Auth : optional
+Store ..> DB : optional
+
+' Testing connections
+Vitest ..> Helpers : tests
+Vitest ..> Parser : tests
+Vitest ..> JSONUtils : tests
+Playwright ..> Pages : tests
+Playwright ..> UI : tests
+
+note right of S3
+  Servicios externos
+  opcionales
+end note
+
+note bottom of Store
+  Persistencia automática
+  en localStorage
+end note
+
+@enduml
 ```
 
 ### Flujo de Datos
