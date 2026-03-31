@@ -46,37 +46,37 @@ export default function TaskCard({ task, phaseId, onViewEvidence }: TaskCardProp
           : 'border-gray-200 hover:shadow-md'
       }`}
     >
-      <div className="p-6">
+      <div className="p-4">
         {/* Header */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-start gap-3 flex-1">
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex items-start gap-2 flex-1">
             <button
               onClick={handleToggleComplete}
               disabled={isBlocked}
               data-testid="task-checkbox"
-              className="flex-shrink-0 mt-1 disabled:cursor-not-allowed"
+              className="flex-shrink-0 mt-0.5 disabled:cursor-not-allowed"
             >
               {isBlocked ? (
-                <Lock data-testid="lock-icon" className="w-6 h-6 text-gray-400" />
+                <Lock data-testid="lock-icon" className="w-5 h-5 text-gray-400" />
               ) : isCompleted ? (
-                <CheckCircle2 className="w-6 h-6 text-green-500" />
+                <CheckCircle2 className="w-5 h-5 text-green-500" />
               ) : (
-                <Circle className="w-6 h-6 text-gray-400 hover:text-blue-500 transition-colors" />
+                <Circle className="w-5 h-5 text-gray-400 hover:text-blue-500 transition-colors" />
               )}
             </button>
 
             <div className="flex-1 min-w-0">
-              <h3 className={`text-lg font-semibold mb-1 ${
+              <h3 className={`text-base font-semibold mb-0.5 ${
                 isCompleted ? 'text-green-900' : 'text-gray-900'
               }`}>
                 {task?.name}
               </h3>
               {task?.description && (
-                <p className="text-sm text-gray-600 mb-2">{task.description}</p>
+                <p className="text-sm text-gray-600 mb-1">{task.description}</p>
               )}
 
               {/* Status Badge */}
-              <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-2 mt-1">
                 <span
                   className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
                     isCompleted
@@ -108,7 +108,7 @@ export default function TaskCard({ task, phaseId, onViewEvidence }: TaskCardProp
           <button
             onClick={onViewEvidence}
             data-testid="view-evidence-btn"
-            className="px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors text-sm font-medium"
+            className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors text-sm font-medium"
           >
             {t('task.view')}
           </button>
@@ -116,7 +116,7 @@ export default function TaskCard({ task, phaseId, onViewEvidence }: TaskCardProp
 
         {/* References */}
         {task?.references && task.references.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
+          <div className="mt-3 pt-3 border-t border-gray-200">
             <h4 className="text-sm font-semibold text-gray-700 mb-2">
               {t('task.references')}
             </h4>
@@ -144,7 +144,7 @@ export default function TaskCard({ task, phaseId, onViewEvidence }: TaskCardProp
 
         {/* Dependencies */}
         {task?.dependencies && task.dependencies.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
+          <div className="mt-3 pt-3 border-t border-gray-200">
             <h4 className="text-sm font-semibold text-gray-700 mb-2">
               {t('task.dependencies')}
             </h4>
@@ -163,7 +163,7 @@ export default function TaskCard({ task, phaseId, onViewEvidence }: TaskCardProp
 
         {/* Evidence config info */}
         {task?.evidenceConfig?.required && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
+          <div className="mt-3 pt-3 border-t border-gray-200">
             <p className="text-xs text-gray-600">
               <span className="font-semibold text-red-600">{t('evidence.required')}</span>
               {' '}- Tipo: {task.evidenceConfig.type}

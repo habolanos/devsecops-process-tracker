@@ -687,6 +687,7 @@ El pipeline de GitLab incluye 5 stages:
 
 | Fecha | Versión | Descripción |
 |-------|---------|-------------|
+| 2026-03-31 | 1.6.2 | **UI Compactación**: Tarjetas de tareas y sidebar más compactos, reducción ~30% espacio vertical |
 | 2026-03-31 | 1.6.1 | **Bugfix**: Tiempos correctos en exports, imágenes con proporciones preservadas en Word |
 | 2026-03-30 | 1.6.0 | **Process Timer**: Start/Pause para tracking de tiempo, múltiples sesiones, reporte de tiempos en Word |
 | 2026-03-29 | 1.5.0 | Tests E2E con Playwright, modo local base64 para imágenes, 0 vulnerabilidades, actualización Next.js 15.5.14 |
