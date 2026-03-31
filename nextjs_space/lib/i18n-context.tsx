@@ -63,6 +63,20 @@ const translations: Translations = {
   'export.success': { es: 'Exportado exitosamente', en: 'Exported successfully' },
   'export.generating': { es: 'Generando documento...', en: 'Generating document...' },
   
+  // Timer
+  'timer.start': { es: 'Iniciar', en: 'Start' },
+  'timer.pause': { es: 'Pausar', en: 'Pause' },
+  'timer.resume': { es: 'Reanudar', en: 'Resume' },
+  'timer.stop': { es: 'Detener', en: 'Stop' },
+  'timer.reset': { es: 'Reiniciar', en: 'Reset' },
+  'timer.running': { es: 'En progreso', en: 'Running' },
+  'timer.paused': { es: 'Pausado', en: 'Paused' },
+  'timer.idle': { es: 'Sin iniciar', en: 'Not started' },
+  'timer.completed': { es: 'Completado', en: 'Completed' },
+  'timer.totalTime': { es: 'Tiempo total', en: 'Total time' },
+  'timer.activeTime': { es: 'Tiempo activo', en: 'Active time' },
+  'timer.sessions': { es: 'Sesiones', en: 'Sessions' },
+  
   // Common
   'common.cancel': { es: 'Cancelar', en: 'Cancel' },
   'common.save': { es: 'Guardar', en: 'Save' },

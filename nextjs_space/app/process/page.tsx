@@ -14,6 +14,7 @@ import ProgressBar from './_components/progress-bar';
 import VariablesForm from './_components/variables-form';
 import { ConfigUpload } from './_components/config-upload';
 import { DynamicLinksList } from './_components/dynamic-link-button';
+import ProcessTimer from './_components/process-timer';
 import { useConfigStore } from '@/lib/config-store';
 
 export default function ProcessPage() {
@@ -25,6 +26,7 @@ export default function ProcessPage() {
   const setCurrentTask = useProcessStore((state) => state?.setCurrentTask);
   const markProcessComplete = useProcessStore((state) => state?.markProcessComplete);
   const clearProcess = useProcessStore((state) => state?.clearProcess);
+  const stopProcessTimer = useProcessStore((state) => state?.stopProcessTimer);
   
   const [isExporting, setIsExporting] = useState(false);
   const [showEvidenceModal, setShowEvidenceModal] = useState(false);
@@ -46,11 +48,13 @@ export default function ProcessPage() {
   const currentPhase = process.phases?.find((p) => p?.id === currentPhaseId);
   const currentTask = currentPhase?.tasks?.find((t) => t?.id === currentTaskId);
 
-  const handleExportJSON = async () => {
+  const handleExportJSON = async (processData?: typeof process) => {
     setIsExporting(true);
     try {
-      const exportData = await exportProcessToJSON(process);
-      const filename = `${process.name?.replace(/\s+/g, '-') || 'process'}-${new Date().toISOString().split('T')[0]}.json`;
+      const dataToExport = processData || useProcessStore.getState().process;
+      if (!dataToExport) return;
+      const exportData = await exportProcessToJSON(dataToExport);
+      const filename = `${dataToExport.name?.replace(/\s+/g, '-') || 'process'}-${new Date().toISOString().split('T')[0]}.json`;
       downloadJSON(exportData, filename);
     } catch (error) {
       console.error('Export error:', error);
@@ -59,11 +63,13 @@ export default function ProcessPage() {
     }
   };
 
-  const handleExportWord = async () => {
+  const handleExportWord = async (processData?: typeof process) => {
     setIsExporting(true);
     try {
-      const blob = await generateWordDocument(process);
-      const filename = `${process.name?.replace(/\s+/g, '-') || 'process'}-${new Date().toISOString().split('T')[0]}.docx`;
+      const dataToExport = processData || useProcessStore.getState().process;
+      if (!dataToExport) return;
+      const blob = await generateWordDocument(dataToExport);
+      const filename = `${dataToExport.name?.replace(/\s+/g, '-') || 'process'}-${new Date().toISOString().split('T')[0]}.docx`;
       downloadWordDocument(blob, filename);
     } catch (error) {
       console.error('Word export error:', error);
@@ -74,9 +80,16 @@ export default function ProcessPage() {
 
   const handleCompleteProcess = () => {
     if (confirm('¿Seguro que deseas finalizar el proceso?')) {
+      stopProcessTimer?.(); // Stop timer before completing
       markProcessComplete?.();
-      handleExportJSON();
-      handleExportWord();
+      // Use setTimeout to ensure state is updated before export
+      setTimeout(() => {
+        const updatedProcess = useProcessStore.getState().process;
+        if (updatedProcess) {
+          handleExportJSON(updatedProcess);
+          handleExportWord(updatedProcess);
+        }
+      }, 100);
     }
   };
 
@@ -107,6 +120,9 @@ export default function ProcessPage() {
                   {t('process.version')}: {process.version}
                 </p>
               </div>
+              
+              {/* Process Timer */}
+              <ProcessTimer />
             </div>
 
             <div className="flex items-center gap-3">

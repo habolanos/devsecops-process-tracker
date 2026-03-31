@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { ProcessState, TaskEvidence, CapturedVariables } from './types';
+import { ProcessState, TaskEvidence, CapturedVariables, WorkSession } from './types';
 import { updateProgress, updateTaskBlockedStatus } from './helpers';
 
 interface ProcessStore {
@@ -26,6 +26,13 @@ interface ProcessStore {
   updateCapturedVariables: (variables: CapturedVariables) => void;
   updateSingleVariable: (key: string, value: string) => void;
   areRequiredVariablesFilled: () => boolean;
+  
+  // Timer Actions
+  startProcessTimer: () => void;
+  pauseProcessTimer: () => void;
+  resumeProcessTimer: () => void;
+  stopProcessTimer: () => void;
+  getElapsedTime: () => number;
 }
 
 export const useProcessStore = create<ProcessStore>()(persist(
@@ -213,6 +220,144 @@ export const useProcessStore = create<ProcessStore>()(persist(
       return variableDefinitions
         .filter((v) => v.required)
         .every((v) => capturedVariables[v.key] && capturedVariables[v.key].trim() !== '');
+    },
+
+    startProcessTimer: () => {
+      set((state) => {
+        if (!state.process) return state;
+        
+        const now = new Date().toISOString();
+        const timeTracking = state.process.timeTracking || {
+          status: 'idle',
+          sessions: [],
+          totalActiveTime: 0
+        };
+        
+        // Don't start if already running
+        if (timeTracking.status === 'running') return state;
+        
+        const newSession: WorkSession = {
+          id: `session-${Date.now()}`,
+          startedAt: now,
+          duration: 0
+        };
+        
+        return {
+          process: {
+            ...state.process,
+            timeTracking: {
+              ...timeTracking,
+              status: 'running',
+              firstStartedAt: timeTracking.firstStartedAt || now,
+              currentSessionStart: now,
+              sessions: [...timeTracking.sessions, newSession]
+            }
+          }
+        };
+      });
+    },
+
+    pauseProcessTimer: () => {
+      set((state) => {
+        if (!state.process?.timeTracking) return state;
+        
+        const { timeTracking } = state.process;
+        if (timeTracking.status !== 'running') return state;
+        
+        const now = new Date().toISOString();
+        const currentSessionStart = timeTracking.currentSessionStart;
+        
+        // Calculate duration for current session
+        const sessionDuration = currentSessionStart 
+          ? new Date(now).getTime() - new Date(currentSessionStart).getTime()
+          : 0;
+        
+        // Update the last session with end time and duration
+        const updatedSessions = timeTracking.sessions.map((session, idx) => {
+          if (idx === timeTracking.sessions.length - 1) {
+            return {
+              ...session,
+              endedAt: now,
+              duration: sessionDuration
+            };
+          }
+          return session;
+        });
+        
+        return {
+          process: {
+            ...state.process,
+            timeTracking: {
+              ...timeTracking,
+              status: 'paused',
+              currentSessionStart: undefined,
+              sessions: updatedSessions,
+              totalActiveTime: timeTracking.totalActiveTime + sessionDuration
+            }
+          }
+        };
+      });
+    },
+
+    resumeProcessTimer: () => {
+      const { startProcessTimer } = get();
+      startProcessTimer();
+    },
+
+    stopProcessTimer: () => {
+      set((state) => {
+        if (!state.process?.timeTracking) return state;
+        
+        const { timeTracking } = state.process;
+        const now = new Date().toISOString();
+        
+        let finalSessions = [...timeTracking.sessions];
+        let finalTotalTime = timeTracking.totalActiveTime;
+        
+        // If running, close current session
+        if (timeTracking.status === 'running' && timeTracking.currentSessionStart) {
+          const sessionDuration = new Date(now).getTime() - new Date(timeTracking.currentSessionStart).getTime();
+          finalSessions = timeTracking.sessions.map((session, idx) => {
+            if (idx === timeTracking.sessions.length - 1) {
+              return {
+                ...session,
+                endedAt: now,
+                duration: sessionDuration
+              };
+            }
+            return session;
+          });
+          finalTotalTime += sessionDuration;
+        }
+        
+        return {
+          process: {
+            ...state.process,
+            timeTracking: {
+              ...timeTracking,
+              status: 'completed',
+              currentSessionStart: undefined,
+              sessions: finalSessions,
+              totalActiveTime: finalTotalTime
+            }
+          }
+        };
+      });
+    },
+
+    getElapsedTime: (): number => {
+      const currentState = get();
+      if (!currentState.process?.timeTracking) return 0;
+      
+      const { timeTracking } = currentState.process;
+      let total = timeTracking.totalActiveTime;
+      
+      // Add current running session time
+      if (timeTracking.status === 'running' && timeTracking.currentSessionStart) {
+        total += Date.now() - new Date(timeTracking.currentSessionStart).getTime();
+      }
+      
+      return total;
     }
   }),
   {

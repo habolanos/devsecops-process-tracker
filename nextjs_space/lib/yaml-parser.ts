@@ -34,6 +34,11 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
       progress: 0,
       variableDefinitions: variables || [],
       capturedVariables: initialCapturedVariables,
+      timeTracking: {
+        status: 'idle',
+        sessions: [],
+        totalActiveTime: 0
+      },
       phases: phases.map((phase) => {
         if (!phase.id || !phase.name || !phase.tasks || !Array.isArray(phase.tasks)) {
           throw new Error(`Invalid phase structure: ${phase?.id || 'unknown'}`);

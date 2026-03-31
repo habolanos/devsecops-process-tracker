@@ -110,3 +110,56 @@ export function canCompleteTask(task: TaskState): boolean {
   if (task?.isBlocked) return false;
   return validateTaskEvidence(task);
 }
+
+// ============================================
+// Time Formatting Helpers
+// ============================================
+
+export function formatDuration(ms: number): string {
+  if (ms < 0) ms = 0;
+  
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  
+  if (hours > 0) {
+    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  }
+  return `${pad(minutes)}:${pad(seconds)}`;
+}
+
+export function formatDurationLong(ms: number): string {
+  if (ms < 0) ms = 0;
+  
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  
+  const parts: string[] = [];
+  if (hours > 0) parts.push(`${hours}h`);
+  if (minutes > 0) parts.push(`${minutes}m`);
+  if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`);
+  
+  return parts.join(' ');
+}
+
+export function calculateTaskDuration(
+  task: TaskState,
+  previousCompletedAt: string | null,
+  processStartedAt: string | null
+): number {
+  if (!task.completedAt) return 0;
+  
+  const taskCompleted = new Date(task.completedAt).getTime();
+  const referenceTime = previousCompletedAt 
+    ? new Date(previousCompletedAt).getTime()
+    : processStartedAt 
+      ? new Date(processStartedAt).getTime()
+      : taskCompleted;
+  
+  return Math.max(0, taskCompleted - referenceTime);
+}

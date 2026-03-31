@@ -78,6 +78,25 @@ export interface EvidenceConfig {
 }
 
 // ============================================
+// Time Tracking Types
+// ============================================
+
+export interface WorkSession {
+  id: string;
+  startedAt: string;           // ISO timestamp
+  endedAt?: string;            // ISO timestamp (when paused or completed)
+  duration: number;            // Duration in ms for this session
+}
+
+export interface ProcessTimeTracking {
+  status: 'idle' | 'running' | 'paused' | 'completed';
+  firstStartedAt?: string;     // First time process was started
+  sessions: WorkSession[];     // History of work sessions
+  totalActiveTime: number;     // Total accumulated active time (ms)
+  currentSessionStart?: string; // Start of current running session
+}
+
+// ============================================
 // Runtime State Types
 // ============================================
 
@@ -93,6 +112,7 @@ export interface ProcessState {
   phases: PhaseState[];
   variableDefinitions: ProcessVariableYAML[];  // Variable definitions from YAML
   capturedVariables: CapturedVariables;        // User-captured values
+  timeTracking: ProcessTimeTracking;           // Process time tracking
 }
 
 export interface PhaseState {

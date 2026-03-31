@@ -1,7 +1,47 @@
 'use client';
 
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun, BorderStyle } from 'docx';
 import { ProcessState } from './types';
+import { formatDurationLong } from './helpers';
+
+// Constants for image sizing
+const MAX_IMAGE_WIDTH = 500;  // Max width in pixels for Word doc
+const MAX_IMAGE_HEIGHT = 400; // Max height in pixels for Word doc
+
+// Helper to get image dimensions from base64 and calculate scaled size
+async function getScaledImageDimensions(base64Data: string, mimeType: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve) => {
+    // Default dimensions if we can't determine actual size
+    const defaultDimensions = { width: MAX_IMAGE_WIDTH, height: MAX_IMAGE_HEIGHT };
+    
+    try {
+      // Create an image element to get natural dimensions
+      if (typeof window !== 'undefined') {
+        const img = new Image();
+        img.onload = () => {
+          const naturalWidth = img.naturalWidth;
+          const naturalHeight = img.naturalHeight;
+          
+          // Calculate scale to fit within max bounds while maintaining aspect ratio
+          const widthRatio = MAX_IMAGE_WIDTH / naturalWidth;
+          const heightRatio = MAX_IMAGE_HEIGHT / naturalHeight;
+          const scale = Math.min(widthRatio, heightRatio, 1); // Don't upscale
+          
+          resolve({
+            width: Math.round(naturalWidth * scale),
+            height: Math.round(naturalHeight * scale)
+          });
+        };
+        img.onerror = () => resolve(defaultDimensions);
+        img.src = `data:image/${mimeType};base64,${base64Data}`;
+      } else {
+        resolve(defaultDimensions);
+      }
+    } catch {
+      resolve(defaultDimensions);
+    }
+  });
+}
 
 export async function generateWordDocument(process: ProcessState): Promise<Blob> {
   const sections: Paragraph[] = [];
@@ -55,6 +95,94 @@ export async function generateWordDocument(process: ProcessState): Promise<Blob>
           new TextRun(new Date(process.completedAt).toLocaleString('es-ES'))
         ],
         spacing: { after: 400 }
+      })
+    );
+  }
+
+  // Time Tracking Section
+  if (process?.timeTracking) {
+    const { timeTracking } = process;
+    
+    sections.push(
+      new Paragraph({
+        text: '📊 Registro de Tiempo',
+        heading: HeadingLevel.HEADING_1,
+        spacing: { before: 400, after: 200 }
+      })
+    );
+
+    // First started
+    if (timeTracking.firstStartedAt) {
+      sections.push(
+        new Paragraph({
+          children: [
+            new TextRun({ text: 'Fecha de inicio: ', bold: true }),
+            new TextRun(new Date(timeTracking.firstStartedAt).toLocaleString('es-ES'))
+          ],
+          spacing: { after: 100 }
+        })
+      );
+    }
+
+    // Total active time
+    sections.push(
+      new Paragraph({
+        children: [
+          new TextRun({ text: 'Tiempo activo total: ', bold: true }),
+          new TextRun({ 
+            text: formatDurationLong(timeTracking.totalActiveTime),
+            color: '2563EB'
+          })
+        ],
+        spacing: { after: 100 }
+      })
+    );
+
+    // Number of sessions
+    sections.push(
+      new Paragraph({
+        children: [
+          new TextRun({ text: 'Sesiones de trabajo: ', bold: true }),
+          new TextRun(`${timeTracking.sessions?.length || 0}`)
+        ],
+        spacing: { after: 200 }
+      })
+    );
+
+    // Session details
+    if (timeTracking.sessions && timeTracking.sessions.length > 0) {
+      sections.push(
+        new Paragraph({
+          text: 'Detalle de sesiones:',
+          spacing: { after: 100 }
+        })
+      );
+
+      timeTracking.sessions.forEach((session, idx) => {
+        const startTime = new Date(session.startedAt).toLocaleString('es-ES');
+        const endTime = session.endedAt 
+          ? new Date(session.endedAt).toLocaleString('es-ES')
+          : 'En progreso';
+        const duration = formatDurationLong(session.duration);
+
+        sections.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: `  • Sesión ${idx + 1}: `, bold: true }),
+              new TextRun(`${startTime} → ${endTime} `),
+              new TextRun({ text: `(${duration})`, italics: true, color: '059669' })
+            ],
+            spacing: { after: 50 }
+          })
+        );
+      });
+    }
+
+    // Separator
+    sections.push(
+      new Paragraph({
+        text: '─'.repeat(50),
+        spacing: { before: 200, after: 400 }
       })
     );
   }
@@ -188,14 +316,17 @@ export async function generateWordDocument(process: ProcessState): Promise<Blob>
                   const mimeMatch = img.url.match(/data:image\/(.*?);base64/);
                   const imageType = mimeMatch?.[1] || 'png';
                   
+                  // Get scaled dimensions maintaining aspect ratio
+                  const dimensions = await getScaledImageDimensions(base64Data, imageType);
+                  
                   sections.push(
                     new Paragraph({
                       children: [
                         new ImageRun({
                           data: imageBuffer,
                           transformation: {
-                            width: 400,
-                            height: 300
+                            width: dimensions.width,
+                            height: dimensions.height
                           },
                           type: imageType as any
                         })

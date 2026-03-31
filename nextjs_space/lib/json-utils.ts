@@ -85,6 +85,11 @@ export function importProcessFromJSON(jsonData: ProcessExportJSON): ProcessState
       progress: process.progress || 0,
       variableDefinitions: [],
       capturedVariables: {},
+      timeTracking: {
+        status: 'idle',
+        sessions: [],
+        totalActiveTime: 0
+      },
       phases: process.phases.map((phase) => ({
         id: phase.id,
         name: phase.name,

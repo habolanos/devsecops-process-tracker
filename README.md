@@ -80,7 +80,8 @@ nextjs_space/
 │   │       ├── evidence-modal.tsx  # Modal de gestión de evidencias
 │   │       ├── variables-form.tsx  # Formulario de variables dinámicas
 │   │       ├── config-upload.tsx   # Upload de configuración DevOps
-│   │       └── dynamic-link-button.tsx # Botones con URLs dinámicas
+│   │       ├── dynamic-link-button.tsx # Botones con URLs dinámicas
+│   │       └── process-timer.tsx   # Timer de proceso (Start/Pause)
 │   └── api/                     # API Routes (Next.js)
 │       ├── processes/          # GET /api/processes - listar plantillas
 │       │   └── [id]/          # GET /api/processes/[id] - detalle
@@ -238,9 +239,16 @@ Template para autocompletado de variables:
 - **Auto-fill**: Variables se completan automáticamente desde config
 - **Links dinámicos**: URLs con variables interpoladas (ej: `https://github.com/{org}/{repo}`)
 
-### 5. Exportación
-- **JSON**: Estado completo con evidencias base64 (para reanudar)
-- **Word**: Documento formal con portada, fases, tareas, evidencias
+### 5. Time Tracking (Process Timer)
+- **Timer de proceso**: Start/Pause manual para controlar tiempo de trabajo
+- **Sesiones múltiples**: Historial de sesiones de trabajo con timestamps
+- **Tiempo activo**: Cálculo automático de tiempo real trabajado (excluyendo pausas)
+- **Persistencia**: Se guarda automáticamente en localStorage
+- **Reporte en Word**: Sección detallada con tiempos de inicio, sesiones y duración total
+
+### 6. Exportación
+- **JSON**: Estado completo con evidencias base64 y time tracking (para reanudar)
+- **Word**: Documento formal con portada, registro de tiempo, fases, tareas, evidencias
 
 ## 🧪 Testing
 
@@ -679,6 +687,8 @@ El pipeline de GitLab incluye 5 stages:
 
 | Fecha | Versión | Descripción |
 |-------|---------|-------------|
+| 2026-03-31 | 1.6.1 | **Bugfix**: Tiempos correctos en exports, imágenes con proporciones preservadas en Word |
+| 2026-03-30 | 1.6.0 | **Process Timer**: Start/Pause para tracking de tiempo, múltiples sesiones, reporte de tiempos en Word |
 | 2026-03-29 | 1.5.0 | Tests E2E con Playwright, modo local base64 para imágenes, 0 vulnerabilidades, actualización Next.js 15.5.14 |
 | 2026-03-27 | 1.4.1 | Generación automática de template JSON basado en variables |
 | 2026-03-27 | 1.4.0 | Configuración DevOps con auto-fill de variables |
