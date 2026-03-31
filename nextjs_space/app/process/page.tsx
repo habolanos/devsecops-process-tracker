@@ -1,18 +1,23 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { useProcessStore } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
+import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n-context';
 import { exportProcessToJSON, downloadJSON } from '@/lib/json-utils';
 import { generateWordDocument, downloadWordDocument } from '@/lib/word-generator';
 import { ArrowLeft, Download, FileText, CheckCircle2, Globe, Settings, FileJson } from 'lucide-react';
 import ProcessSidebar from './_components/process-sidebar';
 import TaskCard from './_components/task-card';
-import EvidenceModal from './_components/evidence-modal';
 import ProgressBar from './_components/progress-bar';
-import VariablesForm from './_components/variables-form';
-import { ConfigUpload } from './_components/config-upload';
+import { ModalSkeleton } from '@/components/skeletons/modal-skeleton';
+
+// Lazy load modals for better performance
+const EvidenceModal = lazy(() => import('./_components/evidence-modal'));
+const VariablesForm = lazy(() => import('./_components/variables-form'));
+const ConfigUpload = lazy(() => import('./_components/config-upload').then(m => ({ default: m.ConfigUpload })));
 import { DynamicLinksList } from './_components/dynamic-link-button';
 import ProcessTimer from './_components/process-timer';
 import { useConfigStore } from '@/lib/config-store';
@@ -20,13 +25,22 @@ import { useConfigStore } from '@/lib/config-store';
 export default function ProcessPage() {
   const router = useRouter();
   const { t, language, setLanguage } = useI18n();
-  const process = useProcessStore((state) => state?.process);
-  const currentPhaseId = useProcessStore((state) => state?.currentPhaseId);
-  const currentTaskId = useProcessStore((state) => state?.currentTaskId);
-  const setCurrentTask = useProcessStore((state) => state?.setCurrentTask);
-  const markProcessComplete = useProcessStore((state) => state?.markProcessComplete);
-  const clearProcess = useProcessStore((state) => state?.clearProcess);
-  const stopProcessTimer = useProcessStore((state) => state?.stopProcessTimer);
+  // Optimized selectors with shallow compare to prevent unnecessary re-renders
+  const { process, currentPhaseId, currentTaskId } = useProcessStore(
+    useShallow((state) => ({
+      process: state?.process,
+      currentPhaseId: state?.currentPhaseId,
+      currentTaskId: state?.currentTaskId,
+    }))
+  );
+  
+  const { setCurrentTask, markProcessComplete, stopProcessTimer } = useProcessStore(
+    useShallow((state) => ({
+      setCurrentTask: state?.setCurrentTask,
+      markProcessComplete: state?.markProcessComplete,
+      stopProcessTimer: state?.stopProcessTimer,
+    }))
+  );
   
   const [isExporting, setIsExporting] = useState(false);
   const [showEvidenceModal, setShowEvidenceModal] = useState(false);
@@ -48,10 +62,10 @@ export default function ProcessPage() {
   const currentPhase = process.phases?.find((p) => p?.id === currentPhaseId);
   const currentTask = currentPhase?.tasks?.find((t) => t?.id === currentTaskId);
 
-  const handleExportJSON = async (processData?: typeof process) => {
+  const handleExportJSON = async () => {
     setIsExporting(true);
     try {
-      const dataToExport = processData || useProcessStore.getState().process;
+      const dataToExport = useProcessStore.getState().process;
       if (!dataToExport) return;
       const exportData = await exportProcessToJSON(dataToExport);
       const filename = `${dataToExport.name?.replace(/\s+/g, '-') || 'process'}-${new Date().toISOString().split('T')[0]}.json`;
@@ -63,10 +77,10 @@ export default function ProcessPage() {
     }
   };
 
-  const handleExportWord = async (processData?: typeof process) => {
+  const handleExportWord = async () => {
     setIsExporting(true);
     try {
-      const dataToExport = processData || useProcessStore.getState().process;
+      const dataToExport = useProcessStore.getState().process;
       if (!dataToExport) return;
       const blob = await generateWordDocument(dataToExport);
       const filename = `${dataToExport.name?.replace(/\s+/g, '-') || 'process'}-${new Date().toISOString().split('T')[0]}.docx`;
@@ -82,12 +96,13 @@ export default function ProcessPage() {
     if (confirm('¿Seguro que deseas finalizar el proceso?')) {
       stopProcessTimer?.(); // Stop timer before completing
       markProcessComplete?.();
+      toast.success(t('process.completed.success') || 'Proceso completado');
       // Use setTimeout to ensure state is updated before export
       setTimeout(() => {
         const updatedProcess = useProcessStore.getState().process;
         if (updatedProcess) {
-          handleExportJSON(updatedProcess);
-          handleExportWord(updatedProcess);
+          handleExportJSON();
+          handleExportWord();
         }
       }, 100);
     }
@@ -244,27 +259,33 @@ export default function ProcessPage() {
         </main>
       </div>
 
-      {/* Evidence Modal */}
+      {/* Evidence Modal - Lazy loaded */}
       {showEvidenceModal && currentTask && currentPhaseId && (
-        <EvidenceModal
-          task={currentTask}
-          phaseId={currentPhaseId}
-          onClose={() => {
-            setShowEvidenceModal(false);
-            setCurrentTask?.(null);
-          }}
-        />
+        <Suspense fallback={<ModalSkeleton />}>
+          <EvidenceModal
+            task={currentTask}
+            phaseId={currentPhaseId}
+            onClose={() => {
+              setShowEvidenceModal(false);
+              setCurrentTask?.(null);
+            }}
+          />
+        </Suspense>
       )}
 
-      {/* Variables Form Modal */}
-      <VariablesForm
-        isOpen={showVariablesForm}
-        onClose={() => setShowVariablesForm(false)}
-      />
+      {/* Variables Form Modal - Lazy loaded */}
+      <Suspense fallback={null}>
+        <VariablesForm
+          isOpen={showVariablesForm}
+          onClose={() => setShowVariablesForm(false)}
+        />
+      </Suspense>
 
-      {/* Config Upload Modal */}
+      {/* Config Upload Modal - Lazy loaded */}
       {showConfigUpload && (
-        <ConfigUpload onClose={() => setShowConfigUpload(false)} />
+        <Suspense fallback={<ModalSkeleton />}>
+          <ConfigUpload onClose={() => setShowConfigUpload(false)} />
+        </Suspense>
       )}
     </div>
   );

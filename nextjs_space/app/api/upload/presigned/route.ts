@@ -1,18 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generatePresignedUploadUrl } from '@/lib/s3';
 import { getBucketConfig } from '@/lib/aws-config';
+import { presignedUploadSchema, validateSchema } from '@/lib/api-schemas';
+import { withRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
+  // Rate limiting
+  const rateLimit = withRateLimit(request, 'upload/presigned', 'upload');
+  if (!rateLimit.allowed) return rateLimit.response!;
+  
   try {
     const body = await request.json();
-    const { fileName, contentType, isPublic } = body;
-
-    if (!fileName || !contentType) {
+    
+    // Validate input with Zod
+    const validation = validateSchema(presignedUploadSchema, body);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'fileName and contentType are required' },
+        { error: validation.error },
         { status: 400 }
       );
     }
+    
+    const { fileName, contentType, isPublic } = validation.data;
 
     // Check if S3 is configured
     const { bucketName } = getBucketConfig();

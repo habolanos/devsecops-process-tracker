@@ -4,7 +4,9 @@ import { TaskState } from '@/lib/types';
 import { useProcessStore } from '@/lib/store';
 import { canCompleteTask } from '@/lib/helpers';
 import { useI18n } from '@/lib/i18n-context';
+import { sanitizeText, sanitizeUrl } from '@/lib/sanitize';
 import { CheckCircle2, Circle, Lock, ExternalLink, FileText, Image as ImageIcon } from 'lucide-react';
+import { toast } from 'sonner';
 import { DynamicLinksList } from './dynamic-link-button';
 
 interface TaskCardProps {
@@ -21,11 +23,15 @@ export default function TaskCard({ task, phaseId, onViewEvidence }: TaskCardProp
   const handleToggleComplete = () => {
     if (task?.completed) {
       uncompleteTask?.(phaseId, task.id);
+      toast.info(t('task.uncompleted'));
     } else {
       if (canCompleteTask(task)) {
         completeTask?.(phaseId, task.id);
+        toast.success(t('task.completed'));
       } else {
-        alert(t('evidence.required'));
+        toast.warning(t('evidence.required'), {
+          description: t('evidence.required.description'),
+        });
       }
     }
   };
@@ -54,7 +60,12 @@ export default function TaskCard({ task, phaseId, onViewEvidence }: TaskCardProp
               onClick={handleToggleComplete}
               disabled={isBlocked}
               data-testid="task-checkbox"
-              className="flex-shrink-0 mt-0.5 disabled:cursor-not-allowed"
+              aria-label={`${isCompleted ? t('task.unmark') : t('task.mark')}: ${task?.name}`}
+              aria-pressed={isCompleted}
+              aria-disabled={isBlocked}
+              role="checkbox"
+              aria-checked={isCompleted}
+              className="flex-shrink-0 mt-0.5 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 rounded-full"
             >
               {isBlocked ? (
                 <Lock data-testid="lock-icon" className="w-5 h-5 text-gray-400" />
@@ -69,10 +80,10 @@ export default function TaskCard({ task, phaseId, onViewEvidence }: TaskCardProp
               <h3 className={`text-base font-semibold mb-0.5 ${
                 isCompleted ? 'text-green-900' : 'text-gray-900'
               }`}>
-                {task?.name}
+                {sanitizeText(task?.name)}
               </h3>
               {task?.description && (
-                <p className="text-sm text-gray-600 mb-1">{task.description}</p>
+                <p className="text-sm text-gray-600 mb-1">{sanitizeText(task.description)}</p>
               )}
 
               {/* Status Badge */}
@@ -121,18 +132,22 @@ export default function TaskCard({ task, phaseId, onViewEvidence }: TaskCardProp
               {t('task.references')}
             </h4>
             <div className="flex flex-wrap gap-2">
-              {task.references.map((ref, idx) => (
-                <a
-                  key={idx}
-                  href={ref?.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm transition-colors"
-                >
-                  <ExternalLink className="w-3 h-3" />
-                  <span>{ref?.label}</span>
-                </a>
-              ))}
+              {task.references.map((ref, idx) => {
+                const safeUrl = sanitizeUrl(ref?.url);
+                if (!safeUrl) return null;
+                return (
+                  <a
+                    key={idx}
+                    href={safeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm transition-colors"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    <span>{sanitizeText(ref?.label)}</span>
+                  </a>
+                );
+              })}
             </div>
           </div>
         )}
@@ -167,7 +182,7 @@ export default function TaskCard({ task, phaseId, onViewEvidence }: TaskCardProp
             <p className="text-xs text-gray-600">
               <span className="font-semibold text-red-600">{t('evidence.required')}</span>
               {' '}- Tipo: {task.evidenceConfig.type}
-              {task.evidenceConfig.description && ` - ${task.evidenceConfig.description}`}
+              {task.evidenceConfig.description && ` - ${sanitizeText(task.evidenceConfig.description)}`}
             </p>
           </div>
         )}

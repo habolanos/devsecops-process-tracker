@@ -4,7 +4,9 @@ import { useState } from 'react';
 import { TaskState, EvidenceImage } from '@/lib/types';
 import { useProcessStore } from '@/lib/store';
 import { useI18n } from '@/lib/i18n-context';
+import { sanitizeText, sanitizeUrl, sanitizeFilename } from '@/lib/sanitize';
 import { X, Upload, Link as LinkIcon, Trash2, FileText, Image as ImageIcon } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface EvidenceModalProps {
   task: TaskState;
@@ -127,7 +129,9 @@ export default function EvidenceModal({ task, phaseId, onClose }: EvidenceModalP
       });
     } catch (error) {
       console.error('Upload error:', error);
-      alert('Error al subir la imagen');
+      toast.error(t('upload.error'), {
+        description: 'No se pudo subir la imagen. Intenta de nuevo.',
+      });
     } finally {
       setIsUploadingFile(false);
     }
@@ -236,7 +240,9 @@ export default function EvidenceModal({ task, phaseId, onClose }: EvidenceModalP
       setImageUrl('');
     } catch (error) {
       console.error('URL upload error:', error);
-      alert('Error al cargar imagen desde URL');
+      toast.error(t('upload.error'), {
+        description: 'No se pudo cargar la imagen desde la URL.',
+      });
     } finally {
       setIsUploadingUrl(false);
     }
@@ -271,18 +277,25 @@ export default function EvidenceModal({ task, phaseId, onClose }: EvidenceModalP
   };
 
   return (
-    <div data-testid="evidence-modal" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div 
+      data-testid="evidence-modal" 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="evidence-modal-title"
+    >
       <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">{task?.name}</h2>
+            <h2 id="evidence-modal-title" className="text-2xl font-bold text-gray-900">{sanitizeText(task?.name)}</h2>
             <p className="text-sm text-gray-600 mt-1">{t('evidence.title')}</p>
           </div>
           <button
             onClick={onClose}
             data-testid="modal-close-btn"
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label={t('evidence.close')}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           >
             <X className="w-6 h-6 text-gray-600" />
           </button>
@@ -367,8 +380,8 @@ export default function EvidenceModal({ task, phaseId, onClose }: EvidenceModalP
                     >
                       {img?.url && (
                         <img
-                          src={img.url}
-                          alt={img?.name ?? 'evidence'}
+                          src={img.url.startsWith('data:') ? img.url : sanitizeUrl(img.url) || ''}
+                          alt={sanitizeFilename(img?.name) || 'evidence'}
                           className="w-full h-full object-cover"
                         />
                       )}
@@ -379,7 +392,7 @@ export default function EvidenceModal({ task, phaseId, onClose }: EvidenceModalP
                         <Trash2 className="w-4 h-4" />
                       </button>
                       <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 text-white text-xs truncate">
-                        {img?.name}
+                        {sanitizeFilename(img?.name)}
                       </div>
                     </div>
                   ))}

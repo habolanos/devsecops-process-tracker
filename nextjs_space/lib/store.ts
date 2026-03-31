@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { ProcessState, TaskEvidence, CapturedVariables, WorkSession } from './types';
 import { updateProgress, updateTaskBlockedStatus } from './helpers';
+import { createCompressedStorage } from './persist-storage';
 
 interface ProcessStore {
   process: ProcessState | null;
@@ -361,6 +362,7 @@ export const useProcessStore = create<ProcessStore>()(persist(
     }
   }),
   {
-    name: 'process-tracker-storage'
+    name: 'process-tracker-storage',
+    storage: createCompressedStorage<ProcessStore>(),
   }
 ));

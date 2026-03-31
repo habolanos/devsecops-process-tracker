@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { I18nProvider } from '@/lib/i18n-context';
+import { ToastProvider } from '@/components/toast-provider';
+import { ErrorBoundary } from '@/components/error-boundary';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -21,9 +23,12 @@ export default function RootLayout({
         <script src="https://apps.abacus.ai/chatllm/appllm-lib.js"></script>
       </head>
       <body className={inter.className}>
-        <I18nProvider>
-          {children}
-        </I18nProvider>
+        <ErrorBoundary>
+          <I18nProvider>
+            {children}
+            <ToastProvider />
+          </I18nProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

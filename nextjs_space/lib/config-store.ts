@@ -10,6 +10,7 @@ import {
   mapVariableToConfigValue,
   getSelectOptionsForVariable
 } from './config-loader';
+import { createCompressedStorage } from './persist-storage';
 
 interface ConfigStore {
   // State
@@ -98,6 +99,7 @@ export const useConfigStore = create<ConfigStore>()(persist(
     }
   }),
   {
-    name: 'devops-config-storage'
+    name: 'devops-config-storage',
+    storage: createCompressedStorage<ConfigStore>(),
   }
 ));

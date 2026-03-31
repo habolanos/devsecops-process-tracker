@@ -35,10 +35,13 @@ const translations: Translations = {
   
   // Tasks
   'task.completed': { es: 'Completada', en: 'Completed' },
+  'task.uncompleted': { es: 'Tarea desmarcada', en: 'Task unmarked' },
   'task.pending': { es: 'Pendiente', en: 'Pending' },
   'task.blocked': { es: 'Bloqueada', en: 'Blocked' },
   'task.complete': { es: 'Marcar como Completada', en: 'Mark as Complete' },
   'task.uncomplete': { es: 'Desmarcar', en: 'Unmark' },
+  'task.mark': { es: 'Completar tarea', en: 'Complete task' },
+  'task.unmark': { es: 'Desmarcar tarea', en: 'Unmark task' },
   'task.view': { es: 'Ver Detalles', en: 'View Details' },
   'task.dependencies': { es: 'Dependencias', en: 'Dependencies' },
   'task.references': { es: 'Referencias', en: 'References' },
@@ -53,6 +56,7 @@ const translations: Translations = {
   'evidence.url.placeholder': { es: 'https://i.ytimg.com/vi/_HgsrO1DgkA/maxresdefault.jpg', en: 'https://i.ytimg.com/vi/hHXRyr0WOhA/mqdefault.jpg' },
   'evidence.add.url': { es: 'Agregar desde URL', en: 'Add from URL' },
   'evidence.required': { es: 'Evidencia requerida', en: 'Evidence required' },
+  'evidence.required.description': { es: 'Debes adjuntar la evidencia antes de completar esta tarea', en: 'You must attach evidence before completing this task' },
   'evidence.save': { es: 'Guardar Evidencia', en: 'Save Evidence' },
   'evidence.close': { es: 'Cerrar', en: 'Close' },
   'evidence.delete': { es: 'Eliminar', en: 'Delete' },
