@@ -638,7 +638,7 @@ docker-compose up --build
 # Acceder en http://localhost:3000
 ```
 
-## � CI/CD Pipelines
+## 🚀 CI/CD Pipelines
 
 El proyecto incluye configuraciones de CI/CD para Azure DevOps y GitLab que automatizan el proceso de testing, seguridad, build y deployment.
 
