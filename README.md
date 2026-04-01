@@ -280,7 +280,14 @@ Sistema profesional de gestión de múltiples procesos inspirado en VS Code/Chro
 - **Persistencia de sesión**: Todos los procesos se guardan en localStorage comprimido
 - **Snapshots**: Estado completo guardado para restaurar en cualquier momento
 
-### 7. Exportación
+### 7. Modo Dark/Light
+- **Toggle en header**: Botón Sol/Luna para cambiar entre modos
+- **Soporte sistema**: Detecta automáticamente preferencia del sistema operativo
+- **Persistencia**: Guarda preferencia en localStorage
+- **Variables CSS HSL**: Colores semánticos adaptados a cada modo
+- **Componentes**: ThemeProvider (next-themes) + ThemeToggle
+
+### 8. Exportación
 - **JSON**: Estado completo con evidencias base64 y time tracking (para reanudar)
 - **Word**: Documento formal con portada, registro de tiempo, fases, tareas, evidencias
 
@@ -721,6 +728,7 @@ El pipeline de GitLab incluye 5 stages:
 
 | Fecha | Versión | Descripción |
 |-------|---------|-------------|
+| 2026-04-01 | 1.10.0 | **Modo Dark/Light**: Toggle Sol/Luna en header, soporte sistema operativo, variables CSS HSL semánticas, ThemeProvider (next-themes), migración completa de colores en páginas y componentes |
 | 2026-04-01 | 1.9.0 | **Gestión de Procesos Múltiples**: Process Tabs en header, Command Palette (Ctrl+P), sección "Procesos en Curso" con tarjetas visuales estilo templates. Iconografía de estados, barras de progreso, acciones rápidas. Session store con Zustand y persistencia comprimida |
 | 2026-03-31 | 1.8.0 | **Seguridad y Performance Pro**: Validación Zod en APIs, Rate Limiting, Sanitización XSS, Persistencia comprimida (lz-string), Manejo de errores centralizado, Virtualización de listas (@tanstack/react-virtual), Sistema Optimistic Updates |
 | 2026-03-31 | 1.7.1 | **Análisis Pro v2**: Reporte completo de arquitectura y UX con 30+ mejoras priorizadas (ver `outcome/ARCHITECTURE_UX_ANALYSIS_v2.md`) |

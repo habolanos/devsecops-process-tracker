@@ -74,7 +74,7 @@ export function ProcessTabs({ language = 'es', maxVisibleTabs = 4 }: ProcessTabs
             <StatusIcon className={`w-3 h-3 ${config.color}`} />
           </div>
           <span className="truncate max-w-[150px]">{process.processName}</span>
-          <span className="text-xs text-gray-400 ml-auto">{Math.round(process.snapshot.progress)}%</span>
+          <span className="text-xs text-muted-foreground ml-auto">{Math.round(process.snapshot.progress)}%</span>
         </DropdownMenuItem>
       );
     }
@@ -87,8 +87,8 @@ export function ProcessTabs({ language = 'es', maxVisibleTabs = 4 }: ProcessTabs
           group relative flex items-center gap-2 px-3 py-1.5 rounded-t-lg border-x border-t
           transition-all duration-150 max-w-[180px] min-w-[100px]
           ${isActive 
-            ? 'bg-white border-gray-200 shadow-sm -mb-px z-10' 
-            : 'bg-gray-50 border-gray-100 hover:bg-gray-100'
+            ? 'bg-background border-border shadow-sm -mb-px z-10' 
+            : 'bg-secondary border-border hover:bg-accent'
           }
         `}
       >
@@ -96,20 +96,20 @@ export function ProcessTabs({ language = 'es', maxVisibleTabs = 4 }: ProcessTabs
           <StatusIcon className={`w-3 h-3 ${config.color}`} />
         </div>
         
-        <span className={`text-sm truncate ${isActive ? 'font-medium text-gray-900' : 'text-gray-600'}`}>
+        <span className={`text-sm truncate ${isActive ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>
           {process.processName}
         </span>
 
         <button
           onClick={(e) => handleCloseTab(e, process.trayId)}
-          className="opacity-0 group-hover:opacity-100 ml-auto p-0.5 rounded hover:bg-gray-200 transition-opacity"
+          className="opacity-0 group-hover:opacity-100 ml-auto p-0.5 rounded hover:bg-accent transition-opacity"
           title={language === 'es' ? 'Cerrar' : 'Close'}
         >
-          <X className="w-3 h-3 text-gray-500" />
+          <X className="w-3 h-3 text-muted-foreground" />
         </button>
 
         {/* Progress indicator */}
-        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-200 rounded-full overflow-hidden">
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-secondary rounded-full overflow-hidden">
           <div 
             className={`h-full transition-all ${
               process.status === 'completed' ? 'bg-blue-500' :
@@ -131,7 +131,7 @@ export function ProcessTabs({ language = 'es', maxVisibleTabs = 4 }: ProcessTabs
       {overflowProcesses.length > 0 && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-1 px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+            <button className="flex items-center gap-1 px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent rounded-lg transition-colors">
               <MoreHorizontal className="w-4 h-4" />
               <span className="text-xs font-medium">+{overflowProcesses.length}</span>
             </button>

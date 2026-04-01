@@ -8,6 +8,7 @@ import { useProcessStore } from '@/lib/store';
 import { useSessionStore } from '@/lib/session-store';
 import { useI18n } from '@/lib/i18n-context';
 import { Upload, FileText, Globe, Shield, Rocket, AlertTriangle, FolderOpen, GitPullRequest, Play, Pause, CheckCircle2, XCircle, Layers, Trash2, Download } from 'lucide-react';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { ProcessState } from '@/lib/types';
 import { ProcessTabs } from '@/components/process-tabs';
 import { toast } from 'sonner';
@@ -188,9 +189,9 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
+      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3" data-testid="app-header">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
@@ -200,13 +201,16 @@ export default function HomePage() {
               {t('app.title')}
             </h1>
           </div>
-          <button
-            onClick={() => setLanguage?.(language === 'es' ? 'en' : 'es')}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <Globe className="w-4 h-4" />
-            <span className="font-medium">{language === 'es' ? 'ES' : 'EN'}</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle language={language} />
+            <button
+              onClick={() => setLanguage?.(language === 'es' ? 'en' : 'es')}
+              className="flex items-center gap-2 px-3 py-2 bg-secondary border border-border rounded-lg hover:bg-accent transition-colors"
+            >
+              <Globe className="w-4 h-4 text-foreground" />
+              <span className="font-medium text-foreground">{language === 'es' ? 'ES' : 'EN'}</span>
+            </button>
+          </div>
         </div>
 
         {/* Process Tabs */}
@@ -217,10 +221,10 @@ export default function HomePage() {
       <main className="max-w-6xl mx-auto px-6 py-16">
         {/* Hero Section */}
         <div className="text-center mb-16">
-          <h2 className="text-5xl font-bold text-gray-900 mb-4">
+          <h2 className="text-5xl font-bold text-foreground mb-4">
             {t('app.title')}
           </h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             {t('app.subtitle')}
           </p>
         </div>
@@ -232,7 +236,7 @@ export default function HomePage() {
               <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center">
                 <FolderOpen className="w-5 h-5 text-white" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900">
+              <h3 className="text-2xl font-bold text-foreground">
                 {language === 'es' ? 'Procesos Disponibles' : 'Available Processes'}
               </h3>
             </div>
@@ -244,14 +248,14 @@ export default function HomePage() {
                   onClick={() => handleSelectTemplate(template.id)}
                   disabled={isLoading}
                   data-testid="process-template"
-                  className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-all text-left group hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed border border-gray-100"
+                  className="bg-card rounded-xl shadow-md p-6 hover:shadow-lg transition-all text-left group hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed border border-border dark:shadow-slate-900/50"
                 >
                   <div className="flex items-start gap-4">
-                    <div className="w-14 h-14 bg-gray-50 rounded-xl flex items-center justify-center group-hover:bg-gray-100 transition-colors">
+                    <div className="w-14 h-14 bg-secondary rounded-xl flex items-center justify-center group-hover:bg-accent transition-colors">
                       {getIconComponent(template.icon)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-gray-900 mb-1 truncate">
+                      <h4 className="font-semibold text-foreground mb-1 truncate">
                         {template.name}
                       </h4>
                       <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full border ${getCategoryColor(template.category)}`}>
@@ -259,11 +263,11 @@ export default function HomePage() {
                       </span>
                     </div>
                   </div>
-                  <p className="mt-4 text-sm text-gray-600 line-clamp-2">
+                  <p className="mt-4 text-sm text-muted-foreground line-clamp-2">
                     {template.description}
                   </p>
                   <div className="mt-4 flex items-center justify-between">
-                    <span className="text-xs text-gray-400">v{template.version}</span>
+                    <span className="text-xs text-muted-foreground">v{template.version}</span>
                     <span className="text-xs text-blue-600 font-medium group-hover:text-blue-700">
                       {language === 'es' ? 'Seleccionar →' : 'Select →'}
                     </span>
@@ -276,9 +280,9 @@ export default function HomePage() {
 
         {loadingTemplates && (
           <div className="mb-16 text-center">
-            <div className="inline-flex items-center gap-3 px-6 py-3 bg-white rounded-lg shadow-md">
+            <div className="inline-flex items-center gap-3 px-6 py-3 bg-card rounded-lg shadow-md dark:shadow-slate-900/50">
               <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-              <span className="text-gray-700">
+              <span className="text-foreground">
                 {language === 'es' ? 'Cargando procesos...' : 'Loading processes...'}
               </span>
             </div>
@@ -287,22 +291,22 @@ export default function HomePage() {
 
         {/* Divider */}
         <div className="flex items-center gap-4 mb-12 max-w-4xl mx-auto">
-          <div className="flex-1 h-px bg-gray-200" />
-          <span className="text-sm text-gray-500 font-medium">
+          <div className="flex-1 h-px bg-border" />
+          <span className="text-sm text-muted-foreground font-medium">
             {language === 'es' ? 'O carga tu propio proceso' : 'Or upload your own process'}
           </span>
-          <div className="flex-1 h-px bg-gray-200" />
+          <div className="flex-1 h-px bg-border" />
         </div>
 
         {/* Upload Cards */}
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {/* YAML Upload */}
-          <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow">
+          <div className="bg-card rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow dark:shadow-slate-900/50">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Upload className="w-6 h-6 text-blue-600" />
+              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                <Upload className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900">
+              <h3 className="text-2xl font-bold text-foreground">
                 {t('upload.yaml')}
               </h3>
             </div>
@@ -310,8 +314,8 @@ export default function HomePage() {
             <div
               className={`border-2 border-dashed rounded-xl p-8 text-center transition-all ${
                 isDragging
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-300 hover:border-blue-400'
+                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                  : 'border-border hover:border-blue-400'
               }`}
               onDrop={(e) => handleDrop(e, 'yaml')}
               onDragOver={handleDragOver}
@@ -329,22 +333,22 @@ export default function HomePage() {
                 htmlFor="yaml-upload"
                 className="cursor-pointer block"
               >
-                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 mb-2">
+                <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground mb-2">
                   {t('upload.drag')}
                 </p>
-                <p className="text-sm text-gray-400">.yaml, .yml</p>
+                <p className="text-sm text-muted-foreground">.yaml, .yml</p>
               </label>
             </div>
           </div>
 
           {/* JSON Import */}
-          <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow">
+          <div className="bg-card rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow dark:shadow-slate-900/50">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
-                <FileText className="w-6 h-6 text-indigo-600" />
+              <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
+                <FileText className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900">
+              <h3 className="text-2xl font-bold text-foreground">
                 {t('upload.json')}
               </h3>
             </div>
@@ -352,8 +356,8 @@ export default function HomePage() {
             <div
               className={`border-2 border-dashed rounded-xl p-8 text-center transition-all ${
                 isDragging
-                  ? 'border-indigo-500 bg-indigo-50'
-                  : 'border-gray-300 hover:border-indigo-400'
+                  ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                  : 'border-border hover:border-indigo-400'
               }`}
               onDrop={(e) => handleDrop(e, 'json')}
               onDragOver={handleDragOver}
@@ -371,11 +375,11 @@ export default function HomePage() {
                 htmlFor="json-upload"
                 className="cursor-pointer block"
               >
-                <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 mb-2">
+                <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground mb-2">
                   {t('upload.drag')}
                 </p>
-                <p className="text-sm text-gray-400">.json</p>
+                <p className="text-sm text-muted-foreground">.json</p>
               </label>
             </div>
           </div>
@@ -384,18 +388,18 @@ export default function HomePage() {
         {/* Loading / Error */}
         {isLoading && (
           <div className="mt-8 text-center">
-            <div className="inline-flex items-center gap-3 px-6 py-3 bg-white rounded-lg shadow-md">
+            <div className="inline-flex items-center gap-3 px-6 py-3 bg-card rounded-lg shadow-md dark:shadow-slate-900/50">
               <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              <span className="text-gray-700">{t('upload.loading')}</span>
+              <span className="text-foreground">{t('upload.loading')}</span>
             </div>
           </div>
         )}
 
         {error && (
           <div className="mt-8 max-w-2xl mx-auto">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4" data-testid="error-message">
-              <p className="text-red-800 font-medium">{t('upload.error')}</p>
-              <p className="text-red-600 text-sm mt-1">{error}</p>
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4" data-testid="error-message">
+              <p className="text-red-800 dark:text-red-300 font-medium">{t('upload.error')}</p>
+              <p className="text-red-600 dark:text-red-400 text-sm mt-1">{error}</p>
             </div>
           </div>
         )}
@@ -403,37 +407,37 @@ export default function HomePage() {
         {/* Features */}
         <div className="mt-20 grid md:grid-cols-3 gap-8">
           <div className="text-center">
-            <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <span className="text-3xl">📋</span>
             </div>
-            <h4 className="text-lg font-semibold text-gray-900 mb-2">
+            <h4 className="text-lg font-semibold text-foreground mb-2">
               Procesos Estructurados
             </h4>
-            <p className="text-gray-600 text-sm">
+            <p className="text-muted-foreground text-sm">
               Define procesos con fases y tareas organizadas
             </p>
           </div>
           
           <div className="text-center">
-            <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <span className="text-3xl">📸</span>
             </div>
-            <h4 className="text-lg font-semibold text-gray-900 mb-2">
+            <h4 className="text-lg font-semibold text-foreground mb-2">
               Evidencia Completa
             </h4>
-            <p className="text-gray-600 text-sm">
+            <p className="text-muted-foreground text-sm">
               Adjunta texto e imágenes para cada tarea
             </p>
           </div>
           
           <div className="text-center">
-            <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <span className="text-3xl">📊</span>
             </div>
-            <h4 className="text-lg font-semibold text-gray-900 mb-2">
+            <h4 className="text-lg font-semibold text-foreground mb-2">
               Exportación Profesional
             </h4>
-            <p className="text-gray-600 text-sm">
+            <p className="text-muted-foreground text-sm">
               Genera reportes en JSON y documentos Word
             </p>
           </div>
@@ -447,10 +451,10 @@ export default function HomePage() {
                 <Layers className="w-5 h-5 text-white" />
               </div>
               <div className="flex-1">
-                <h3 className="text-2xl font-bold text-gray-900">
+                <h3 className="text-2xl font-bold text-foreground">
                   {language === 'es' ? 'Procesos en Curso' : 'Processes in Progress'}
                 </h3>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   {language === 'es' ? 'Presiona Ctrl+P para búsqueda rápida' : 'Press Ctrl+P for quick search'}
                 </p>
               </div>
@@ -470,8 +474,8 @@ export default function HomePage() {
                 return (
                   <div
                     key={item.trayId}
-                    className={`bg-white rounded-xl shadow-md p-6 transition-all border-2 ${
-                      isActive ? 'border-blue-400 ring-2 ring-blue-100' : 'border-gray-100 hover:shadow-lg hover:scale-[1.02]'
+                    className={`bg-card rounded-xl shadow-md p-6 transition-all border-2 dark:shadow-slate-900/50 ${
+                      isActive ? 'border-blue-400 ring-2 ring-blue-100 dark:ring-blue-900/50' : 'border-border hover:shadow-lg hover:scale-[1.02]'
                     }`}
                   >
                     <div className="flex items-start gap-4">
@@ -479,7 +483,7 @@ export default function HomePage() {
                         <StatusIcon className={`w-7 h-7 ${statusConfig.color}`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-gray-900 mb-1 truncate">
+                        <h4 className="font-semibold text-foreground mb-1 truncate">
                           {item.processName}
                         </h4>
                         <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${statusConfig.bg} ${statusConfig.color} ${statusConfig.border} border`}>
@@ -490,11 +494,11 @@ export default function HomePage() {
 
                     {/* Progress bar */}
                     <div className="mt-4">
-                      <div className="flex justify-between text-xs text-gray-500 mb-1">
+                      <div className="flex justify-between text-xs text-muted-foreground mb-1">
                         <span>{language === 'es' ? 'Progreso' : 'Progress'}</span>
                         <span>{Math.round(item.snapshot.progress)}%</span>
                       </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-2 bg-secondary rounded-full overflow-hidden">
                         <div 
                           className={`h-full transition-all ${
                             item.status === 'completed' ? 'bg-blue-500' :
@@ -562,8 +566,8 @@ export default function HomePage() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-20 py-8 border-t border-gray-200 bg-white">
-        <div className="max-w-7xl mx-auto px-6 text-center text-gray-600 text-sm">
+      <footer className="mt-20 py-8 border-t border-border bg-background">
+        <div className="max-w-7xl mx-auto px-6 text-center text-muted-foreground text-sm">
           <p>Process Tracker MVP by Harold Adrian - habolanos © 2026</p>
         </div>
       </footer>

@@ -10,6 +10,7 @@ import { useI18n } from '@/lib/i18n-context';
 import { exportProcessToJSON, downloadJSON } from '@/lib/json-utils';
 import { generateWordDocument, downloadWordDocument } from '@/lib/word-generator';
 import { ArrowLeft, Download, FileText, CheckCircle2, Globe, Settings, FileJson } from 'lucide-react';
+import { ThemeToggle } from '@/components/theme-toggle';
 import ProcessSidebar from './_components/process-sidebar';
 import TaskCard from './_components/task-card';
 import ProgressBar from './_components/progress-bar';
@@ -136,23 +137,23 @@ export default function ProcessPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+      <header className="sticky top-0 z-50 bg-background border-b border-border shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <button
                 onClick={handleBackToHome}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-accent rounded-lg transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span className="font-medium">{t('process.back')}</span>
               </button>
               
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">{process.name}</h1>
-                <p className="text-sm text-gray-600">
+                <h1 className="text-2xl font-bold text-foreground">{process.name}</h1>
+                <p className="text-sm text-muted-foreground">
                   {t('process.version')}: {process.version}
                 </p>
               </div>
@@ -187,12 +188,13 @@ export default function ProcessPage() {
                 </button>
               )}
 
+              <ThemeToggle language={language} />
               <button
                 onClick={() => setLanguage?.(language === 'es' ? 'en' : 'es')}
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-2 px-3 py-2 bg-secondary border border-border rounded-lg hover:bg-accent transition-colors"
               >
-                <Globe className="w-4 h-4" />
-                <span className="font-medium">{language === 'es' ? 'ES' : 'EN'}</span>
+                <Globe className="w-4 h-4 text-foreground" />
+                <span className="font-medium text-foreground">{language === 'es' ? 'ES' : 'EN'}</span>
               </button>
               
               <button
@@ -246,11 +248,11 @@ export default function ProcessPage() {
           {currentPhase && (
             <div>
               <div className="mb-6">
-                <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                <h2 className="text-3xl font-bold text-foreground mb-2">
                   {currentPhase.name}
                 </h2>
                 {currentPhase.description && (
-                  <p className="text-gray-600 mb-4">{currentPhase.description}</p>
+                  <p className="text-muted-foreground mb-4">{currentPhase.description}</p>
                 )}
                 <ProgressBar
                   progress={currentPhase.progress ?? 0}
@@ -260,7 +262,7 @@ export default function ProcessPage() {
                 
                 {/* Phase-level Dynamic Links */}
                 {currentPhase.dynamicLinks && currentPhase.dynamicLinks.length > 0 && (
-                  <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
+                  <div className="mt-4 p-4 bg-card rounded-lg border border-border">
                     <DynamicLinksList links={currentPhase.dynamicLinks} phaseId={currentPhase.id} />
                   </div>
                 )}

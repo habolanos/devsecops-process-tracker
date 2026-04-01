@@ -5,6 +5,7 @@ import { I18nProvider } from '@/lib/i18n-context';
 import { ToastProvider } from '@/components/toast-provider';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { GlobalCommandPalette } from '@/components/global-command-palette';
+import { ThemeProvider } from '@/components/theme-provider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -19,18 +20,25 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
       <head>
         <script src="https://apps.abacus.ai/chatllm/appllm-lib.js"></script>
       </head>
       <body className={inter.className}>
-        <ErrorBoundary>
-          <I18nProvider>
-            {children}
-            <ToastProvider />
-            <GlobalCommandPalette />
-          </I18nProvider>
-        </ErrorBoundary>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <ErrorBoundary>
+            <I18nProvider>
+              {children}
+              <ToastProvider />
+              <GlobalCommandPalette />
+            </I18nProvider>
+          </ErrorBoundary>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -114,6 +114,11 @@ const translations: Translations = {
   'palette.hint': { es: 'Usa ↑↓ para navegar, Enter para seleccionar, Esc para cerrar', en: 'Use ↑↓ to navigate, Enter to select, Esc to close' },
   'palette.goHome': { es: 'Ir al inicio', en: 'Go to home' },
   'palette.current': { es: 'actual', en: 'current' },
+  
+  // Theme
+  'theme.light': { es: 'Modo Claro', en: 'Light Mode' },
+  'theme.dark': { es: 'Modo Oscuro', en: 'Dark Mode' },
+  'theme.system': { es: 'Sistema', en: 'System' },
 };
 
 interface I18nContextType {
