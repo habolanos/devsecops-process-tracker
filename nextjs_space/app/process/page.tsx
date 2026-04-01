@@ -3,6 +3,7 @@
 import { useEffect, useState, lazy, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { useProcessStore } from '@/lib/store';
+import { useSessionStore } from '@/lib/session-store';
 import { useShallow } from 'zustand/react/shallow';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n-context';
@@ -12,6 +13,7 @@ import { ArrowLeft, Download, FileText, CheckCircle2, Globe, Settings, FileJson 
 import ProcessSidebar from './_components/process-sidebar';
 import TaskCard from './_components/task-card';
 import ProgressBar from './_components/progress-bar';
+import { ProcessTabs } from '@/components/process-tabs';
 import { ModalSkeleton } from '@/components/skeletons/modal-skeleton';
 
 // Lazy load modals for better performance
@@ -50,6 +52,21 @@ export default function ProcessPage() {
   // Config store
   const configIsLoaded = useConfigStore((state) => state.isLoaded);
   const configFileName = useConfigStore((state) => state.fileName);
+
+  // Session store for process tray
+  const { 
+    activeTrayId, 
+    updateSnapshot, 
+    completeProcess: completeProcessInTray,
+    switchToProcess: switchProcessInTray,
+  } = useSessionStore();
+
+  // Sync process changes to session store
+  useEffect(() => {
+    if (process && activeTrayId) {
+      updateSnapshot(activeTrayId, process);
+    }
+  }, [process, activeTrayId, updateSnapshot]);
 
   useEffect(() => {
     if (!process) {
@@ -101,6 +118,10 @@ export default function ProcessPage() {
       setTimeout(() => {
         const updatedProcess = useProcessStore.getState().process;
         if (updatedProcess) {
+          // Update session tray with completed status
+          if (activeTrayId) {
+            completeProcessInTray(activeTrayId, updatedProcess);
+          }
           handleExportJSON();
           handleExportWord();
         }
@@ -203,11 +224,15 @@ export default function ProcessPage() {
                 <CheckCircle2 className="w-4 h-4" />
                 <span className="font-medium">{t('process.complete')}</span>
               </button>
+
             </div>
           </div>
 
           {/* Progress Bar */}
           <ProgressBar progress={process.progress ?? 0} label={t('process.progress')} />
+
+          {/* Process Tabs */}
+          <ProcessTabs language={language} />
         </div>
       </header>
 

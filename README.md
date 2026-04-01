@@ -246,7 +246,41 @@ Template para autocompletado de variables:
 - **Persistencia**: Se guarda automáticamente en localStorage
 - **Reporte en Word**: Sección detallada con tiempos de inicio, sesiones y duración total
 
-### 6. Exportación
+### 6. Gestión de Procesos Múltiples (Tabs + Command Palette)
+Sistema profesional de gestión de múltiples procesos inspirado en VS Code/Chrome:
+
+#### Process Tabs (Header)
+- **Tabs visuales**: Procesos activos visibles en el header con iconos de estado
+- **Estados con iconografía**:
+  | Estado | Icono | Color | Descripción |
+  |--------|-------|-------|-------------|
+  | ▶️ Activo | `Play` | Verde | Proceso en ejecución actual |
+  | ⏸️ En Pausa | `Pause` | Ámbar | Proceso pausado al cambiar a otro |
+  | ✅ Completado | `CheckCircle2` | Azul | Proceso finalizado exitosamente |
+  | ❌ Cancelado | `XCircle` | Rojo | Proceso cancelado por usuario |
+- **Overflow menu**: Si hay más de 4 procesos, los adicionales aparecen en dropdown
+- **Barra de progreso**: Indicador visual de progreso en cada tab
+- **Cerrar tabs**: Botón X al hacer hover para remover procesos
+
+#### Command Palette (`Ctrl+P` / `⌘P`)
+- **Acceso rápido**: Shortcut de teclado para búsqueda instantánea
+- **Búsqueda fuzzy**: Filtrar procesos por nombre
+- **Navegación con teclado**: ↑↓ para navegar, Enter para seleccionar, Esc para cerrar
+- **Acciones rápidas**: Exportar o eliminar directamente desde el palette
+- **Vista detallada**: Estado, progreso y acciones por proceso
+
+#### Sección "Procesos en Curso" (Home)
+- **Tarjetas visuales**: Grid de procesos con iconos de estado y colores
+- **Barra de progreso**: Indicador visual por proceso
+- **Acciones rápidas**: Reanudar, Exportar JSON, Eliminar
+- **Hint de Ctrl+P**: Recordatorio del atajo de teclado
+
+#### Características Comunes
+- **Cambio automático**: Al iniciar nuevo proceso, el actual se pausa automáticamente
+- **Persistencia de sesión**: Todos los procesos se guardan en localStorage comprimido
+- **Snapshots**: Estado completo guardado para restaurar en cualquier momento
+
+### 7. Exportación
 - **JSON**: Estado completo con evidencias base64 y time tracking (para reanudar)
 - **Word**: Documento formal con portada, registro de tiempo, fases, tareas, evidencias
 
@@ -683,10 +717,11 @@ El pipeline de GitLab incluye 5 stages:
 3. Configurar deployment tokens si es necesario
 4. El pipeline se ejecuta automáticamente en push/merge request
 
-## �📊 Historial de Cambios
+## 📊 Historial de Cambios
 
 | Fecha | Versión | Descripción |
 |-------|---------|-------------|
+| 2026-04-01 | 1.9.0 | **Gestión de Procesos Múltiples**: Process Tabs en header, Command Palette (Ctrl+P), sección "Procesos en Curso" con tarjetas visuales estilo templates. Iconografía de estados, barras de progreso, acciones rápidas. Session store con Zustand y persistencia comprimida |
 | 2026-03-31 | 1.8.0 | **Seguridad y Performance Pro**: Validación Zod en APIs, Rate Limiting, Sanitización XSS, Persistencia comprimida (lz-string), Manejo de errores centralizado, Virtualización de listas (@tanstack/react-virtual), Sistema Optimistic Updates |
 | 2026-03-31 | 1.7.1 | **Análisis Pro v2**: Reporte completo de arquitectura y UX con 30+ mejoras priorizadas (ver `outcome/ARCHITECTURE_UX_ANALYSIS_v2.md`) |
 | 2026-03-31 | 1.7.0 | **Mejoras Pro**: Error Boundary global, accesibilidad ARIA, lazy loading modales, sistema Toast, optimización Zustand, skeletons |

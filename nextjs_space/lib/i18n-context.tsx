@@ -88,6 +88,32 @@ const translations: Translations = {
   'common.loading': { es: 'Cargando...', en: 'Loading...' },
   'common.error': { es: 'Error', en: 'Error' },
   'common.success': { es: 'Éxito', en: 'Success' },
+
+  // Process Tray / Tabs / Command Palette
+  'tray.title': { es: 'Procesos de Sesión', en: 'Session Processes' },
+  'tray.button': { es: 'Procesos', en: 'Processes' },
+  'tray.empty': { es: 'No hay procesos en esta sesión', en: 'No processes in this session' },
+  'tray.status.active': { es: 'Activo', en: 'Active' },
+  'tray.status.paused': { es: 'En Pausa', en: 'Paused' },
+  'tray.status.completed': { es: 'Completado', en: 'Completed' },
+  'tray.status.cancelled': { es: 'Cancelado', en: 'Cancelled' },
+  'tray.action.resume': { es: 'Reanudar', en: 'Resume' },
+  'tray.action.cancel': { es: 'Cancelar', en: 'Cancel' },
+  'tray.action.remove': { es: 'Eliminar', en: 'Remove' },
+  'tray.action.export': { es: 'Exportar', en: 'Export' },
+  'tray.action.resumeProcess': { es: 'Reanudar Proceso', en: 'Resume Process' },
+  'tray.resumed': { es: 'Proceso reanudado', en: 'Process resumed' },
+  'tray.exported': { es: 'Exportado exitosamente', en: 'Exported successfully' },
+  'tray.removed': { es: 'Proceso removido', en: 'Process removed' },
+  'tray.close': { es: 'Cerrar', en: 'Close' },
+  
+  // Command Palette
+  'palette.search': { es: 'Buscar procesos...', en: 'Search processes...' },
+  'palette.noResults': { es: 'Sin resultados', en: 'No results' },
+  'palette.noProcesses': { es: 'No hay procesos en la sesión', en: 'No processes in session' },
+  'palette.hint': { es: 'Usa ↑↓ para navegar, Enter para seleccionar, Esc para cerrar', en: 'Use ↑↓ to navigate, Enter to select, Esc to close' },
+  'palette.goHome': { es: 'Ir al inicio', en: 'Go to home' },
+  'palette.current': { es: 'actual', en: 'current' },
 };
 
 interface I18nContextType {

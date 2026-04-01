@@ -4,6 +4,7 @@ import './globals.css';
 import { I18nProvider } from '@/lib/i18n-context';
 import { ToastProvider } from '@/components/toast-provider';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { GlobalCommandPalette } from '@/components/global-command-palette';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -27,6 +28,7 @@ export default function RootLayout({
           <I18nProvider>
             {children}
             <ToastProvider />
+            <GlobalCommandPalette />
           </I18nProvider>
         </ErrorBoundary>
       </body>

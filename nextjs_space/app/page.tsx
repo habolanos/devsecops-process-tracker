@@ -1,12 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { parseYAMLToProcess } from '@/lib/yaml-parser';
-import { importProcessFromJSON } from '@/lib/json-utils';
+import { importProcessFromJSON, exportProcessToJSON, downloadJSON } from '@/lib/json-utils';
 import { useProcessStore } from '@/lib/store';
+import { useSessionStore } from '@/lib/session-store';
 import { useI18n } from '@/lib/i18n-context';
-import { Upload, FileText, Globe, Shield, Rocket, AlertTriangle, FolderOpen, GitPullRequest } from 'lucide-react';
+import { Upload, FileText, Globe, Shield, Rocket, AlertTriangle, FolderOpen, GitPullRequest, Play, Pause, CheckCircle2, XCircle, Layers, Trash2, Download } from 'lucide-react';
+import { ProcessState } from '@/lib/types';
+import { ProcessTabs } from '@/components/process-tabs';
+import { toast } from 'sonner';
 
 interface ProcessTemplate {
   id: string;
@@ -22,11 +26,59 @@ export default function HomePage() {
   const router = useRouter();
   const { t, language, setLanguage } = useI18n();
   const loadProcess = useProcessStore((state) => state?.loadProcess);
+  const { addProcess, initSession, pauseCurrentProcess, activeTrayId, processes } = useSessionStore();
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [templates, setTemplates] = useState<ProcessTemplate[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
+
+  // Initialize session on mount
+  useEffect(() => {
+    initSession();
+  }, [initSession]);
+
+  // Helper to load process and add to tray
+  const loadAndTrackProcess = (process: ProcessState) => {
+    // Pause current process if there's one active
+    const currentProcess = useProcessStore.getState().process;
+    if (currentProcess && activeTrayId) {
+      pauseCurrentProcess(currentProcess);
+    }
+    
+    // Load new process
+    loadProcess?.(process);
+    
+    // Add to session tray
+    addProcess(process);
+  };
+
+  // Handle switching to a process from tray
+  const handleSwitchProcess = useCallback((trayId: string) => {
+    const sessionStore = useSessionStore.getState();
+    const snapshot = sessionStore.switchToProcess(trayId);
+    if (snapshot) {
+      loadProcess?.(snapshot);
+      toast.success(language === 'es' ? 'Proceso reanudado' : 'Process resumed');
+      router.push('/process');
+    }
+  }, [loadProcess, router, language]);
+
+  // Handle export from tray
+  const handleExportFromTray = useCallback(async (trayId: string) => {
+    const sessionStore = useSessionStore.getState();
+    const item = sessionStore.processes.find(p => p.trayId === trayId);
+    if (!item) return;
+
+    try {
+      const exportData = await exportProcessToJSON(item.snapshot);
+      const filename = `${item.processName.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.json`;
+      downloadJSON(exportData, filename);
+      toast.success(language === 'es' ? 'Exportado exitosamente' : 'Exported successfully');
+    } catch (error) {
+      console.error('Export error:', error);
+    }
+  }, [language]);
 
   useEffect(() => {
     const fetchTemplates = async () => {
@@ -56,7 +108,7 @@ export default function HomePage() {
       }
       const data = await response.json();
       const process = parseYAMLToProcess(data.content);
-      loadProcess?.(process);
+      loadAndTrackProcess(process);
       router.push('/process');
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Error desconocido';
@@ -90,16 +142,16 @@ export default function HomePage() {
 
     try {
       const content = await file.text();
+      let process: ProcessState;
       
       if (type === 'yaml') {
-        const process = parseYAMLToProcess(content);
-        loadProcess?.(process);
+        process = parseYAMLToProcess(content);
       } else {
         const jsonData = JSON.parse(content);
-        const process = importProcessFromJSON(jsonData);
-        loadProcess?.(process);
+        process = importProcessFromJSON(jsonData);
       }
-
+      
+      loadAndTrackProcess(process);
       router.push('/process');
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Error desconocido';
@@ -156,6 +208,9 @@ export default function HomePage() {
             <span className="font-medium">{language === 'es' ? 'ES' : 'EN'}</span>
           </button>
         </div>
+
+        {/* Process Tabs */}
+        <ProcessTabs language={language} />
       </header>
 
       {/* Main Content */}
@@ -383,6 +438,127 @@ export default function HomePage() {
             </p>
           </div>
         </div>
+
+        {/* Session Processes Section */}
+        {processes.length > 0 && (
+          <div className="mt-16">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                <Layers className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-2xl font-bold text-gray-900">
+                  {language === 'es' ? 'Procesos en Curso' : 'Processes in Progress'}
+                </h3>
+                <p className="text-sm text-gray-500">
+                  {language === 'es' ? 'Presiona Ctrl+P para búsqueda rápida' : 'Press Ctrl+P for quick search'}
+                </p>
+              </div>
+            </div>
+            
+            <div className="grid md:grid-cols-3 gap-6">
+              {processes.map((item) => {
+                const statusConfig = {
+                  active: { icon: Play, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200', label: language === 'es' ? 'Activo' : 'Active' },
+                  paused: { icon: Pause, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', label: language === 'es' ? 'En Pausa' : 'Paused' },
+                  completed: { icon: CheckCircle2, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', label: language === 'es' ? 'Completado' : 'Completed' },
+                  cancelled: { icon: XCircle, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200', label: language === 'es' ? 'Cancelado' : 'Cancelled' },
+                }[item.status];
+                const StatusIcon = statusConfig.icon;
+                const isActive = item.trayId === activeTrayId;
+
+                return (
+                  <div
+                    key={item.trayId}
+                    className={`bg-white rounded-xl shadow-md p-6 transition-all border-2 ${
+                      isActive ? 'border-blue-400 ring-2 ring-blue-100' : 'border-gray-100 hover:shadow-lg hover:scale-[1.02]'
+                    }`}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className={`w-14 h-14 ${statusConfig.bg} rounded-xl flex items-center justify-center`}>
+                        <StatusIcon className={`w-7 h-7 ${statusConfig.color}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-gray-900 mb-1 truncate">
+                          {item.processName}
+                        </h4>
+                        <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${statusConfig.bg} ${statusConfig.color} ${statusConfig.border} border`}>
+                          {statusConfig.label}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className="mt-4">
+                      <div className="flex justify-between text-xs text-gray-500 mb-1">
+                        <span>{language === 'es' ? 'Progreso' : 'Progress'}</span>
+                        <span>{Math.round(item.snapshot.progress)}%</span>
+                      </div>
+                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full transition-all ${
+                            item.status === 'completed' ? 'bg-blue-500' :
+                            item.status === 'active' ? 'bg-green-500' :
+                            item.status === 'cancelled' ? 'bg-red-500' : 'bg-amber-500'
+                          }`}
+                          style={{ width: `${item.snapshot.progress}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="mt-4 flex items-center justify-between">
+                      <button
+                        onClick={() => {
+                          const currentProcess = useProcessStore.getState().process;
+                          if (currentProcess && activeTrayId) {
+                            useSessionStore.getState().updateSnapshot(activeTrayId, currentProcess);
+                          }
+                          const snapshot = useSessionStore.getState().switchToProcess(item.trayId);
+                          if (snapshot) {
+                            loadProcess?.(snapshot);
+                            toast.success(language === 'es' ? 'Proceso cargado' : 'Process loaded');
+                            router.push('/process');
+                          }
+                        }}
+                        className="text-sm text-blue-600 font-medium hover:text-blue-700 flex items-center gap-1"
+                      >
+                        {isActive 
+                          ? (language === 'es' ? 'Continuar →' : 'Continue →')
+                          : (language === 'es' ? 'Reanudar →' : 'Resume →')
+                        }
+                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={async () => {
+                            const exportData = await exportProcessToJSON(item.snapshot);
+                            const filename = `${item.processName.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.json`;
+                            downloadJSON(exportData, filename);
+                            toast.success(language === 'es' ? 'Exportado' : 'Exported');
+                          }}
+                          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                          title={language === 'es' ? 'Exportar' : 'Export'}
+                        >
+                          <Download className="w-4 h-4 text-gray-500" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            useSessionStore.getState().removeFromTray(item.trayId);
+                            toast.success(language === 'es' ? 'Proceso removido' : 'Process removed');
+                          }}
+                          className="p-1.5 hover:bg-red-50 rounded-lg transition-colors"
+                          title={language === 'es' ? 'Eliminar' : 'Remove'}
+                        >
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Footer */}
