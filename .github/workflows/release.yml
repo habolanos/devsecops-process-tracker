@@ -1,0 +1,146 @@
+# ============================================================================
+# Release Pipeline - Semantic Versioning & Changelog
+# Standards: Semantic Versioning 2.0.0, Conventional Commits
+# ============================================================================
+
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (no actual release)'
+        required: false
+        default: 'false'
+        type: boolean
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ==========================================================================
+  # Quality Gate - Ensure CI passed
+  # ==========================================================================
+  quality-gate:
+    name: 🚦 Quality Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: nextjs_space/package-lock.json
+
+      - name: Install dependencies
+        working-directory: nextjs_space
+        run: npm ci
+
+      - name: Run tests
+        working-directory: nextjs_space
+        run: npm run test:run
+
+      - name: Build verification
+        working-directory: nextjs_space
+        run: npm run build
+
+  # ==========================================================================
+  # Semantic Release
+  # ==========================================================================
+  release:
+    name: 📦 Semantic Release
+    runs-on: ubuntu-latest
+    needs: [quality-gate]
+    outputs:
+      new_release_published: ${{ steps.semantic.outputs.new_release_published }}
+      new_release_version: ${{ steps.semantic.outputs.new_release_version }}
+      new_release_major_version: ${{ steps.semantic.outputs.new_release_major_version }}
+      new_release_minor_version: ${{ steps.semantic.outputs.new_release_minor_version }}
+      new_release_patch_version: ${{ steps.semantic.outputs.new_release_patch_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install semantic-release plugins
+        run: |
+          npm install -g semantic-release@23 \
+            @semantic-release/changelog@6 \
+            @semantic-release/git@10 \
+            @semantic-release/github@10 \
+            @semantic-release/commit-analyzer@12 \
+            @semantic-release/release-notes-generator@13
+
+      - name: Semantic Release
+        id: semantic
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ inputs.dry_run }}" == "true" ]; then
+            npx semantic-release --dry-run
+          else
+            npx semantic-release
+          fi
+
+      - name: Release Summary
+        if: steps.semantic.outputs.new_release_published == 'true'
+        run: |
+          echo "## 🎉 New Release Published" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** v${{ steps.semantic.outputs.new_release_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Type breakdown:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Major: ${{ steps.semantic.outputs.new_release_major_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Minor: ${{ steps.semantic.outputs.new_release_minor_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Patch: ${{ steps.semantic.outputs.new_release_patch_version }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: No Release
+        if: steps.semantic.outputs.new_release_published != 'true'
+        run: |
+          echo "## ℹ️ No Release" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "No new release was published. This usually means:" >> $GITHUB_STEP_SUMMARY
+          echo "- No commits with release-triggering types (feat, fix, etc.)" >> $GITHUB_STEP_SUMMARY
+          echo "- All commits since last release are non-releasable (chore, docs, etc.)" >> $GITHUB_STEP_SUMMARY
+
+  # ==========================================================================
+  # Trigger Docker Build
+  # ==========================================================================
+  trigger-docker:
+    name: 🐳 Trigger Docker Build
+    runs-on: ubuntu-latest
+    needs: [release]
+    if: needs.release.outputs.new_release_published == 'true'
+    steps:
+      - name: Trigger Docker workflow
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'docker-publish.yml',
+              ref: 'main',
+              inputs: {
+                version: '${{ needs.release.outputs.new_release_version }}'
+              }
+            })
+            
+            console.log('Docker build triggered for version ${{ needs.release.outputs.new_release_version }}')

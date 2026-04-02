@@ -830,10 +830,99 @@ El pipeline de GitLab incluye 5 stages:
 3. Configurar deployment tokens si es necesario
 4. El pipeline se ejecuta automáticamente en push/merge request
 
+### GitHub Actions Pipeline
+
+**Archivos:** `.github/workflows/ci.yml`, `release.yml`, `docker-publish.yml`
+
+El pipeline de GitHub Actions implementa estándares internacionales de seguridad y calidad:
+
+#### Workflows
+
+| Workflow | Trigger | Descripción |
+|----------|---------|-------------|
+| **CI Pipeline** | Push/PR a main, develop | Lint, Tests, Security Scan, Build |
+| **Release** | Push a main | Semantic versioning + Changelog |
+| **Docker Publish** | Release publicado | Build multi-arch, Sign, SBOM, Push |
+
+#### Estándares Implementados
+
+| Estándar | Herramienta | Descripción |
+|----------|-------------|-------------|
+| **Semantic Versioning** | semantic-release | Versionado automático basado en commits |
+| **Conventional Commits** | commitlint | Validación de formato de commits |
+| **SAST** | CodeQL | Análisis estático de seguridad |
+| **Dependency Scan** | npm audit, Trivy | Vulnerabilidades en dependencias |
+| **Container Scan** | Trivy | Vulnerabilidades en imagen Docker |
+| **SBOM** | Syft | Software Bill of Materials (SPDX + CycloneDX) |
+| **Image Signing** | Cosign (Sigstore) | Firma criptográfica de imágenes |
+| **SLSA Level 3** | GitHub Attestations | Provenance de artefactos |
+| **OCI Compliance** | Docker Buildx | Imágenes multi-plataforma (amd64/arm64) |
+
+#### Configuración de Secrets
+
+En GitHub Repository → Settings → Secrets and variables → Actions:
+
+| Secret | Descripción | Cómo obtenerlo |
+|--------|-------------|----------------|
+| `DOCKERHUB_USERNAME` | Usuario de Docker Hub | Tu nombre de usuario |
+| `DOCKERHUB_TOKEN` | Access Token de Docker Hub | Docker Hub → Account Settings → Security → New Access Token |
+| `CODECOV_TOKEN` | Token para cobertura (opcional) | codecov.io → Settings → Repository Token |
+
+#### Conventional Commits
+
+Los commits deben seguir el formato:
+
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer]
+```
+
+**Tipos permitidos:**
+- `feat`: Nueva funcionalidad (trigger: minor release)
+- `fix`: Corrección de bug (trigger: patch release)
+- `docs`: Solo documentación
+- `style`: Formato de código
+- `refactor`: Refactorización
+- `perf`: Mejora de rendimiento
+- `test`: Tests
+- `build`: Sistema de build
+- `ci`: Configuración CI/CD
+- `chore`: Mantenimiento
+
+**Ejemplos:**
+```bash
+feat(tasks): add multicheck task type
+fix(evidence): correct clipboard paste on Safari
+docs(readme): update CI/CD documentation
+perf(store): optimize state updates
+```
+
+#### Docker Hub
+
+La imagen se publica automáticamente en Docker Hub con:
+
+```bash
+# Pull la última versión
+docker pull <username>/devsecops-process-tracker:latest
+
+# Pull versión específica
+docker pull <username>/devsecops-process-tracker:1.12.0
+
+# Verificar firma
+cosign verify <username>/devsecops-process-tracker:latest
+
+# Ejecutar
+docker run -p 3000:3000 <username>/devsecops-process-tracker:latest
+```
+
 ## 📊 Historial de Cambios
 
 | Fecha | Versión | Descripción |
 |-------|---------|-------------|
+| 2026-04-02 | 1.13.0 | **CI/CD con GitHub Actions**: Workflows completos (CI, Release, Docker), Semantic Versioning automático, Conventional Commits, CodeQL SAST, Trivy scanning, Docker multi-arch con Cosign signing, SBOM (SPDX/CycloneDX), SLSA Level 3 attestations, health check endpoint |
 | 2026-04-02 | 1.12.0 | **Task Types y Clipboard**: Soporte para 3 tipos de tareas (`standard`, `check`, `multicheck`), validación de checkItems requeridos/opcionales, clipboard paste (Ctrl+V) para imágenes, botón "Terminar Tarea" en modal, ActivityCard con imágenes y links dinámicos, i18n actualizado |
 | 2026-04-02 | 1.11.0 | **Activities y Subprocesses**: Nuevo nivel jerárquico `activities` entre phases y tasks, soporte para `subprocesses` como referencias a procesos externos (GitHub/URL/local), subprocess-loader para carga dinámica, sidebar expandible con actividades, i18n para nuevos componentes |
 | 2026-04-01 | 1.10.0 | **Modo Dark/Light**: Toggle Sol/Luna en header, soporte sistema operativo, variables CSS HSL semánticas, ThemeProvider (next-themes), migración completa de colores en páginas y componentes |

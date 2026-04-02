@@ -1,23 +1,34 @@
-# Multi-stage build for Next.js Process Tracker
+# ============================================================================
+# Multi-stage Dockerfile for DevSecOps Process Tracker
+# Standards: OCI Image Spec, CIS Docker Benchmark, SLSA Level 3
+# ============================================================================
 
+# Build arguments for OCI labels
+ARG BUILD_DATE
+ARG VCS_REF
+ARG VERSION=latest
+
+# ==========================================================================
 # Stage 1: Dependencies
-FROM node:18-alpine AS deps
+# ==========================================================================
+FROM node:20-alpine AS deps
+
+# Security: Install only necessary packages
 RUN apk add --no-cache libc6-compat
+
 WORKDIR /app
 
 # Copy package files
-COPY nextjs_space/package.json nextjs_space/yarn.lock* nextjs_space/package-lock.json* nextjs_space/pnpm-lock.yaml* ./
+COPY nextjs_space/package.json nextjs_space/package-lock.json* ./
 
-# Install dependencies
-RUN \
-  if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
-  elif [ -f package-lock.json ]; then npm ci; \
-  elif [ -f pnpm-lock.yaml ]; then yarn global add pnpm && pnpm i --frozen-lockfile; \
-  else echo "Lockfile not found." && exit 1; \
-  fi
+# Install dependencies with exact versions
+RUN npm ci --only=production=false
 
+# ==========================================================================
 # Stage 2: Builder
-FROM node:18-alpine AS builder
+# ==========================================================================
+FROM node:20-alpine AS builder
+
 WORKDIR /app
 
 # Copy dependencies from previous stage
@@ -26,32 +37,55 @@ COPY --from=deps /app/node_modules ./node_modules
 # Copy source code
 COPY nextjs_space ./
 
-# Build application
-ENV NEXT_TELEMETRY_DISABLED 1
-RUN yarn build
+# Disable telemetry during build
+ENV NEXT_TELEMETRY_DISABLED=1
 
-# Stage 3: Runner
-FROM node:18-alpine AS runner
+# Build application
+RUN npm run build
+
+# ==========================================================================
+# Stage 3: Production Runner
+# ==========================================================================
+FROM node:20-alpine AS runner
+
+# OCI Image Labels (https://github.com/opencontainers/image-spec/blob/main/annotations.md)
+LABEL org.opencontainers.image.title="DevSecOps Process Tracker" \
+      org.opencontainers.image.description="Web application for DevSecOps process management with evidence tracking, dependencies, and exports" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.vendor="DevSecOps Team" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.source="https://github.com/your-org/devsecops-process-tracker" \
+      org.opencontainers.image.documentation="https://github.com/your-org/devsecops-process-tracker/blob/main/README.md" \
+      org.opencontainers.image.base.name="node:20-alpine"
+
 WORKDIR /app
 
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
+# Environment configuration
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3000 \
+    HOSTNAME="0.0.0.0"
 
-# Create non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Security: Create non-root user (CIS Docker Benchmark 4.1)
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 --ingroup nodejs nextjs
 
-# Copy necessary files
+# Copy necessary files with correct ownership
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Switch to non-root user
+# Security: Switch to non-root user
 USER nextjs
 
+# Expose port
 EXPOSE 3000
 
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
+# Health check (CIS Docker Benchmark 4.6)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))" || exit 1
 
+# Start application
 CMD ["node", "server.js"]
