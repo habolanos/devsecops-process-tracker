@@ -54,33 +54,6 @@ export default function HomePage() {
     addProcess(process);
   };
 
-  // Handle switching to a process from tray
-  const handleSwitchProcess = useCallback((trayId: string) => {
-    const sessionStore = useSessionStore.getState();
-    const snapshot = sessionStore.switchToProcess(trayId);
-    if (snapshot) {
-      loadProcess?.(snapshot);
-      toast.success(language === 'es' ? 'Proceso reanudado' : 'Process resumed');
-      router.push('/process');
-    }
-  }, [loadProcess, router, language]);
-
-  // Handle export from tray
-  const handleExportFromTray = useCallback(async (trayId: string) => {
-    const sessionStore = useSessionStore.getState();
-    const item = sessionStore.processes.find(p => p.trayId === trayId);
-    if (!item) return;
-
-    try {
-      const exportData = await exportProcessToJSON(item.snapshot);
-      const filename = `${item.processName.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.json`;
-      downloadJSON(exportData, filename);
-      toast.success(language === 'es' ? 'Exportado exitosamente' : 'Exported successfully');
-    } catch (error) {
-      console.error('Export error:', error);
-    }
-  }, [language]);
-
   useEffect(() => {
     const fetchTemplates = async () => {
       try {
@@ -568,7 +541,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="mt-20 py-8 border-t border-border bg-background">
         <div className="max-w-7xl mx-auto px-6 text-center text-muted-foreground text-sm">
-          <p>Process Tracker MVP by Harold Adrian - habolanos © 2026</p>
+          <p>Process Tracker MVP by Harold Adrian - habolanos &copy; 2026</p>
         </div>
       </footer>
     </div>

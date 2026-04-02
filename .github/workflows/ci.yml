@@ -52,7 +52,7 @@ jobs:
 
       - name: Run ESLint
         working-directory: ${{ env.WORKING_DIR }}
-        run: npm run lint
+        run: npm run lint:js
 
   # ==========================================================================
   # Commit Message Validation (Conventional Commits)
