@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import Script from 'next/script';
 import './globals.css';
 import { I18nProvider } from '@/lib/i18n-context';
 import { ToastProvider } from '@/components/toast-provider';
@@ -22,12 +21,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <head>
-        <Script
-          src="https://apps.abacus.ai/chatllm/appllm-lib.js"
-          strategy="lazyOnload"
-        />
-      </head>
       <body className={inter.className}>
         <ThemeProvider
           attribute="class"
