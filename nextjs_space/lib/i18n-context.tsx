@@ -119,6 +119,27 @@ const translations: Translations = {
   'theme.light': { es: 'Modo Claro', en: 'Light Mode' },
   'theme.dark': { es: 'Modo Oscuro', en: 'Dark Mode' },
   'theme.system': { es: 'Sistema', en: 'System' },
+  
+  // Activities
+  'activity.title': { es: 'Actividad', en: 'Activity' },
+  'activity.progress': { es: 'Progreso de Actividad', en: 'Activity Progress' },
+  'activity.tasks': { es: 'tareas', en: 'tasks' },
+  'activity.expand': { es: 'Expandir actividades', en: 'Expand activities' },
+  'activity.collapse': { es: 'Colapsar actividades', en: 'Collapse activities' },
+  
+  // Subprocesses
+  'subprocess.title': { es: 'Subproceso', en: 'Subprocess' },
+  'subprocess.external': { es: 'Proceso externo', en: 'External process' },
+  'subprocess.loading': { es: 'Cargando subproceso...', en: 'Loading subprocess...' },
+  'subprocess.loaded': { es: 'Cargado', en: 'Loaded' },
+  'subprocess.error': { es: 'Error al cargar', en: 'Load error' },
+  'subprocess.pending': { es: 'Pendiente', en: 'Pending' },
+  'subprocess.skipped': { es: 'Omitido', en: 'Skipped' },
+  'subprocess.optional': { es: 'Opcional', en: 'Optional' },
+  'subprocess.required': { es: 'Requerido', en: 'Required' },
+  'subprocess.source.github': { es: 'GitHub', en: 'GitHub' },
+  'subprocess.source.url': { es: 'URL', en: 'URL' },
+  'subprocess.source.local': { es: 'Local', en: 'Local' },
 };
 
 interface I18nContextType {

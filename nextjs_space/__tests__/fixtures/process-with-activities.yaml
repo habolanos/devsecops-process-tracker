@@ -1,0 +1,140 @@
+process:
+  id: "test-process-activities"
+  name: "Proceso de Prueba con Actividades"
+  description: "Proceso para probar la funcionalidad de activities y subprocesses"
+  version: "1.0.0"
+  
+  variables:
+    - key: "projectName"
+      label: "Nombre del Proyecto"
+      type: "text"
+      required: true
+      placeholder: "ej: mi-proyecto"
+    - key: "environment"
+      label: "Ambiente"
+      type: "select"
+      required: true
+      options:
+        - "development"
+        - "staging"
+        - "production"
+
+  phases:
+    - id: "phase-1"
+      name: "Fase 1: Preparación"
+      description: "Fase de preparación con actividades"
+      order: 1
+      activities:
+        - id: "activity-1-1"
+          name: "Revisión de Requisitos"
+          description: "Revisar todos los requisitos del proyecto"
+          order: 1
+          tasks:
+            - id: "task-1-1-1"
+              name: "Verificar documentación"
+              description: "Revisar que la documentación esté completa"
+              order: 1
+              evidence:
+                type: "text"
+                required: true
+                description: "Lista de documentos verificados"
+              dependencies: []
+            - id: "task-1-1-2"
+              name: "Validar requisitos técnicos"
+              description: "Verificar que los requisitos técnicos sean factibles"
+              order: 2
+              evidence:
+                type: "both"
+                required: true
+                description: "Captura y descripción de validación"
+              dependencies: ["task-1-1-1"]
+              
+        - id: "activity-1-2"
+          name: "Configuración del Entorno"
+          description: "Preparar el entorno de desarrollo"
+          order: 2
+          tasks:
+            - id: "task-1-2-1"
+              name: "Instalar dependencias"
+              description: "Ejecutar npm install o equivalente"
+              order: 1
+              evidence:
+                type: "text"
+                required: true
+              dependencies: ["task-1-1-2"]
+            - id: "task-1-2-2"
+              name: "Configurar variables de entorno"
+              description: "Crear archivo .env con las variables necesarias"
+              order: 2
+              evidence:
+                type: "image"
+                required: true
+              dependencies: ["task-1-2-1"]
+
+    - id: "phase-2"
+      name: "Fase 2: Desarrollo"
+      description: "Fase de desarrollo sin actividades (legacy)"
+      order: 2
+      tasks:
+        - id: "task-2-1"
+          name: "Implementar funcionalidad"
+          description: "Desarrollar la funcionalidad principal"
+          order: 1
+          evidence:
+            type: "both"
+            required: true
+          dependencies: ["task-1-2-2"]
+        - id: "task-2-2"
+          name: "Escribir tests"
+          description: "Crear tests unitarios e integración"
+          order: 2
+          evidence:
+            type: "text"
+            required: true
+          dependencies: ["task-2-1"]
+
+    - id: "phase-3"
+      name: "Fase 3: Despliegue"
+      description: "Fase de despliegue con actividades mixtas"
+      order: 4
+      activities:
+        - id: "activity-3-1"
+          name: "Validación Pre-Deploy"
+          order: 1
+          tasks:
+            - id: "task-3-1-1"
+              name: "Ejecutar tests completos"
+              order: 1
+              evidence:
+                type: "both"
+                required: true
+              dependencies: ["task-2-2"]
+      tasks:
+        - id: "task-3-direct"
+          name: "Desplegar a producción"
+          description: "Ejecutar el despliegue final"
+          order: 2
+          evidence:
+            type: "both"
+            required: true
+          dependencies: ["task-3-1-1"]
+
+  subprocesses:
+    - id: "subprocess-security"
+      name: "Validación de Seguridad"
+      order: 3
+      source:
+        type: "github"
+        url: "https://github.com/example/security-process/blob/main/security-scan.yaml"
+      variables:
+        project: "{projectName}"
+        env: "{environment}"
+      optional: false
+
+    - id: "subprocess-compliance"
+      name: "Validación de Compliance"
+      order: 5
+      source:
+        type: "url"
+        url: "https://example.com/processes/compliance.yaml"
+      optional: true

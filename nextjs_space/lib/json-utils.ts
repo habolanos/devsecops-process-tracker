@@ -1,4 +1,39 @@
-import { ProcessState, ProcessExportJSON, TaskExport, PhaseExport } from './types';
+import { ProcessState, ProcessExportJSON, TaskExport, PhaseExport, ActivityExport, TaskState } from './types';
+
+// Helper function to export a single task
+async function exportTask(task: TaskState): Promise<TaskExport> {
+  return {
+    id: task.id,
+    name: task.name,
+    description: task.description,
+    order: task.order,
+    completed: task.completed,
+    completedAt: task.completedAt,
+    evidence: {
+      text: task.evidence.text,
+      images: await Promise.all(
+        task.evidence.images.map(async (img) => {
+          let base64Data = '';
+          try {
+            if (img.url) {
+              const response = await fetch(img.url);
+              const blob = await response.blob();
+              base64Data = await blobToBase64(blob);
+            }
+          } catch (error) {
+            console.error(`Failed to fetch image ${img.name}:`, error);
+          }
+          return {
+            name: img.name,
+            data: base64Data,
+            source: img.source,
+            originalUrl: img.originalUrl
+          };
+        })
+      )
+    }
+  };
+}
 
 export async function exportProcessToJSON(process: ProcessState): Promise<ProcessExportJSON> {
   const exportData: ProcessExportJSON = {
@@ -12,50 +47,31 @@ export async function exportProcessToJSON(process: ProcessState): Promise<Proces
       progress: process.progress,
       phases: await Promise.all(
         process.phases.map(async (phase) => {
+          // Export activities
+          const activitiesExport: ActivityExport[] = await Promise.all(
+            (phase.activities ?? []).map(async (activity) => ({
+              id: activity.id,
+              name: activity.name,
+              description: activity.description,
+              order: activity.order,
+              progress: activity.progress,
+              tasks: await Promise.all(activity.tasks.map(exportTask))
+            }))
+          );
+
+          // Export direct tasks
+          const tasksExport: TaskExport[] = await Promise.all(
+            (phase.tasks ?? []).map(exportTask)
+          );
+
           const phaseExport: PhaseExport = {
             id: phase.id,
             name: phase.name,
             description: phase.description,
             order: phase.order,
             progress: phase.progress,
-            tasks: await Promise.all(
-              phase.tasks.map(async (task) => {
-                const taskExport: TaskExport = {
-                  id: task.id,
-                  name: task.name,
-                  description: task.description,
-                  order: task.order,
-                  completed: task.completed,
-                  completedAt: task.completedAt,
-                  evidence: {
-                    text: task.evidence.text,
-                    images: await Promise.all(
-                      task.evidence.images.map(async (img) => {
-                        // Fetch image and convert to base64
-                        let base64Data = '';
-                        try {
-                          if (img.url) {
-                            const response = await fetch(img.url);
-                            const blob = await response.blob();
-                            base64Data = await blobToBase64(blob);
-                          }
-                        } catch (error) {
-                          console.error(`Failed to fetch image ${img.name}:`, error);
-                        }
-
-                        return {
-                          name: img.name,
-                          data: base64Data,
-                          source: img.source,
-                          originalUrl: img.originalUrl
-                        };
-                      })
-                    )
-                  }
-                };
-                return taskExport;
-              })
-            )
+            activities: activitiesExport,
+            tasks: tasksExport
           };
           return phaseExport;
         })
@@ -64,6 +80,36 @@ export async function exportProcessToJSON(process: ProcessState): Promise<Proces
   };
 
   return exportData;
+}
+
+// Helper function to import a single task
+function importTask(task: TaskExport, prefix: string): TaskState {
+  return {
+    id: task.id,
+    name: task.name,
+    description: task.description || '',
+    order: task.order || 0,
+    references: [],
+    dynamicLinks: [],
+    evidenceConfig: { type: 'both' as const, required: false },
+    dependencies: [],
+    completed: task.completed || false,
+    completedAt: task.completedAt,
+    evidence: {
+      text: task.evidence?.text,
+      images: task.evidence?.images?.map((img, idx) => ({
+        id: `${prefix}-${task.id}-${idx}`,
+        name: img.name,
+        cloudStoragePath: '',
+        isPublic: false,
+        url: img.data ? `data:image/png;base64,${img.data}` : undefined,
+        source: img.source || 'file' as const,
+        originalUrl: img.originalUrl,
+        uploadedAt: new Date().toISOString()
+      })) || []
+    },
+    isBlocked: false
+  };
 }
 
 export function importProcessFromJSON(jsonData: ProcessExportJSON): ProcessState {
@@ -85,6 +131,7 @@ export function importProcessFromJSON(jsonData: ProcessExportJSON): ProcessState
       progress: process.progress || 0,
       variableDefinitions: [],
       capturedVariables: {},
+      subprocesses: [],
       timeTracking: {
         status: 'idle',
         sessions: [],
@@ -97,32 +144,16 @@ export function importProcessFromJSON(jsonData: ProcessExportJSON): ProcessState
         order: phase.order || 0,
         progress: phase.progress || 0,
         dynamicLinks: [],
-        tasks: phase.tasks.map((task) => ({
-          id: task.id,
-          name: task.name,
-          description: task.description || '',
-          order: task.order || 0,
-          references: [],
+        activities: (phase.activities ?? []).map((activity) => ({
+          id: activity.id,
+          name: activity.name,
+          description: activity.description || '',
+          order: activity.order || 0,
+          progress: activity.progress || 0,
           dynamicLinks: [],
-          evidenceConfig: { type: 'both' as const, required: false },
-          dependencies: [],
-          completed: task.completed || false,
-          completedAt: task.completedAt,
-          evidence: {
-            text: task.evidence?.text,
-            images: task.evidence?.images?.map((img, idx) => ({
-              id: `imported-${task.id}-${idx}`,
-              name: img.name,
-              cloudStoragePath: '',
-              isPublic: false,
-              url: img.data ? `data:image/png;base64,${img.data}` : undefined,
-              source: img.source || 'file' as const,
-              originalUrl: img.originalUrl,
-              uploadedAt: new Date().toISOString()
-            })) || []
-          },
-          isBlocked: false
-        }))
+          tasks: activity.tasks.map((task) => importTask(task, 'imported-activity'))
+        })),
+        tasks: (phase.tasks ?? []).map((task) => importTask(task, 'imported'))
       }))
     };
 

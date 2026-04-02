@@ -1,5 +1,5 @@
 import yaml from 'js-yaml';
-import { ProcessYAML, ProcessState, PhaseState, TaskState, CapturedVariables } from './types';
+import { ProcessYAML, ProcessState, PhaseState, TaskState, ActivityState, SubprocessState, CapturedVariables } from './types';
 
 export function parseYAMLToProcess(yamlContent: string): ProcessState {
   try {
@@ -9,11 +9,71 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
       throw new Error('Invalid YAML structure: missing "process" key');
     }
 
-    const { id, name, description, version, variables, phases } = parsed.process;
+    const { id, name, description, version, variables, phases, subprocesses } = parsed.process;
 
     if (!id || !name || !phases || !Array.isArray(phases)) {
       throw new Error('Invalid YAML: process must have id, name, and phases array');
     }
+
+    // Helper function to parse tasks
+    const parseTasks = (tasks: any[], contextId: string): TaskState[] => {
+      return tasks.map((task) => {
+        if (!task.id || !task.name) {
+          throw new Error(`Invalid task structure in ${contextId}`);
+        }
+        return {
+          id: task.id,
+          name: task.name,
+          description: task.description || '',
+          order: task.order || 0,
+          references: task.references || [],
+          evidenceConfig: task.evidence || { type: 'text', required: false },
+          dependencies: task.dependencies || [],
+          completed: false,
+          evidence: { images: [] },
+          isBlocked: false,
+          dynamicLinks: task.dynamicLinks || []
+        };
+      });
+    };
+
+    // Helper function to parse activities
+    const parseActivities = (activities: any[], phaseId: string): ActivityState[] => {
+      if (!activities || !Array.isArray(activities)) return [];
+      return activities.map((activity) => {
+        if (!activity.id || !activity.name || !activity.tasks || !Array.isArray(activity.tasks)) {
+          throw new Error(`Invalid activity structure in phase ${phaseId}`);
+        }
+        return {
+          id: activity.id,
+          name: activity.name,
+          description: activity.description || '',
+          order: activity.order || 0,
+          progress: 0,
+          tasks: parseTasks(activity.tasks, `activity ${activity.id}`),
+          dynamicLinks: activity.dynamicLinks || []
+        };
+      });
+    };
+
+    // Parse subprocesses
+    const parseSubprocesses = (subs: any[]): SubprocessState[] => {
+      if (!subs || !Array.isArray(subs)) return [];
+      return subs.map((sub) => {
+        if (!sub.id || !sub.name || !sub.source) {
+          throw new Error(`Invalid subprocess structure: ${sub?.id || 'unknown'}`);
+        }
+        return {
+          id: sub.id,
+          name: sub.name,
+          order: sub.order || 0,
+          source: sub.source,
+          variables: sub.variables || {},
+          optional: sub.optional || false,
+          status: 'pending'
+        };
+      });
+    };
 
     // Initialize captured variables with default values if provided
     const initialCapturedVariables: CapturedVariables = {};
@@ -39,9 +99,14 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
         sessions: [],
         totalActiveTime: 0
       },
+      subprocesses: parseSubprocesses(subprocesses || []),
       phases: phases.map((phase) => {
-        if (!phase.id || !phase.name || !phase.tasks || !Array.isArray(phase.tasks)) {
-          throw new Error(`Invalid phase structure: ${phase?.id || 'unknown'}`);
+        // Phase must have either activities or tasks (or both for backward compatibility)
+        const hasActivities = phase.activities && Array.isArray(phase.activities) && phase.activities.length > 0;
+        const hasTasks = phase.tasks && Array.isArray(phase.tasks) && phase.tasks.length > 0;
+        
+        if (!phase.id || !phase.name || (!hasActivities && !hasTasks)) {
+          throw new Error(`Invalid phase structure: ${phase?.id || 'unknown'} - must have activities or tasks`);
         }
 
         const phaseState: PhaseState = {
@@ -51,29 +116,8 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
           order: phase.order || 0,
           progress: 0,
           dynamicLinks: phase.dynamicLinks || [],
-          tasks: phase.tasks.map((task) => {
-            if (!task.id || !task.name) {
-              throw new Error(`Invalid task structure in phase ${phase.id}`);
-            }
-
-            const taskState: TaskState = {
-              id: task.id,
-              name: task.name,
-              description: task.description || '',
-              order: task.order || 0,
-              references: task.references || [],
-              evidenceConfig: task.evidence || { type: 'text', required: false },
-              dependencies: task.dependencies || [],
-              completed: false,
-              evidence: {
-                images: []
-              },
-              isBlocked: false,
-              dynamicLinks: task.dynamicLinks || []
-            };
-
-            return taskState;
-          })
+          activities: parseActivities(phase.activities || [], phase.id),
+          tasks: hasTasks ? parseTasks(phase.tasks || [], `phase ${phase.id}`) : []
         };
 
         return phaseState;

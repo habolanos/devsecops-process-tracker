@@ -287,7 +287,65 @@ Sistema profesional de gestión de múltiples procesos inspirado en VS Code/Chro
 - **Variables CSS HSL**: Colores semánticos adaptados a cada modo
 - **Componentes**: ThemeProvider (next-themes) + ThemeToggle
 
-### 8. Exportación
+### 8. Activities y Subprocesses
+
+#### Jerarquía de Procesos
+```
+Process
+├── phases (obligatorio)
+│   └── phase
+│       ├── activities (opcional) → activity → tasks
+│       └── tasks (directo, legacy)
+│
+└── subprocesses (opcional, al mismo nivel que phases)
+    └── subprocess → referencia externa
+```
+
+#### Activities (Nivel Intermedio)
+- **Propósito**: Agrupar tareas relacionadas dentro de una fase
+- **Opcional**: Las fases pueden tener activities, tasks directos, o ambos
+- **Expandible**: En sidebar, las activities se expanden/colapsan
+- **Progreso**: Cálculo automático por activity y fase
+
+```yaml
+phases:
+  - id: "phase-1"
+    name: "Fase 1"
+    activities:
+      - id: "activity-1-1"
+        name: "Revisión de Código"
+        tasks:
+          - id: "task-1-1-1"
+            name: "Verificar commits"
+```
+
+#### Subprocesses (Referencias Externas)
+- **Propósito**: Reutilizar procesos definidos en otros archivos
+- **Fuentes soportadas**: GitHub, URL directa, archivo local
+- **Opcional**: Pueden marcarse como opcionales (omitibles)
+- **Variables**: Pasan variables del proceso padre al subproceso
+
+```yaml
+subprocesses:
+  - id: "subprocess-security"
+    name: "Validación de Seguridad"
+    order: 2.5  # Se ejecuta entre fases
+    source:
+      type: "github"
+      url: "https://github.com/org/shared-processes/security-scan.yaml"
+    variables:
+      repo: "{repository}"
+    optional: false
+```
+
+**Tipos de fuente:**
+| Tipo | Descripción | Ejemplo |
+|------|-------------|---------|
+| `github` | Archivo en repositorio GitHub | `https://github.com/org/repo/blob/main/process.yaml` |
+| `url` | URL directa a archivo YAML | `https://company.com/processes/security.yaml` |
+| `local` | Archivo local relativo | `./subprocesses/validation.yaml` |
+
+### 9. Exportación
 - **JSON**: Estado completo con evidencias base64 y time tracking (para reanudar)
 - **Word**: Documento formal con portada, registro de tiempo, fases, tareas, evidencias
 
@@ -728,6 +786,7 @@ El pipeline de GitLab incluye 5 stages:
 
 | Fecha | Versión | Descripción |
 |-------|---------|-------------|
+| 2026-04-02 | 1.11.0 | **Activities y Subprocesses**: Nuevo nivel jerárquico `activities` entre phases y tasks, soporte para `subprocesses` como referencias a procesos externos (GitHub/URL/local), subprocess-loader para carga dinámica, sidebar expandible con actividades, i18n para nuevos componentes |
 | 2026-04-01 | 1.10.0 | **Modo Dark/Light**: Toggle Sol/Luna en header, soporte sistema operativo, variables CSS HSL semánticas, ThemeProvider (next-themes), migración completa de colores en páginas y componentes |
 | 2026-04-01 | 1.9.0 | **Gestión de Procesos Múltiples**: Process Tabs en header, Command Palette (Ctrl+P), sección "Procesos en Curso" con tarjetas visuales estilo templates. Iconografía de estados, barras de progreso, acciones rápidas. Session store con Zustand y persistencia comprimida |
 | 2026-03-31 | 1.8.0 | **Seguridad y Performance Pro**: Validación Zod en APIs, Rate Limiting, Sanitización XSS, Persistencia comprimida (lz-string), Manejo de errores centralizado, Virtualización de listas (@tanstack/react-virtual), Sistema Optimistic Updates |

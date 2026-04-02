@@ -43,6 +43,7 @@ export interface ProcessYAML {
     version: string;
     variables?: ProcessVariableYAML[];  // Global process variables
     phases: PhaseYAML[];
+    subprocesses?: SubprocessYAML[];    // External process references (optional)
   };
 }
 
@@ -51,8 +52,34 @@ export interface PhaseYAML {
   name: string;
   description: string;
   order: number;
+  activities?: ActivityYAML[];          // Intermediate level (optional)
+  tasks?: TaskYAML[];                   // Direct tasks (legacy, optional if activities exist)
+  dynamicLinks?: DynamicLinkYAML[];     // Phase-level dynamic links
+}
+
+export interface ActivityYAML {
+  id: string;
+  name: string;
+  description?: string;
+  order: number;
   tasks: TaskYAML[];
-  dynamicLinks?: DynamicLinkYAML[];  // Phase-level dynamic links
+  dynamicLinks?: DynamicLinkYAML[];     // Activity-level dynamic links
+}
+
+export interface SubprocessYAML {
+  id: string;
+  name: string;
+  order: number;
+  source: SubprocessSource;
+  variables?: Record<string, string>;   // Variables to pass to subprocess
+  optional?: boolean;                   // If subprocess can be skipped
+}
+
+export interface SubprocessSource {
+  type: 'github' | 'url' | 'local';
+  url?: string;                         // For github/url types
+  path?: string;                        // For local type
+  ref?: string;                         // Tag/branch for github
 }
 
 export interface TaskYAML {
@@ -110,6 +137,7 @@ export interface ProcessState {
   completedAt?: string;
   progress: number;
   phases: PhaseState[];
+  subprocesses: SubprocessState[];             // External process references
   variableDefinitions: ProcessVariableYAML[];  // Variable definitions from YAML
   capturedVariables: CapturedVariables;        // User-captured values
   timeTracking: ProcessTimeTracking;           // Process time tracking
@@ -121,8 +149,31 @@ export interface PhaseState {
   description: string;
   order: number;
   progress: number;
+  activities: ActivityState[];        // Intermediate level
+  tasks: TaskState[];                 // Direct tasks (legacy support)
+  dynamicLinks: DynamicLinkYAML[];    // Phase-level dynamic links
+}
+
+export interface ActivityState {
+  id: string;
+  name: string;
+  description: string;
+  order: number;
+  progress: number;
   tasks: TaskState[];
-  dynamicLinks: DynamicLinkYAML[];  // Phase-level dynamic links
+  dynamicLinks: DynamicLinkYAML[];    // Activity-level dynamic links
+}
+
+export interface SubprocessState {
+  id: string;
+  name: string;
+  order: number;
+  source: SubprocessSource;
+  variables: Record<string, string>;
+  optional: boolean;
+  status: 'pending' | 'loading' | 'loaded' | 'error' | 'skipped';
+  loadedProcess?: ProcessState;       // Loaded external process
+  error?: string;
 }
 
 export interface TaskState {
@@ -171,6 +222,16 @@ export interface ProcessExportJSON {
 }
 
 export interface PhaseExport {
+  id: string;
+  name: string;
+  description: string;
+  order: number;
+  progress: number;
+  activities: ActivityExport[];       // Intermediate level
+  tasks: TaskExport[];                // Direct tasks (legacy)
+}
+
+export interface ActivityExport {
   id: string;
   name: string;
   description: string;

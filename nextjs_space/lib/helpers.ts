@@ -1,4 +1,4 @@
-import { ProcessState, PhaseState, TaskState } from './types';
+import { ProcessState, PhaseState, TaskState, ActivityState } from './types';
 
 export function calculateTaskProgress(tasks: TaskState[]): number {
   if (!tasks || tasks.length === 0) return 0;
@@ -6,26 +6,48 @@ export function calculateTaskProgress(tasks: TaskState[]): number {
   return completed / tasks.length;
 }
 
+export function calculateActivityProgress(activity: ActivityState): number {
+  return calculateTaskProgress(activity?.tasks ?? []);
+}
+
 export function calculatePhaseProgress(phase: PhaseState): number {
-  return calculateTaskProgress(phase?.tasks ?? []);
+  // Get all tasks from both activities and direct tasks
+  const allTasks = getAllTasksFromPhase(phase);
+  return calculateTaskProgress(allTasks);
+}
+
+export function getAllTasksFromPhase(phase: PhaseState): TaskState[] {
+  const tasksFromActivities = (phase?.activities ?? []).flatMap(a => a?.tasks ?? []);
+  const directTasks = phase?.tasks ?? [];
+  return [...tasksFromActivities, ...directTasks];
 }
 
 export function calculateProcessProgress(process: ProcessState): number {
   if (!process?.phases || process.phases.length === 0) return 0;
-  const totalTasks = process.phases.reduce((sum, p) => sum + (p?.tasks?.length ?? 0), 0);
+  
+  // Get all tasks from all phases (including activities)
+  const allTasks = process.phases.flatMap(p => getAllTasksFromPhase(p));
+  const totalTasks = allTasks.length;
+  
   if (totalTasks === 0) return 0;
-  const completedTasks = process.phases.reduce(
-    (sum, p) => sum + (p?.tasks?.filter((t) => t?.completed).length ?? 0),
-    0
-  );
+  const completedTasks = allTasks.filter(t => t?.completed).length;
   return completedTasks / totalTasks;
 }
 
 export function updateProgress(process: ProcessState): ProcessState {
-  const updatedPhases = process.phases.map((phase) => ({
-    ...phase,
-    progress: calculatePhaseProgress(phase)
-  }));
+  const updatedPhases = process.phases.map((phase) => {
+    // Update activity progress
+    const updatedActivities = (phase.activities ?? []).map((activity) => ({
+      ...activity,
+      progress: calculateActivityProgress(activity)
+    }));
+    
+    return {
+      ...phase,
+      activities: updatedActivities,
+      progress: calculatePhaseProgress({ ...phase, activities: updatedActivities })
+    };
+  });
 
   return {
     ...process,
@@ -34,33 +56,47 @@ export function updateProgress(process: ProcessState): ProcessState {
   };
 }
 
+export function findTaskInProcess(taskId: string, process: ProcessState): TaskState | undefined {
+  for (const phase of process.phases) {
+    // Search in direct tasks
+    const directTask = phase?.tasks?.find((t) => t?.id === taskId);
+    if (directTask) return directTask;
+    
+    // Search in activities
+    for (const activity of phase?.activities ?? []) {
+      const activityTask = activity?.tasks?.find((t) => t?.id === taskId);
+      if (activityTask) return activityTask;
+    }
+  }
+  return undefined;
+}
+
 export function checkTaskDependencies(
   taskId: string,
   phaseId: string,
-  process: ProcessState
+  process: ProcessState,
+  activityId?: string
 ): boolean {
   const phase = process.phases.find((p) => p?.id === phaseId);
   if (!phase) return false;
 
-  const task = phase.tasks.find((t) => t?.id === taskId);
+  // Find task either in activity or direct tasks
+  let task: TaskState | undefined;
+  if (activityId) {
+    const activity = phase.activities?.find((a) => a?.id === activityId);
+    task = activity?.tasks?.find((t) => t?.id === taskId);
+  } else {
+    task = phase.tasks?.find((t) => t?.id === taskId);
+  }
+  
   if (!task || !task.dependencies || task.dependencies.length === 0) {
     return false; // No blocking
   }
 
   // Check if all dependencies are completed
   for (const depId of task.dependencies) {
-    let depCompleted = false;
-    
-    // Search for dependency in all phases
-    for (const p of process.phases) {
-      const depTask = p?.tasks?.find((t) => t?.id === depId);
-      if (depTask) {
-        depCompleted = depTask.completed ?? false;
-        break;
-      }
-    }
-
-    if (!depCompleted) {
+    const depTask = findTaskInProcess(depId, process);
+    if (!depTask || !depTask.completed) {
       return true; // Blocked
     }
   }
@@ -69,13 +105,28 @@ export function checkTaskDependencies(
 }
 
 export function updateTaskBlockedStatus(process: ProcessState): ProcessState {
-  const updatedPhases = process.phases.map((phase) => ({
-    ...phase,
-    tasks: phase.tasks.map((task) => ({
+  const updatedPhases = process.phases.map((phase) => {
+    // Update blocked status for tasks in activities
+    const updatedActivities = (phase.activities ?? []).map((activity) => ({
+      ...activity,
+      tasks: activity.tasks.map((task) => ({
+        ...task,
+        isBlocked: checkTaskDependencies(task.id, phase.id, process, activity.id)
+      }))
+    }));
+    
+    // Update blocked status for direct tasks
+    const updatedTasks = (phase.tasks ?? []).map((task) => ({
       ...task,
       isBlocked: checkTaskDependencies(task.id, phase.id, process)
-    }))
-  }));
+    }));
+    
+    return {
+      ...phase,
+      activities: updatedActivities,
+      tasks: updatedTasks
+    };
+  });
 
   return {
     ...process,

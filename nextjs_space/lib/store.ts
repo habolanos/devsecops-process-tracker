@@ -9,17 +9,19 @@ import { createCompressedStorage } from './persist-storage';
 interface ProcessStore {
   process: ProcessState | null;
   currentPhaseId: string | null;
+  currentActivityId: string | null;
   currentTaskId: string | null;
   
   // Actions
   loadProcess: (process: ProcessState) => void;
   clearProcess: () => void;
   setCurrentPhase: (phaseId: string) => void;
+  setCurrentActivity: (activityId: string | null) => void;
   setCurrentTask: (taskId: string | null) => void;
   
-  updateTaskEvidence: (phaseId: string, taskId: string, evidence: Partial<TaskEvidence>) => void;
-  completeTask: (phaseId: string, taskId: string) => void;
-  uncompleteTask: (phaseId: string, taskId: string) => void;
+  updateTaskEvidence: (phaseId: string, taskId: string, evidence: Partial<TaskEvidence>, activityId?: string) => void;
+  completeTask: (phaseId: string, taskId: string, activityId?: string) => void;
+  uncompleteTask: (phaseId: string, taskId: string, activityId?: string) => void;
   
   markProcessComplete: () => void;
   
@@ -40,6 +42,7 @@ export const useProcessStore = create<ProcessStore>()(persist(
   (set, get) => ({
     process: null,
     currentPhaseId: null,
+    currentActivityId: null,
     currentTaskId: null,
 
     loadProcess: (process) => {
@@ -47,6 +50,7 @@ export const useProcessStore = create<ProcessStore>()(persist(
       set({
         process: updated,
         currentPhaseId: updated.phases?.[0]?.id ?? null,
+        currentActivityId: null,
         currentTaskId: null
       });
     },
@@ -55,30 +59,59 @@ export const useProcessStore = create<ProcessStore>()(persist(
       set({
         process: null,
         currentPhaseId: null,
+        currentActivityId: null,
         currentTaskId: null
       });
     },
 
     setCurrentPhase: (phaseId) => {
-      set({ currentPhaseId: phaseId, currentTaskId: null });
+      set({ currentPhaseId: phaseId, currentActivityId: null, currentTaskId: null });
+    },
+
+    setCurrentActivity: (activityId) => {
+      set({ currentActivityId: activityId, currentTaskId: null });
     },
 
     setCurrentTask: (taskId) => {
       set({ currentTaskId: taskId });
     },
 
-    updateTaskEvidence: (phaseId, taskId, evidence) => {
+    updateTaskEvidence: (phaseId, taskId, evidence, activityId) => {
       set((state) => {
         if (!state.process) return state;
 
         const updatedPhases = state.process.phases.map((phase) => {
           if (phase?.id !== phaseId) return phase;
 
+          // Update task in activity
+          if (activityId) {
+            return {
+              ...phase,
+              activities: (phase.activities ?? []).map((activity) => {
+                if (activity?.id !== activityId) return activity;
+                return {
+                  ...activity,
+                  tasks: activity.tasks.map((task) => {
+                    if (task?.id !== taskId) return task;
+                    return {
+                      ...task,
+                      evidence: {
+                        ...task.evidence,
+                        ...evidence,
+                        images: evidence.images ?? task.evidence.images
+                      }
+                    };
+                  })
+                };
+              })
+            };
+          }
+
+          // Update direct task
           return {
             ...phase,
-            tasks: phase.tasks.map((task) => {
+            tasks: (phase.tasks ?? []).map((task) => {
               if (task?.id !== taskId) return task;
-
               return {
                 ...task,
                 evidence: {
@@ -100,18 +133,39 @@ export const useProcessStore = create<ProcessStore>()(persist(
       });
     },
 
-    completeTask: (phaseId, taskId) => {
+    completeTask: (phaseId, taskId, activityId) => {
       set((state) => {
         if (!state.process) return state;
 
         const updatedPhases = state.process.phases.map((phase) => {
           if (phase?.id !== phaseId) return phase;
 
+          // Complete task in activity
+          if (activityId) {
+            return {
+              ...phase,
+              activities: (phase.activities ?? []).map((activity) => {
+                if (activity?.id !== activityId) return activity;
+                return {
+                  ...activity,
+                  tasks: activity.tasks.map((task) => {
+                    if (task?.id !== taskId) return task;
+                    return {
+                      ...task,
+                      completed: true,
+                      completedAt: new Date().toISOString()
+                    };
+                  })
+                };
+              })
+            };
+          }
+
+          // Complete direct task
           return {
             ...phase,
-            tasks: phase.tasks.map((task) => {
+            tasks: (phase.tasks ?? []).map((task) => {
               if (task?.id !== taskId) return task;
-
               return {
                 ...task,
                 completed: true,
@@ -133,18 +187,39 @@ export const useProcessStore = create<ProcessStore>()(persist(
       });
     },
 
-    uncompleteTask: (phaseId, taskId) => {
+    uncompleteTask: (phaseId, taskId, activityId) => {
       set((state) => {
         if (!state.process) return state;
 
         const updatedPhases = state.process.phases.map((phase) => {
           if (phase?.id !== phaseId) return phase;
 
+          // Uncomplete task in activity
+          if (activityId) {
+            return {
+              ...phase,
+              activities: (phase.activities ?? []).map((activity) => {
+                if (activity?.id !== activityId) return activity;
+                return {
+                  ...activity,
+                  tasks: activity.tasks.map((task) => {
+                    if (task?.id !== taskId) return task;
+                    return {
+                      ...task,
+                      completed: false,
+                      completedAt: undefined
+                    };
+                  })
+                };
+              })
+            };
+          }
+
+          // Uncomplete direct task
           return {
             ...phase,
-            tasks: phase.tasks.map((task) => {
+            tasks: (phase.tasks ?? []).map((task) => {
               if (task?.id !== taskId) return task;
-
               return {
                 ...task,
                 completed: false,
