@@ -9,6 +9,8 @@ async function exportTask(task: TaskState): Promise<TaskExport> {
     order: task.order,
     completed: task.completed,
     completedAt: task.completedAt,
+    type: task.type,
+    checkItems: task.checkItems,
     evidence: {
       text: task.evidence.text,
       images: await Promise.all(
@@ -89,6 +91,8 @@ function importTask(task: TaskExport, prefix: string): TaskState {
     name: task.name,
     description: task.description || '',
     order: task.order || 0,
+    type: task.type || 'standard',
+    checkItems: task.checkItems || [],
     references: [],
     dynamicLinks: [],
     evidenceConfig: { type: 'both' as const, required: false },
@@ -151,6 +155,7 @@ export function importProcessFromJSON(jsonData: ProcessExportJSON): ProcessState
           order: activity.order || 0,
           progress: activity.progress || 0,
           dynamicLinks: [],
+          images: [],
           tasks: activity.tasks.map((task) => importTask(task, 'imported-activity'))
         })),
         tasks: (phase.tasks ?? []).map((task) => importTask(task, 'imported'))
