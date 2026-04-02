@@ -315,8 +315,8 @@ export function ConfigUpload({ onClose }: ConfigUploadProps) {
 
             <div className="text-center">
               <a
-                href="/data/devops-config.example.json"
-                download="devops-config.example.json"
+                href="/data/process-tracker-config.example.json"
+                download="process-tracker-config.example.json"
                 className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 hover:underline"
               >
                 <Download className="w-3 h-3" />

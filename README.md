@@ -115,7 +115,7 @@ nextjs_space/
 │   │   ├── incident-response.yaml        # 4 fases, 12 tareas
 │   │   ├── devops-pipeline.yaml        # Con variables y links dinámicos
 │   │   └── pull-request-validation.yaml # 6 fases, 21 tareas, 8 variables
-│   └── devops-config.example.json      # Template de configuración
+│   └── process-tracker-config.example.json  # Template de configuración
 │
 ├── __tests__/                   # Tests
 │   ├── unit/lib/               # Tests unitarios (51 tests)
