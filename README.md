@@ -398,7 +398,7 @@ subprocesses:
 
 ## 🧪 Testing
 
-El proyecto tiene **51 tests unitarios** (100% pasando) y tests E2E con Playwright.
+El proyecto tiene **77 tests unitarios** (100% pasando) y tests E2E con Playwright.
 
 ### Tests Unitarios (Vitest)
 
@@ -409,13 +409,14 @@ npm run test:coverage     # Con reporte de cobertura
 ```
 
 **Cobertura de Tests**:
-- ✅ **51 tests** pasando en 3 archivos
+- ✅ **77 tests** pasando en 4 archivos
 - Cálculo de progreso (`calculateTaskProgress`, `calculatePhaseProgress`, `calculateProcessProgress`)
 - Gestión de dependencias (`checkTaskDependencies`, `updateTaskBlockedStatus`)
 - Validación de evidencias (`validateTaskEvidence`, `canCompleteTask`)
-- Parseo de YAML (`parseYAMLToProcess`) - 14 tests
+- Parseo de YAML (`parseYAMLToProcess`) - 25 tests (incluye task types)
 - Import/Export JSON (`importProcessFromJSON`, `exportProcessToJSON`) - 6 tests
 - Helpers de proceso (`updateProgress`) - 31 tests
+- Store actions (`toggleCheckItem`, `canCompleteCheckTask`) - 15 tests
 
 **Ubicación**: `__tests__/unit/lib/`
 

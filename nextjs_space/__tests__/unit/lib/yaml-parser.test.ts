@@ -230,6 +230,293 @@ process:
     expect(loadedAt.getTime()).toBeGreaterThanOrEqual(before.getTime());
     expect(loadedAt.getTime()).toBeLessThanOrEqual(after.getTime());
   });
+
+  // ===== TASK TYPES TESTS =====
+
+  it('should parse task with type standard (explicit)', () => {
+    const yaml = `
+process:
+  id: test
+  name: Test
+  phases:
+    - id: p1
+      name: Phase 1
+      tasks:
+        - id: t1
+          name: Task Standard
+          type: standard
+          evidence:
+            type: text
+            required: true
+`;
+
+    const result = parseYAMLToProcess(yaml);
+    const task = result.phases[0].tasks[0];
+
+    expect(task.type).toBe('standard');
+    expect(task.checkItems).toEqual([]);
+  });
+
+  it('should default to standard type when type is not specified', () => {
+    const yaml = `
+process:
+  id: test
+  name: Test
+  phases:
+    - id: p1
+      name: Phase 1
+      tasks:
+        - id: t1
+          name: Task Without Type
+          evidence:
+            type: text
+            required: false
+`;
+
+    const result = parseYAMLToProcess(yaml);
+    const task = result.phases[0].tasks[0];
+
+    expect(task.type).toBe('standard');
+    expect(task.checkItems).toEqual([]);
+  });
+
+  it('should parse task with type check and single checkItem', () => {
+    const yaml = `
+process:
+  id: test
+  name: Test
+  phases:
+    - id: p1
+      name: Phase 1
+      tasks:
+        - id: t1
+          name: Security Check
+          type: check
+          checkItem:
+            description: "I have verified there are no critical vulnerabilities"
+            required: true
+          evidence:
+            type: text
+            required: false
+`;
+
+    const result = parseYAMLToProcess(yaml);
+    const task = result.phases[0].tasks[0];
+
+    expect(task.type).toBe('check');
+    expect(task.checkItems).toHaveLength(1);
+    expect(task.checkItems[0].description).toBe('I have verified there are no critical vulnerabilities');
+    expect(task.checkItems[0].required).toBe(true);
+    expect(task.checkItems[0].checked).toBe(false);
+    expect(task.checkItems[0].id).toBeDefined();
+  });
+
+  it('should parse task with type multicheck and multiple checkItems', () => {
+    const yaml = `
+process:
+  id: test
+  name: Test
+  phases:
+    - id: p1
+      name: Phase 1
+      tasks:
+        - id: t1
+          name: Deploy Checklist
+          type: multicheck
+          checkItems:
+            - description: "Code reviewed by 2 people"
+              required: true
+            - description: "Unit tests passing"
+              required: true
+            - description: "Documentation updated"
+              required: false
+          evidence:
+            type: image
+            required: true
+`;
+
+    const result = parseYAMLToProcess(yaml);
+    const task = result.phases[0].tasks[0];
+
+    expect(task.type).toBe('multicheck');
+    expect(task.checkItems).toHaveLength(3);
+    
+    expect(task.checkItems[0].description).toBe('Code reviewed by 2 people');
+    expect(task.checkItems[0].required).toBe(true);
+    expect(task.checkItems[0].checked).toBe(false);
+    
+    expect(task.checkItems[1].description).toBe('Unit tests passing');
+    expect(task.checkItems[1].required).toBe(true);
+    
+    expect(task.checkItems[2].description).toBe('Documentation updated');
+    expect(task.checkItems[2].required).toBe(false);
+  });
+
+  it('should throw error for check task without checkItem', () => {
+    const yaml = `
+process:
+  id: test
+  name: Test
+  phases:
+    - id: p1
+      name: Phase 1
+      tasks:
+        - id: t1
+          name: Invalid Check Task
+          type: check
+          evidence:
+            type: text
+            required: false
+`;
+
+    expect(() => parseYAMLToProcess(yaml)).toThrow();
+  });
+
+  it('should throw error for multicheck task without checkItems', () => {
+    const yaml = `
+process:
+  id: test
+  name: Test
+  phases:
+    - id: p1
+      name: Phase 1
+      tasks:
+        - id: t1
+          name: Invalid Multicheck Task
+          type: multicheck
+          evidence:
+            type: text
+            required: false
+`;
+
+    expect(() => parseYAMLToProcess(yaml)).toThrow();
+  });
+
+  it('should throw error for multicheck task with empty checkItems array', () => {
+    const yaml = `
+process:
+  id: test
+  name: Test
+  phases:
+    - id: p1
+      name: Phase 1
+      tasks:
+        - id: t1
+          name: Empty Multicheck
+          type: multicheck
+          checkItems: []
+          evidence:
+            type: text
+            required: false
+`;
+
+    expect(() => parseYAMLToProcess(yaml)).toThrow();
+  });
+
+  it('should throw error for invalid task type', () => {
+    const yaml = `
+process:
+  id: test
+  name: Test
+  phases:
+    - id: p1
+      name: Phase 1
+      tasks:
+        - id: t1
+          name: Invalid Type Task
+          type: invalidtype
+          evidence:
+            type: text
+            required: false
+`;
+
+    expect(() => parseYAMLToProcess(yaml)).toThrow();
+  });
+
+  it('should parse activities with tasks of different types', () => {
+    const yaml = `
+process:
+  id: test
+  name: Test
+  phases:
+    - id: p1
+      name: Phase 1
+      activities:
+        - id: a1
+          name: Activity 1
+          tasks:
+            - id: t1
+              name: Standard in Activity
+              type: standard
+              evidence:
+                type: text
+                required: true
+            - id: t2
+              name: Check in Activity
+              type: check
+              checkItem:
+                description: "Verified"
+                required: true
+`;
+
+    const result = parseYAMLToProcess(yaml);
+    const activity = result.phases[0].activities![0];
+
+    expect(activity.tasks).toHaveLength(2);
+    expect(activity.tasks[0].type).toBe('standard');
+    expect(activity.tasks[1].type).toBe('check');
+    expect(activity.tasks[1].checkItems).toHaveLength(1);
+  });
+
+  it('should parse activity with images', () => {
+    const yaml = `
+process:
+  id: test
+  name: Test
+  phases:
+    - id: p1
+      name: Phase 1
+      activities:
+        - id: a1
+          name: Activity with Images
+          images:
+            - id: "img-1"
+              name: "Architecture Diagram"
+              url: "https://example.com/diagram.png"
+              caption: "System architecture"
+          tasks:
+            - id: t1
+              name: Task 1
+              evidence:
+                type: text
+                required: false
+`;
+
+    const result = parseYAMLToProcess(yaml);
+    const activity = result.phases[0].activities![0];
+
+    expect(activity.images).toHaveLength(1);
+    expect(activity.images![0].url).toBe('https://example.com/diagram.png');
+    expect(activity.images![0].name).toBe('Architecture Diagram');
+    expect(activity.images![0].caption).toBe('System architecture');
+  });
+
+  it('should throw error for activity without tasks', () => {
+    const yaml = `
+process:
+  id: test
+  name: Test
+  phases:
+    - id: p1
+      name: Phase 1
+      activities:
+        - id: a1
+          name: Activity without Tasks
+          tasks: []
+`;
+
+    expect(() => parseYAMLToProcess(yaml)).toThrow();
+  });
 });
 
 describe('validateYAML', () => {

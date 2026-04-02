@@ -1,0 +1,145 @@
+process:
+  id: "test-task-types"
+  name: "Proceso de Prueba - Task Types"
+  description: "Proceso para probar los 3 tipos de tareas: standard, check, multicheck"
+  version: "1.0.0"
+
+  phases:
+    - id: "phase-1"
+      name: "Fase 1: Tareas Standard"
+      description: "Fase con tareas tipo standard (default)"
+      order: 1
+      tasks:
+        - id: "task-standard-1"
+          name: "Tarea Standard con Evidence"
+          description: "Tarea tradicional que requiere evidencia"
+          order: 1
+          type: standard
+          evidence:
+            type: "text"
+            required: true
+          dependencies: []
+
+        - id: "task-standard-2"
+          name: "Tarea Standard sin tipo explícito"
+          description: "Tarea sin type explícito (debería ser standard)"
+          order: 2
+          evidence:
+            type: "both"
+            required: false
+          dependencies: ["task-standard-1"]
+
+    - id: "phase-2"
+      name: "Fase 2: Tareas Check"
+      description: "Fase con tareas tipo check (verificación única)"
+      order: 2
+      tasks:
+        - id: "task-check-1"
+          name: "Verificación de Seguridad"
+          description: "Confirmar que se ha revisado la seguridad"
+          order: 1
+          type: check
+          checkItem:
+            description: "He verificado que no hay vulnerabilidades críticas en el código"
+            required: true
+          evidence:
+            type: "text"
+            required: false
+          dependencies: ["task-standard-2"]
+
+        - id: "task-check-2"
+          name: "Confirmación de Backup"
+          description: "Confirmar que se realizó backup"
+          order: 2
+          type: check
+          checkItem:
+            description: "Se ha realizado backup de la base de datos antes del despliegue"
+            required: true
+          dependencies: ["task-check-1"]
+
+    - id: "phase-3"
+      name: "Fase 3: Tareas Multicheck"
+      description: "Fase con tareas tipo multicheck (lista de verificaciones)"
+      order: 3
+      tasks:
+        - id: "task-multicheck-1"
+          name: "Checklist de Pre-Deploy"
+          description: "Lista de verificaciones antes del despliegue"
+          order: 1
+          type: multicheck
+          checkItems:
+            - description: "Código revisado por al menos 2 personas"
+              required: true
+            - description: "Tests unitarios pasando al 100%"
+              required: true
+            - description: "Tests de integración ejecutados"
+              required: true
+            - description: "Documentación actualizada"
+              required: false
+            - description: "Stakeholders notificados"
+              required: false
+          evidence:
+            type: "image"
+            required: true
+          dependencies: ["task-check-2"]
+
+        - id: "task-multicheck-2"
+          name: "Checklist Post-Deploy"
+          description: "Verificaciones después del despliegue"
+          order: 2
+          type: multicheck
+          checkItems:
+            - description: "Smoke tests ejecutados exitosamente"
+              required: true
+            - description: "Monitoreo de errores activo"
+              required: true
+            - description: "Métricas de performance verificadas"
+              required: false
+          evidence:
+            type: "text"
+            required: false
+          dependencies: ["task-multicheck-1"]
+
+    - id: "phase-4"
+      name: "Fase 4: Actividades con Task Types"
+      description: "Fase con activities que contienen diferentes tipos de tasks"
+      order: 4
+      activities:
+        - id: "activity-4-1"
+          name: "Validación Final"
+          description: "Actividad de validación con múltiples tipos de tareas"
+          order: 1
+          images:
+            - id: "img-validation"
+              name: "Diagrama de validación"
+              url: "https://example.com/validation-diagram.png"
+              caption: "Flujo de validación"
+          tasks:
+            - id: "task-activity-standard"
+              name: "Documentar resultado"
+              order: 1
+              type: standard
+              evidence:
+                type: "text"
+                required: true
+              dependencies: ["task-multicheck-2"]
+
+            - id: "task-activity-check"
+              name: "Aprobación final"
+              order: 2
+              type: check
+              checkItem:
+                description: "Apruebo el despliegue a producción"
+                required: true
+              dependencies: ["task-activity-standard"]
+
+            - id: "task-activity-multicheck"
+              name: "Checklist de cierre"
+              order: 3
+              type: multicheck
+              checkItems:
+                - description: "Cliente notificado del despliegue"
+                  required: true
+                - description: "Ticket de Jira actualizado"
+                  required: false
+              dependencies: ["task-activity-check"]
