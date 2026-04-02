@@ -1,5 +1,5 @@
 import yaml from 'js-yaml';
-import { ProcessYAML, ProcessState, PhaseState, TaskState, ActivityState, SubprocessState, CapturedVariables } from './types';
+import { ProcessYAML, ProcessState, PhaseState, TaskState, ActivityState, SubprocessState, CapturedVariables, CheckItemState } from './types';
 
 export function parseYAMLToProcess(yamlContent: string): ProcessState {
   try {
@@ -15,17 +15,60 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
       throw new Error('Invalid YAML: process must have id, name, and phases array');
     }
 
+    // Helper function to parse checkItems based on task type
+    const parseCheckItems = (task: any, contextId: string): CheckItemState[] => {
+      const taskType = task.type || 'standard';
+      
+      if (taskType === 'standard') {
+        return [];
+      }
+      
+      if (taskType === 'check') {
+        if (!task.checkItem || !task.checkItem.description) {
+          throw new Error(`Task type 'check' requires checkItem with description in ${contextId}`);
+        }
+        return [{
+          id: task.checkItem.id || `${task.id}-check`,
+          description: task.checkItem.description,
+          required: task.checkItem.required ?? true,
+          checked: false
+        }];
+      }
+      
+      if (taskType === 'multicheck') {
+        if (!task.checkItems || !Array.isArray(task.checkItems) || task.checkItems.length === 0) {
+          throw new Error(`Task type 'multicheck' requires checkItems array with at least 1 item in ${contextId}`);
+        }
+        return task.checkItems.map((item: any, idx: number) => {
+          if (!item.description) {
+            throw new Error(`CheckItem missing description in ${contextId}`);
+          }
+          return {
+            id: item.id || `${task.id}-check-${idx}`,
+            description: item.description,
+            required: item.required ?? true,
+            checked: false
+          };
+        });
+      }
+      
+      throw new Error(`Invalid task type '${taskType}' in ${contextId}. Must be 'standard', 'check', or 'multicheck'`);
+    };
+
     // Helper function to parse tasks
     const parseTasks = (tasks: any[], contextId: string): TaskState[] => {
       return tasks.map((task) => {
         if (!task.id || !task.name) {
           throw new Error(`Invalid task structure in ${contextId}`);
         }
+        const taskType = task.type || 'standard';
         return {
           id: task.id,
           name: task.name,
           description: task.description || '',
           order: task.order || 0,
+          type: taskType as 'standard' | 'check' | 'multicheck',
+          checkItems: parseCheckItems(task, `task ${task.id} in ${contextId}`),
           references: task.references || [],
           evidenceConfig: task.evidence || { type: 'text', required: false },
           dependencies: task.dependencies || [],
@@ -44,6 +87,9 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
         if (!activity.id || !activity.name || !activity.tasks || !Array.isArray(activity.tasks)) {
           throw new Error(`Invalid activity structure in phase ${phaseId}`);
         }
+        if (activity.tasks.length === 0) {
+          throw new Error(`Activity ${activity.id} must have at least 1 task`);
+        }
         return {
           id: activity.id,
           name: activity.name,
@@ -51,7 +97,8 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
           order: activity.order || 0,
           progress: 0,
           tasks: parseTasks(activity.tasks, `activity ${activity.id}`),
-          dynamicLinks: activity.dynamicLinks || []
+          dynamicLinks: activity.dynamicLinks || [],
+          images: activity.images || []
         };
       });
     };

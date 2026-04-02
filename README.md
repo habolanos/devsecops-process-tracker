@@ -221,8 +221,48 @@ Template para autocompletado de variables:
 ### 2. Sistema de Tareas
 - **Fases organizadas**: Agrupación lógica de tareas
 - **Dependencias**: Tareas bloqueadas hasta completar dependencias
-- **Evidencias**: Soporte texto + imágenes (archivo o URL)
+- **Evidencias**: Soporte texto + imágenes (archivo, URL o clipboard)
 - **Estados**: Visualización de Completado/Pendiente/Bloqueado
+- **Tipos de tarea**: `standard`, `check` (verificación única), `multicheck` (lista de verificaciones)
+
+#### Tipos de Tareas
+
+| Tipo | Descripción | Uso |
+|------|-------------|-----|
+| `standard` | Tarea tradicional con evidencias | Tareas generales |
+| `check` | Un checkbox de verificación | Confirmaciones simples |
+| `multicheck` | Lista de checkboxes | Listas de verificación |
+
+```yaml
+tasks:
+  # Tarea estándar (default)
+  - id: "task-standard"
+    name: "Documentar cambios"
+    type: standard
+    evidence:
+      type: text
+      required: true
+
+  # Tarea tipo check (verificación única)
+  - id: "task-check"
+    name: "Revisión de seguridad"
+    type: check
+    checkItem:
+      description: "He verificado que no hay vulnerabilidades críticas"
+      required: true
+
+  # Tarea tipo multicheck (lista de verificaciones)
+  - id: "task-multicheck"
+    name: "Checklist de despliegue"
+    type: multicheck
+    checkItems:
+      - description: "Backup de base de datos realizado"
+        required: true
+      - description: "Tests de humo ejecutados"
+        required: true
+      - description: "Notificación a stakeholders"
+        required: false
+```
 
 ### 3. Evidencias
 | Tipo | Modo S3 | Modo Local |
@@ -230,8 +270,15 @@ Template para autocompletado de variables:
 | **Texto** | Guardado en JSON | Guardado en localStorage |
 | **Imágenes archivo** | Upload a S3 | Conversión base64 |
 | **Imágenes URL** | Descarga + S3 | Descarga + base64 |
+| **Clipboard (Ctrl+V)** | Upload a S3 | Conversión base64 |
 
 **Ventaja modo local**: Funciona sin internet, sin costos AWS, portable.
+
+#### Clipboard Paste
+- **Atajo**: `Ctrl+V` (Windows/Linux) o `Cmd+V` (Mac) en el modal de evidencias
+- **Formatos**: PNG, JPG, GIF, WebP
+- **Workflow**: Captura de pantalla → Pegar → Auto-upload
+- **Indicador visual**: Badge muestra origen "clipboard" en imágenes pegadas
 
 ### 4. Variables y Configuración
 - **Variables dinámicas**: Definidas en YAML (texto, select, número)
@@ -786,6 +833,7 @@ El pipeline de GitLab incluye 5 stages:
 
 | Fecha | Versión | Descripción |
 |-------|---------|-------------|
+| 2026-04-02 | 1.12.0 | **Task Types y Clipboard**: Soporte para 3 tipos de tareas (`standard`, `check`, `multicheck`), validación de checkItems requeridos/opcionales, clipboard paste (Ctrl+V) para imágenes, botón "Terminar Tarea" en modal, ActivityCard con imágenes y links dinámicos, i18n actualizado |
 | 2026-04-02 | 1.11.0 | **Activities y Subprocesses**: Nuevo nivel jerárquico `activities` entre phases y tasks, soporte para `subprocesses` como referencias a procesos externos (GitHub/URL/local), subprocess-loader para carga dinámica, sidebar expandible con actividades, i18n para nuevos componentes |
 | 2026-04-01 | 1.10.0 | **Modo Dark/Light**: Toggle Sol/Luna en header, soporte sistema operativo, variables CSS HSL semánticas, ThemeProvider (next-themes), migración completa de colores en páginas y componentes |
 | 2026-04-01 | 1.9.0 | **Gestión de Procesos Múltiples**: Process Tabs en header, Command Palette (Ctrl+P), sección "Procesos en Curso" con tarjetas visuales estilo templates. Iconografía de estados, barras de progreso, acciones rápidas. Session store con Zustand y persistencia comprimida |

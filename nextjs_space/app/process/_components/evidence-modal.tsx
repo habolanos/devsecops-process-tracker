@@ -5,18 +5,23 @@ import { TaskState, EvidenceImage } from '@/lib/types';
 import { useProcessStore } from '@/lib/store';
 import { useI18n } from '@/lib/i18n-context';
 import { sanitizeText, sanitizeUrl, sanitizeFilename } from '@/lib/sanitize';
-import { X, Upload, Link as LinkIcon, Trash2, FileText, Image as ImageIcon } from 'lucide-react';
+import { canCompleteTask } from '@/lib/helpers';
+import { useClipboardPaste } from '@/hooks/useClipboardPaste';
+import { X, Upload, Link as LinkIcon, Trash2, FileText, Image as ImageIcon, Clipboard, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface EvidenceModalProps {
   task: TaskState;
   phaseId: string;
+  activityId?: string;
   onClose: () => void;
 }
 
-export default function EvidenceModal({ task, phaseId, onClose }: EvidenceModalProps) {
+export default function EvidenceModal({ task, phaseId, activityId, onClose }: EvidenceModalProps) {
   const { t } = useI18n();
   const updateTaskEvidence = useProcessStore((state) => state?.updateTaskEvidence);
+  const completeTask = useProcessStore((state) => state?.completeTask);
+  const canCompleteCheckTask = useProcessStore((state) => state?.canCompleteCheckTask);
   
   const [textEvidence, setTextEvidence] = useState(task?.evidence?.text ?? '');
   const [imageUrl, setImageUrl] = useState('');
@@ -26,6 +31,7 @@ export default function EvidenceModal({ task, phaseId, onClose }: EvidenceModalP
   const evidenceConfig = task?.evidenceConfig;
   const needsText = evidenceConfig?.type === 'text' || evidenceConfig?.type === 'both';
   const needsImage = evidenceConfig?.type === 'image' || evidenceConfig?.type === 'both';
+  const isCheckType = task?.type === 'check' || task?.type === 'multicheck';
 
   // Helper to convert file to base64
   const fileToBase64 = (file: File): Promise<string> => {
@@ -36,6 +42,41 @@ export default function EvidenceModal({ task, phaseId, onClose }: EvidenceModalP
       reader.readAsDataURL(file);
     });
   };
+
+  // Handle clipboard paste
+  const handleClipboardPaste = async (file: File) => {
+    setIsUploadingFile(true);
+    try {
+      const base64 = await fileToBase64(file);
+      const newImage: EvidenceImage = {
+        id: `clipboard-${Date.now()}`,
+        name: file.name,
+        cloudStoragePath: '',
+        isPublic: false,
+        url: base64,
+        source: 'clipboard',
+        uploadedAt: new Date().toISOString()
+      };
+
+      const currentImages = task?.evidence?.images ?? [];
+      updateTaskEvidence?.(phaseId, task?.id ?? '', {
+        images: [...currentImages, newImage]
+      }, activityId);
+      
+      toast.success(t('clipboard.pasted'));
+    } catch (error) {
+      console.error('Clipboard paste error:', error);
+      toast.error(t('clipboard.error'));
+    } finally {
+      setIsUploadingFile(false);
+    }
+  };
+
+  // Enable clipboard paste
+  useClipboardPaste({
+    onImagePaste: handleClipboardPaste,
+    enabled: needsImage
+  });
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -403,20 +444,65 @@ export default function EvidenceModal({ task, phaseId, onClose }: EvidenceModalP
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
-          <button
-            onClick={onClose}
-            className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium"
-          >
-            {t('evidence.close')}
-          </button>
-          <button
-            onClick={handleSave}
-            data-testid="save-evidence-btn"
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
-          >
-            {t('evidence.save')}
-          </button>
+        <div className="flex items-center justify-between p-6 border-t border-gray-200">
+          {/* Clipboard hint */}
+          {needsImage && (
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <Clipboard className="w-4 h-4" />
+              <span>{t('clipboard.hint')}</span>
+            </div>
+          )}
+          {!needsImage && <div />}
+          
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onClose}
+              className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium"
+            >
+              {t('evidence.close')}
+            </button>
+            <button
+              onClick={handleSave}
+              data-testid="save-evidence-btn"
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+            >
+              {t('evidence.save')}
+            </button>
+            {!task?.completed && (
+              <button
+                onClick={() => {
+                  // Save evidence first
+                  updateTaskEvidence?.(phaseId, task?.id ?? '', { text: textEvidence }, activityId);
+                  
+                  // Validate check items for check/multicheck tasks
+                  if (isCheckType && !canCompleteCheckTask?.(phaseId, task?.id ?? '', activityId)) {
+                    toast.warning(t('task.checkItems.required'), {
+                      description: t('task.checkItems.required.description'),
+                    });
+                    return;
+                  }
+                  
+                  // Validate evidence requirements
+                  if (!canCompleteTask({ ...task, evidence: { ...task?.evidence, text: textEvidence } })) {
+                    toast.warning(t('evidence.required'), {
+                      description: t('evidence.required.description'),
+                    });
+                    return;
+                  }
+                  
+                  // Complete task
+                  completeTask?.(phaseId, task?.id ?? '', activityId);
+                  toast.success(t('task.completed'));
+                  onClose();
+                }}
+                data-testid="finish-task-btn"
+                className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium flex items-center gap-2"
+              >
+                <CheckCircle className="w-4 h-4" />
+                {t('task.finish')}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -126,6 +126,22 @@ const translations: Translations = {
   'activity.tasks': { es: 'tareas', en: 'tasks' },
   'activity.expand': { es: 'Expandir actividades', en: 'Expand activities' },
   'activity.collapse': { es: 'Colapsar actividades', en: 'Collapse activities' },
+  'activity.images': { es: 'Ilustraciones', en: 'Illustrations' },
+  'activity.references': { es: 'Referencias', en: 'References' },
+  
+  // Task Types (check/multicheck)
+  'task.finish': { es: 'Terminar Tarea', en: 'Finish Task' },
+  'task.checkItem.required': { es: 'Requerido', en: 'Required' },
+  'task.checkItem.optional': { es: 'Opcional', en: 'Optional' },
+  'task.checkItems.required': { es: 'Verificaciones pendientes', en: 'Pending verifications' },
+  'task.checkItems.required.description': { es: 'Debes completar todas las verificaciones requeridas', en: 'You must complete all required verifications' },
+  'task.checkItems.progress': { es: 'Progreso', en: 'Progress' },
+  'task.checkItems.requiredCompleted': { es: 'requeridos completados', en: 'required completed' },
+  
+  // Clipboard
+  'clipboard.hint': { es: 'Ctrl+V para pegar imagen del portapapeles', en: 'Ctrl+V to paste image from clipboard' },
+  'clipboard.pasted': { es: 'Imagen pegada desde portapapeles', en: 'Image pasted from clipboard' },
+  'clipboard.error': { es: 'Error al pegar imagen', en: 'Error pasting image' },
   
   // Subprocesses
   'subprocess.title': { es: 'Subproceso', en: 'Subprocess' },

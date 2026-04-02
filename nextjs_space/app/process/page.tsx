@@ -13,6 +13,7 @@ import { ArrowLeft, Download, FileText, CheckCircle2, Globe, Settings, FileJson 
 import { ThemeToggle } from '@/components/theme-toggle';
 import ProcessSidebar from './_components/process-sidebar';
 import TaskCard from './_components/task-card';
+import ActivityCard from './_components/activity-card';
 import ProgressBar from './_components/progress-bar';
 import { ProcessTabs } from '@/components/process-tabs';
 import { ModalSkeleton } from '@/components/skeletons/modal-skeleton';
@@ -269,17 +270,33 @@ export default function ProcessPage() {
               </div>
 
               <div className="grid gap-4">
-                {currentPhase.tasks?.map((task) => (
-                  <TaskCard
-                    key={task?.id}
-                    task={task}
-                    phaseId={currentPhaseId ?? ''}
-                    onViewEvidence={() => {
-                      setCurrentTask?.(task?.id ?? null);
-                      setShowEvidenceModal(true);
-                    }}
-                  />
-                )) ?? null}
+                {/* Render Activities if present */}
+                {currentPhase.activities && currentPhase.activities.length > 0 ? (
+                  currentPhase.activities.map((activity) => (
+                    <ActivityCard
+                      key={activity.id}
+                      activity={activity}
+                      phaseId={currentPhaseId ?? ''}
+                      onViewEvidence={(task) => {
+                        setCurrentTask?.(task?.id ?? null);
+                        setShowEvidenceModal(true);
+                      }}
+                    />
+                  ))
+                ) : (
+                  /* Render direct tasks (legacy support) */
+                  currentPhase.tasks?.map((task) => (
+                    <TaskCard
+                      key={task?.id}
+                      task={task}
+                      phaseId={currentPhaseId ?? ''}
+                      onViewEvidence={() => {
+                        setCurrentTask?.(task?.id ?? null);
+                        setShowEvidenceModal(true);
+                      }}
+                    />
+                  )) ?? null
+                )}
               </div>
             </div>
           )}

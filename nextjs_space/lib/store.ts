@@ -23,6 +23,10 @@ interface ProcessStore {
   completeTask: (phaseId: string, taskId: string, activityId?: string) => void;
   uncompleteTask: (phaseId: string, taskId: string, activityId?: string) => void;
   
+  // CheckItem Actions (for check/multicheck tasks)
+  toggleCheckItem: (phaseId: string, taskId: string, checkItemId: string, activityId?: string) => void;
+  canCompleteCheckTask: (phaseId: string, taskId: string, activityId?: string) => boolean;
+  
   markProcessComplete: () => void;
   
   // Variable Actions
@@ -239,6 +243,81 @@ export const useProcessStore = create<ProcessStore>()(persist(
 
         return { process: updatedProcess };
       });
+    },
+
+    toggleCheckItem: (phaseId, taskId, checkItemId, activityId) => {
+      set((state) => {
+        if (!state.process) return state;
+
+        const updateCheckItems = (task: any) => {
+          if (task?.id !== taskId) return task;
+          return {
+            ...task,
+            checkItems: task.checkItems.map((item: any) => {
+              if (item.id !== checkItemId) return item;
+              return {
+                ...item,
+                checked: !item.checked,
+                checkedAt: !item.checked ? new Date().toISOString() : undefined
+              };
+            })
+          };
+        };
+
+        const updatedPhases = state.process.phases.map((phase) => {
+          if (phase?.id !== phaseId) return phase;
+
+          if (activityId) {
+            return {
+              ...phase,
+              activities: (phase.activities ?? []).map((activity) => {
+                if (activity?.id !== activityId) return activity;
+                return {
+                  ...activity,
+                  tasks: activity.tasks.map(updateCheckItems)
+                };
+              })
+            };
+          }
+
+          return {
+            ...phase,
+            tasks: (phase.tasks ?? []).map(updateCheckItems)
+          };
+        });
+
+        return {
+          process: {
+            ...state.process,
+            phases: updatedPhases
+          }
+        };
+      });
+    },
+
+    canCompleteCheckTask: (phaseId, taskId, activityId): boolean => {
+      const currentState = get();
+      if (!currentState.process) return false;
+
+      const phase = currentState.process.phases.find((p) => p?.id === phaseId);
+      if (!phase) return false;
+
+      let task;
+      if (activityId) {
+        const activity = phase.activities?.find((a) => a?.id === activityId);
+        task = activity?.tasks?.find((t) => t?.id === taskId);
+      } else {
+        task = phase.tasks?.find((t) => t?.id === taskId);
+      }
+
+      if (!task) return false;
+
+      // For standard tasks, always completable (evidence check handled elsewhere)
+      if (task.type === 'standard') return true;
+
+      // For check/multicheck tasks, all required checkItems must be checked
+      const requiredItems = task.checkItems.filter((item) => item.required);
+      return requiredItems.every((item) => item.checked);
     },
 
     markProcessComplete: () => {

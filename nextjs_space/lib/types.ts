@@ -62,8 +62,16 @@ export interface ActivityYAML {
   name: string;
   description?: string;
   order: number;
-  tasks: TaskYAML[];
+  tasks: TaskYAML[];                    // Minimum 1 task required
   dynamicLinks?: DynamicLinkYAML[];     // Activity-level dynamic links
+  images?: ActivityImageYAML[];         // Illustrations/diagrams (optional)
+}
+
+export interface ActivityImageYAML {
+  id: string;
+  name: string;
+  url: string;                          // Image URL
+  caption?: string;                     // Optional caption/description
 }
 
 export interface SubprocessYAML {
@@ -85,12 +93,21 @@ export interface SubprocessSource {
 export interface TaskYAML {
   id: string;
   name: string;
-  description: string;
+  description?: string;                 // Optional for check/multicheck (checkItems have descriptions)
   order: number;
+  type?: 'standard' | 'check' | 'multicheck';  // Default: 'standard'
+  checkItem?: CheckItemYAML;            // For type='check' (single checkbox)
+  checkItems?: CheckItemYAML[];         // For type='multicheck' (multiple checkboxes)
   references?: Reference[];
   evidence: EvidenceConfig;
   dependencies?: string[];
-  dynamicLinks?: DynamicLinkYAML[];  // Task-level dynamic links
+  dynamicLinks?: DynamicLinkYAML[];     // Task-level dynamic links
+}
+
+export interface CheckItemYAML {
+  id?: string;                          // Optional for 'check', required for 'multicheck'
+  description: string;                  // Always required
+  required: boolean;                    // true = mandatory, false = optional
 }
 
 export interface Reference {
@@ -162,6 +179,7 @@ export interface ActivityState {
   progress: number;
   tasks: TaskState[];
   dynamicLinks: DynamicLinkYAML[];    // Activity-level dynamic links
+  images: ActivityImageYAML[];        // Illustrations/diagrams
 }
 
 export interface SubprocessState {
@@ -181,6 +199,8 @@ export interface TaskState {
   name: string;
   description: string;
   order: number;
+  type: 'standard' | 'check' | 'multicheck';  // Task type
+  checkItems: CheckItemState[];       // Empty for 'standard', 1 for 'check', N for 'multicheck'
   references: Reference[];
   evidenceConfig: EvidenceConfig;
   dependencies: string[];
@@ -189,6 +209,14 @@ export interface TaskState {
   evidence: TaskEvidence;
   isBlocked: boolean;
   dynamicLinks: DynamicLinkYAML[];  // Task-level dynamic links
+}
+
+export interface CheckItemState {
+  id: string;
+  description: string;
+  required: boolean;
+  checked: boolean;
+  checkedAt?: string;
 }
 
 export interface TaskEvidence {
@@ -202,7 +230,7 @@ export interface EvidenceImage {
   cloudStoragePath: string;
   isPublic: boolean;
   url?: string;
-  source: 'file' | 'url';
+  source: 'file' | 'url' | 'clipboard';  // Added clipboard support
   originalUrl?: string;
   uploadedAt: string;
 }
@@ -245,6 +273,8 @@ export interface TaskExport {
   name: string;
   description: string;
   order: number;
+  type: 'standard' | 'check' | 'multicheck';
+  checkItems: CheckItemState[];
   completed: boolean;
   completedAt?: string;
   evidence: {
@@ -252,7 +282,7 @@ export interface TaskExport {
     images: {
       name: string;
       data: string; // base64
-      source: 'file' | 'url';
+      source: 'file' | 'url' | 'clipboard';
       originalUrl?: string;
     }[];
   };
