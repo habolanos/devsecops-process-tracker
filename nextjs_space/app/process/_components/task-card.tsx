@@ -67,7 +67,8 @@ export default function TaskCard({ task, phaseId, activityId, onViewEvidence }: 
 
   return (
     <div
-      data-testid={`task-card-${task?.id}`}
+      data-testid="task-card"
+      data-task-id={task?.id}
       className={`bg-white rounded-lg shadow-sm border-2 transition-all ${
         isCompleted
           ? 'border-green-500 bg-green-50/50'

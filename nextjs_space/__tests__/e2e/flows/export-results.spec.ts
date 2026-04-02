@@ -56,7 +56,7 @@ process:
 
   test('should export process as Word document', async ({ page }) => {
     // Complete a task first to have content in export
-    await page.locator('[data-testid="task-card-task-1"] [data-testid="task-checkbox"]').click();
+    await page.locator('[data-task-id="task-1"] [data-testid="task-checkbox"]').click();
     
     // Wait for download event
     const [download] = await Promise.all([
@@ -70,8 +70,8 @@ process:
 
   test('should complete process and auto-export both formats', async ({ page }) => {
     // Complete all tasks first
-    await page.locator('[data-testid="task-card-task-1"] [data-testid="task-checkbox"]').click();
-    await page.locator('[data-testid="task-card-task-2"] [data-testid="task-checkbox"]').click();
+    await page.locator('[data-task-id="task-1"] [data-testid="task-checkbox"]').click();
+    await page.locator('[data-task-id="task-2"] [data-testid="task-checkbox"]').click();
     
     // Wait for confirm dialog and accept
     page.on('dialog', async dialog => {
@@ -102,7 +102,7 @@ process:
 
   test('should include evidence in JSON export', async ({ page }) => {
     // Add evidence to a task
-    await page.locator('[data-testid="task-card-task-1"] [data-testid="view-evidence-btn"]').click();
+    await page.locator('[data-task-id="task-1"] [data-testid="view-evidence-btn"]').click();
     
     // Wait for modal
     await expect(page.locator('[data-testid="evidence-modal"]')).toBeVisible();
@@ -114,7 +114,7 @@ process:
     await page.click('[data-testid="save-evidence-btn"]');
     
     // Complete task
-    await page.locator('[data-testid="task-card-task-1"] [data-testid="task-checkbox"]').click();
+    await page.locator('[data-task-id="task-1"] [data-testid="task-checkbox"]').click();
     
     // Export JSON
     const [download] = await Promise.all([

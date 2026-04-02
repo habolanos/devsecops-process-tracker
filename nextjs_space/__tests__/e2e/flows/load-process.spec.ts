@@ -8,6 +8,9 @@ test.describe('Load Process Flow', () => {
   });
 
   test('should load process from template and display tasks', async ({ page }) => {
+    // Wait for templates to load
+    await page.waitForSelector('[data-testid="process-template"]', { timeout: 10000 });
+    
     // Click on first template (IT Security Audit)
     const firstTemplate = page.locator('[data-testid="process-template"]').first();
     await expect(firstTemplate).toBeVisible();
@@ -26,8 +29,8 @@ test.describe('Load Process Flow', () => {
     // Verify at least one task card is visible
     await expect(page.locator('[data-testid="task-card"]').first()).toBeVisible();
     
-    // Verify progress bar is displayed
-    await expect(page.locator('[data-testid="progress-bar"]')).toBeVisible();
+    // Verify progress bar is displayed (use role=main to avoid header conflict)
+    await expect(page.locator('main [data-testid="progress-bar"]')).toBeVisible();
   });
 
   test('should upload YAML file and load process', async ({ page }) => {
@@ -151,7 +154,7 @@ process:
     const firstTask = page.locator('[data-testid="task-card"]').first();
     await expect(firstTask).toContainText('Completada');
     
-    // Verify progress bar shows 50%
-    await expect(page.locator('[data-testid="progress-bar"]')).toContainText('50%');
+    // Verify progress bar shows 50% (use main to avoid session card conflict)
+    await expect(page.locator('main [data-testid="progress-bar"]')).toContainText('50%');
   });
 });

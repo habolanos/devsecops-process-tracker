@@ -90,6 +90,7 @@ jobs:
 
       - name: Semantic Release
         id: semantic
+        working-directory: .
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

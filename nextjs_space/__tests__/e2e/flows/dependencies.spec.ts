@@ -44,28 +44,28 @@ process:
 
   test('should display blocked status for tasks with uncompleted dependencies', async ({ page }) => {
     // Task A should be unblocked (no deps)
-    const taskA = page.locator('[data-testid="task-card-task-a"]');
+    const taskA = page.locator('[data-task-id="task-a"]');
     await expect(taskA).not.toContainText('Bloqueada');
     await expect(taskA.locator('[data-testid="task-checkbox"]')).toBeEnabled();
     
     // Task B should be blocked (depends on incomplete Task A)
-    const taskB = page.locator('[data-testid="task-card-task-b"]');
+    const taskB = page.locator('[data-task-id="task-b"]');
     await expect(taskB).toContainText('Bloqueada');
     await expect(taskB.locator('[data-testid="lock-icon"]')).toBeVisible();
     await expect(taskB.locator('[data-testid="task-checkbox"]')).toBeDisabled();
     
     // Task C should also be blocked (depends on B)
-    const taskC = page.locator('[data-testid="task-card-task-c"]');
+    const taskC = page.locator('[data-task-id="task-c"]');
     await expect(taskC).toContainText('Bloqueada');
   });
 
   test('should unblock dependent task when dependency is completed', async ({ page }) => {
     // Complete Task A
-    const taskA = page.locator('[data-testid="task-card-task-a"]');
+    const taskA = page.locator('[data-task-id="task-a"]');
     await taskA.locator('[data-testid="task-checkbox"]').click();
     
     // Task B should now be unblocked
-    const taskB = page.locator('[data-testid="task-card-task-b"]');
+    const taskB = page.locator('[data-task-id="task-b"]');
     await expect(taskB).not.toContainText('Bloqueada');
     await expect(taskB.locator('[data-testid="lock-icon"]')).not.toBeVisible();
     await expect(taskB.locator('[data-testid="task-checkbox"]')).toBeEnabled();
@@ -74,25 +74,25 @@ process:
     await taskB.locator('[data-testid="task-checkbox"]').click();
     
     // Task C should now be unblocked
-    const taskC = page.locator('[data-testid="task-card-task-c"]');
+    const taskC = page.locator('[data-task-id="task-c"]');
     await expect(taskC).not.toContainText('Bloqueada');
   });
 
   test('should block dependent tasks when dependency is uncompleted', async ({ page }) => {
     // Complete tasks in order
-    await page.locator('[data-testid="task-card-task-a"] [data-testid="task-checkbox"]').click();
-    await page.locator('[data-testid="task-card-task-b"] [data-testid="task-checkbox"]').click();
+    await page.locator('[data-task-id="task-a"] [data-testid="task-checkbox"]').click();
+    await page.locator('[data-task-id="task-b"] [data-testid="task-checkbox"]').click();
     
     // Verify Task C is unblocked
-    const taskC = page.locator('[data-testid="task-card-task-c"]');
+    const taskC = page.locator('[data-task-id="task-c"]');
     await expect(taskC).not.toContainText('Bloqueada');
     
     // Uncomplete Task A
-    await page.locator('[data-testid="task-card-task-a"] [data-testid="task-checkbox"]').click();
+    await page.locator('[data-task-id="task-a"] [data-testid="task-checkbox"]').click();
     
     // Verify cascade: B and C should be re-blocked
-    await expect(page.locator('[data-testid="task-card-task-b"]')).toContainText('Bloqueada');
-    await expect(page.locator('[data-testid="task-card-task-c"]')).toContainText('Bloqueada');
+    await expect(page.locator('[data-task-id="task-b"]')).toContainText('Bloqueada');
+    await expect(page.locator('[data-task-id="task-c"]')).toContainText('Bloqueada');
   });
 
   test('should show alert when trying to complete blocked task', async ({ page }) => {
@@ -104,12 +104,12 @@ process:
     });
     
     // Try to click blocked task checkbox
-    const taskB = page.locator('[data-testid="task-card-task-b"]');
+    const taskB = page.locator('[data-task-id="task-b"]');
     await taskB.locator('[data-testid="task-checkbox"]').click({ force: true });
   });
 
   test('should display dependency list on task card', async ({ page }) => {
-    const taskB = page.locator('[data-testid="task-card-task-b"]');
+    const taskB = page.locator('[data-task-id="task-b"]');
     
     // Verify dependency label is shown
     await expect(taskB.locator('text=Dependencias')).toBeVisible();
