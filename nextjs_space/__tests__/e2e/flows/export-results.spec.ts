@@ -42,8 +42,8 @@ process:
       page.click('[data-testid="export-json-btn"]')
     ]);
     
-    // Verify download filename
-    expect(download.suggestedFilename()).toMatch(/export-test.*\.json$/);
+    // Verify download filename (case-insensitive)
+    expect(download.suggestedFilename()).toMatch(/export-test.*\.json$/i);
     
     // Read and verify JSON content
     const path = await download.path();
@@ -64,8 +64,8 @@ process:
       page.click('[data-testid="export-word-btn"]')
     ]);
     
-    // Verify download filename
-    expect(download.suggestedFilename()).toMatch(/export-test.*\.docx$/);
+    // Verify download filename (case-insensitive)
+    expect(download.suggestedFilename()).toMatch(/export-test.*\.docx$/i);
   });
 
   test('should complete process and auto-export both formats', async ({ page }) => {

@@ -65,8 +65,8 @@ process:
     // Verify loaded process name
     await expect(page.locator('h1')).toContainText('Test YAML Process');
     
-    // Verify phase is visible
-    await expect(page.locator('text=Test Phase')).toBeVisible();
+    // Verify phase is visible in sidebar (use more specific selector)
+    await expect(page.locator('[data-testid="phase-phase-1"]')).toBeVisible();
   });
 
   test('should display error for invalid YAML', async ({ page }) => {
@@ -80,9 +80,9 @@ process:
       buffer: Buffer.from(invalidYaml)
     });
     
-    // Verify error message is displayed
+    // Verify error message is displayed (case-insensitive, Spanish text)
     await expect(page.locator('[data-testid="error-message"]')).toBeVisible();
-    await expect(page.locator('[data-testid="error-message"]')).toContainText('error');
+    await expect(page.locator('[data-testid="error-message"]')).toContainText(/error/i);
     
     // Should stay on home page
     expect(page.url()).toContain('/');

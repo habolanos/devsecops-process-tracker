@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { ProcessState, TaskEvidence, CapturedVariables, WorkSession } from './types';
-import { updateProgress, updateTaskBlockedStatus } from './helpers';
+import { updateProgress, updateTaskBlockedStatus, getAllDependentTasks } from './helpers';
 import { createCompressedStorage } from './persist-storage';
 
 interface ProcessStore {
@@ -195,24 +195,57 @@ export const useProcessStore = create<ProcessStore>()(persist(
       set((state) => {
         if (!state.process) return state;
 
+        // Get all tasks that depend on this task (cascade)
+        const dependentIds = getAllDependentTasks(taskId, state.process);
+        const allIdsToUncomplete = [taskId, ...dependentIds];
+
         const updatedPhases = state.process.phases.map((phase) => {
-          if (phase?.id !== phaseId) return phase;
+          if (phase?.id !== phaseId) {
+            // Also process other phases that might have dependent tasks
+            return {
+              ...phase,
+              tasks: (phase.tasks ?? []).map((task) => {
+                if (allIdsToUncomplete.includes(task.id)) {
+                  return { ...task, completed: false, completedAt: undefined };
+                }
+                return task;
+              }),
+              activities: (phase.activities ?? []).map((activity) => ({
+                ...activity,
+                tasks: activity.tasks.map((task) => {
+                  if (allIdsToUncomplete.includes(task.id)) {
+                    return { ...task, completed: false, completedAt: undefined };
+                  }
+                  return task;
+                })
+              }))
+            };
+          }
 
           // Uncomplete task in activity
           if (activityId) {
             return {
               ...phase,
               activities: (phase.activities ?? []).map((activity) => {
-                if (activity?.id !== activityId) return activity;
+                if (activity?.id !== activityId) {
+                  // Check for dependent tasks in other activities
+                  return {
+                    ...activity,
+                    tasks: activity.tasks.map((task) => {
+                      if (allIdsToUncomplete.includes(task.id)) {
+                        return { ...task, completed: false, completedAt: undefined };
+                      }
+                      return task;
+                    })
+                  };
+                }
                 return {
                   ...activity,
                   tasks: activity.tasks.map((task) => {
-                    if (task?.id !== taskId) return task;
-                    return {
-                      ...task,
-                      completed: false,
-                      completedAt: undefined
-                    };
+                    if (allIdsToUncomplete.includes(task.id)) {
+                      return { ...task, completed: false, completedAt: undefined };
+                    }
+                    return task;
                   })
                 };
               })
@@ -223,12 +256,10 @@ export const useProcessStore = create<ProcessStore>()(persist(
           return {
             ...phase,
             tasks: (phase.tasks ?? []).map((task) => {
-              if (task?.id !== taskId) return task;
-              return {
-                ...task,
-                completed: false,
-                completedAt: undefined
-              };
+              if (allIdsToUncomplete.includes(task.id)) {
+                return { ...task, completed: false, completedAt: undefined };
+              }
+              return task;
             })
           };
         });

@@ -157,6 +157,43 @@ export function validateTaskEvidence(task: TaskState): boolean {
   }
 }
 
+export function getAllDependentTasks(taskId: string, process: ProcessState): string[] {
+  const dependentIds: string[] = [];
+  const visited = new Set<string>();
+  
+  function findDependents(currentTaskId: string) {
+    if (visited.has(currentTaskId)) return;
+    visited.add(currentTaskId);
+    
+    // Find all tasks that depend on currentTaskId
+    for (const phase of process.phases) {
+      // Check direct tasks
+      for (const task of phase.tasks ?? []) {
+        if (task.dependencies?.includes(currentTaskId)) {
+          if (!dependentIds.includes(task.id)) {
+            dependentIds.push(task.id);
+            findDependents(task.id); // Recursive for transitive dependencies
+          }
+        }
+      }
+      // Check tasks in activities
+      for (const activity of phase.activities ?? []) {
+        for (const task of activity.tasks ?? []) {
+          if (task.dependencies?.includes(currentTaskId)) {
+            if (!dependentIds.includes(task.id)) {
+              dependentIds.push(task.id);
+              findDependents(task.id); // Recursive for transitive dependencies
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  findDependents(taskId);
+  return dependentIds;
+}
+
 export function canCompleteTask(task: TaskState): boolean {
   if (task?.isBlocked) return false;
   return validateTaskEvidence(task);
