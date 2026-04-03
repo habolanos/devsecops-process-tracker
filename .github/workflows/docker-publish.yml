@@ -16,8 +16,10 @@ on:
         default: 'latest'
 
 env:
-  REGISTRY: docker.io
-  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/devsecops-process-tracker
+  REGISTRY_DOCKER: docker.io
+  REGISTRY_GHCR: ghcr.io
+  IMAGE_NAME_DOCKER: ${{ secrets.DOCKERHUB_USERNAME }}/devsecops-process-tracker
+  IMAGE_NAME_GHCR: ${{ github.repository }}
 
 jobs:
   # ==========================================================================
@@ -34,7 +36,8 @@ jobs:
       security-events: write
     outputs:
       digest: ${{ steps.push.outputs.digest }}
-      image: ${{ env.IMAGE_NAME }}
+      image_docker: ${{ env.IMAGE_NAME_DOCKER }}
+      image_ghcr: ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME_GHCR }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -51,11 +54,18 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Extract metadata for Docker
-        id: meta
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker Hub
+        id: meta-docker
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.IMAGE_NAME }}
+          images: ${{ env.IMAGE_NAME_DOCKER }}
           tags: |
             type=semver,pattern={{version}},value=${{ github.event.inputs.version || github.ref_name }}
             type=semver,pattern={{major}}.{{minor}},value=${{ github.event.inputs.version || github.ref_name }}
@@ -69,7 +79,25 @@ jobs:
             org.opencontainers.image.licenses=MIT
             org.opencontainers.image.documentation=https://github.com/${{ github.repository }}/blob/main/README.md
 
-      - name: Build and push Docker image
+      - name: Extract metadata for GHCR
+        id: meta-ghcr
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME_GHCR }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ github.event.inputs.version || github.ref_name }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ github.event.inputs.version || github.ref_name }}
+            type=semver,pattern={{major}},value=${{ github.event.inputs.version || github.ref_name }}
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') || github.event_name == 'workflow_dispatch' }}
+          labels: |
+            org.opencontainers.image.title=DevSecOps Process Tracker
+            org.opencontainers.image.description=Web application for DevSecOps process management with evidence tracking
+            org.opencontainers.image.vendor=DevSecOps Team
+            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.documentation=https://github.com/${{ github.repository }}/blob/main/README.md
+
+      - name: Build and push Docker image to Docker Hub
         id: push
         uses: docker/build-push-action@v6
         with:
@@ -77,8 +105,8 @@ jobs:
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta-docker.outputs.tags }}
+          labels: ${{ steps.meta-docker.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           sbom: true
@@ -88,10 +116,27 @@ jobs:
             VCS_REF=${{ github.sha }}
             VERSION=${{ github.event.inputs.version || github.ref_name }}
 
+      - name: Build and push Docker image to GHCR
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta-ghcr.outputs.tags }}
+          labels: ${{ steps.meta-ghcr.outputs.labels }}
+          cache-from: type=gha
+          provenance: mode=max
+          build-args: |
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VCS_REF=${{ github.sha }}
+            VERSION=${{ github.event.inputs.version || github.ref_name }}
+
       - name: Export digest
         run: |
           echo "Image pushed with digest: ${{ steps.push.outputs.digest }}"
-          echo "Tags: ${{ steps.meta.outputs.tags }}"
+          echo "Docker Hub tags: ${{ steps.meta-docker.outputs.tags }}"
+          echo "GHCR tags: ${{ steps.meta-ghcr.outputs.tags }}"
 
   # ==========================================================================
   # Sign Image with Cosign (Sigstore)
@@ -120,14 +165,14 @@ jobs:
           DIGEST: ${{ needs.build-and-push.outputs.digest }}
           COSIGN_EXPERIMENTAL: "true"
         run: |
-          cosign sign --yes ${{ env.IMAGE_NAME }}@${DIGEST}
+          cosign sign --yes ${{ env.IMAGE_NAME_DOCKER }}@${DIGEST}
           echo "✅ Image signed successfully"
 
       - name: Verify signature
         env:
           DIGEST: ${{ needs.build-and-push.outputs.digest }}
         run: |
-          cosign verify ${{ env.IMAGE_NAME }}@${DIGEST} \
+          cosign verify ${{ env.IMAGE_NAME_DOCKER }}@${DIGEST} \
             --certificate-identity-regexp="https://github.com/${{ github.repository }}/*" \
             --certificate-oidc-issuer="https://token.actions.githubusercontent.com" | jq
           echo "✅ Signature verified"
@@ -156,7 +201,7 @@ jobs:
 
       - name: Generate SBOM (SPDX format)
         run: |
-          syft ${{ env.IMAGE_NAME }}@${{ needs.build-and-push.outputs.digest }} \
+          syft ${{ env.IMAGE_NAME_DOCKER }}@${{ needs.build-and-push.outputs.digest }} \
             -o spdx-json=sbom-spdx.json \
             -o cyclonedx-json=sbom-cyclonedx.json
           echo "✅ SBOM generated in SPDX and CycloneDX formats"
@@ -200,7 +245,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: '${{ env.IMAGE_NAME }}@${{ needs.build-and-push.outputs.digest }}'
+          image-ref: '${{ env.IMAGE_NAME_DOCKER }}@${{ needs.build-and-push.outputs.digest }}'
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM'
@@ -214,7 +259,7 @@ jobs:
       - name: Run Trivy (table output for summary)
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: '${{ env.IMAGE_NAME }}@${{ needs.build-and-push.outputs.digest }}'
+          image-ref: '${{ env.IMAGE_NAME_DOCKER }}@${{ needs.build-and-push.outputs.digest }}'
           format: 'table'
           severity: 'CRITICAL,HIGH'
           exit-code: '0'
@@ -230,11 +275,12 @@ jobs:
       id-token: write
       attestations: write
     steps:
-      - name: Generate attestation
+      - name: Generate attestation for GHCR
         uses: actions/attest-build-provenance@v1
         with:
-          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-name: ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME_GHCR }}
           subject-digest: ${{ needs.build-and-push.outputs.digest }}
+          push-to-registry: true
 
   # ==========================================================================
   # Publish Summary
@@ -253,7 +299,8 @@ jobs:
           echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| **Registry** | Docker Hub |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Image** | \`${{ env.IMAGE_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Docker Hub** | `${{ env.IMAGE_NAME_DOCKER }}` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **GHCR** | `${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME_GHCR }}` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Digest** | \`${{ needs.build-and-push.outputs.digest }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Platforms** | linux/amd64, linux/arm64 |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -268,5 +315,6 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Pull Command" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-          echo "docker pull ${{ env.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ env.IMAGE_NAME_DOCKER }}:latest" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME_GHCR }}:latest" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
