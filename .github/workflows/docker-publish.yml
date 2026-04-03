@@ -235,7 +235,6 @@ jobs:
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           subject-digest: ${{ needs.build-and-push.outputs.digest }}
-          push-to-registry: true
 
   # ==========================================================================
   # Publish Summary
