@@ -21,8 +21,9 @@ WORKDIR /app
 # Copy package files
 COPY nextjs_space/package.json nextjs_space/package-lock.json* ./
 
-# Install dependencies with exact versions
-RUN npm ci --only=production=false
+# Install dependencies with cache mount for faster rebuilds
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline --no-audit
 
 # ==========================================================================
 # Stage 2: Builder
@@ -40,8 +41,9 @@ COPY nextjs_space ./
 # Disable telemetry during build
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Build application
-RUN npm run build
+# Build application with npm cache
+RUN --mount=type=cache,target=/root/.npm \
+    npm run build
 
 # ==========================================================================
 # Stage 3: Production Runner
