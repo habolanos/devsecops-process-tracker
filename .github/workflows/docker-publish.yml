@@ -35,7 +35,8 @@ jobs:
       attestations: write
       security-events: write
     outputs:
-      digest: ${{ steps.push.outputs.digest }}
+      digest_docker: ${{ steps.push.outputs.digest }}
+      digest_ghcr: ${{ steps.push-ghcr.outputs.digest }}
       image_docker: ${{ env.IMAGE_NAME_DOCKER }}
       image_ghcr: ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME_GHCR }}
     steps:
@@ -67,6 +68,7 @@ jobs:
         with:
           images: ${{ env.IMAGE_NAME_DOCKER }}
           tags: |
+            type=raw,value=${{ github.event.inputs.version || github.ref_name }}
             type=semver,pattern={{version}},value=${{ github.event.inputs.version || github.ref_name }}
             type=semver,pattern={{major}}.{{minor}},value=${{ github.event.inputs.version || github.ref_name }}
             type=semver,pattern={{major}},value=${{ github.event.inputs.version || github.ref_name }}
@@ -85,6 +87,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME_GHCR }}
           tags: |
+            type=raw,value=${{ github.event.inputs.version || github.ref_name }}
             type=semver,pattern={{version}},value=${{ github.event.inputs.version || github.ref_name }}
             type=semver,pattern={{major}}.{{minor}},value=${{ github.event.inputs.version || github.ref_name }}
             type=semver,pattern={{major}},value=${{ github.event.inputs.version || github.ref_name }}
@@ -117,6 +120,7 @@ jobs:
             VERSION=${{ github.event.inputs.version || github.ref_name }}
 
       - name: Build and push Docker image to GHCR
+        id: push-ghcr
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -162,7 +166,7 @@ jobs:
 
       - name: Sign the published Docker image
         env:
-          DIGEST: ${{ needs.build-and-push.outputs.digest }}
+          DIGEST: ${{ needs.build-and-push.outputs.digest_docker }}
           COSIGN_EXPERIMENTAL: "true"
         run: |
           cosign sign --yes ${{ env.IMAGE_NAME_DOCKER }}@${DIGEST}
@@ -170,7 +174,7 @@ jobs:
 
       - name: Verify signature
         env:
-          DIGEST: ${{ needs.build-and-push.outputs.digest }}
+          DIGEST: ${{ needs.build-and-push.outputs.digest_docker }}
         run: |
           cosign verify ${{ env.IMAGE_NAME_DOCKER }}@${DIGEST} \
             --certificate-identity-regexp="https://github.com/${{ github.repository }}/*" \
@@ -201,7 +205,7 @@ jobs:
 
       - name: Generate SBOM (SPDX format)
         run: |
-          syft ${{ env.IMAGE_NAME_DOCKER }}@${{ needs.build-and-push.outputs.digest }} \
+          syft ${{ env.IMAGE_NAME_DOCKER }}@${{ needs.build-and-push.outputs.digest_docker }} \
             -o spdx-json=sbom-spdx.json \
             -o cyclonedx-json=sbom-cyclonedx.json
           echo "✅ SBOM generated in SPDX and CycloneDX formats"
@@ -245,7 +249,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: '${{ env.IMAGE_NAME_DOCKER }}@${{ needs.build-and-push.outputs.digest }}'
+          image-ref: '${{ env.IMAGE_NAME_DOCKER }}@${{ needs.build-and-push.outputs.digest_docker }}'
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM'
@@ -259,7 +263,7 @@ jobs:
       - name: Run Trivy (table output for summary)
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: '${{ env.IMAGE_NAME_DOCKER }}@${{ needs.build-and-push.outputs.digest }}'
+          image-ref: '${{ env.IMAGE_NAME_DOCKER }}@${{ needs.build-and-push.outputs.digest_docker }}'
           format: 'table'
           severity: 'CRITICAL,HIGH'
           exit-code: '0'
@@ -274,6 +278,7 @@ jobs:
     permissions:
       id-token: write
       attestations: write
+      packages: write
     steps:
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -286,7 +291,7 @@ jobs:
         uses: actions/attest-build-provenance@v1
         with:
           subject-name: ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME_GHCR }}
-          subject-digest: ${{ needs.build-and-push.outputs.digest }}
+          subject-digest: ${{ needs.build-and-push.outputs.digest_ghcr }}
           push-to-registry: true
 
   # ==========================================================================
@@ -308,7 +313,7 @@ jobs:
           echo "| **Registry** | Docker Hub |" >> $GITHUB_STEP_SUMMARY
           echo "| **Docker Hub** | `${{ env.IMAGE_NAME_DOCKER }}` |" >> $GITHUB_STEP_SUMMARY
           echo "| **GHCR** | `${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME_GHCR }}` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Digest** | \`${{ needs.build-and-push.outputs.digest }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Digest** | \`${{ needs.build-and-push.outputs.digest_docker }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Platforms** | linux/amd64, linux/arm64 |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Security & Compliance" >> $GITHUB_STEP_SUMMARY
