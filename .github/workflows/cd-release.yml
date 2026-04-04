@@ -1,9 +1,9 @@
 # ============================================================================
-# Release Pipeline - Semantic Versioning & Changelog
+# CD Release Pipeline - Semantic Versioning & Changelog
 # Standards: Semantic Versioning 2.0.0, Conventional Commits
 # ============================================================================
 
-name: Release
+name: CD Release Pipeline
 
 on:
   workflow_run:

@@ -1,9 +1,9 @@
 # ============================================================================
-# Docker Publish Pipeline - Build, Sign, SBOM & Push to Docker Hub
+# CD Docker Publish Pipeline - Build, Sign, SBOM & Push to Docker Hub
 # Standards: OCI Image Spec, SLSA Level 3, Sigstore, CIS Docker Benchmark
 # ============================================================================
 
-name: Docker Publish
+name: CD Docker Publish
 
 on:
   release:
