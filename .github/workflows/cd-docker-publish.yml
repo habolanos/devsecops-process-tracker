@@ -416,8 +416,14 @@ jobs:
             exit 1
           fi
           
-          # Create a comprehensive full description (first 15000 chars of README)
-          FULL_DESCRIPTION=$(head -c 15000 README.md | jq -Rs '.[:-1]')
+          # Create full description from Docker-specific README (entire file, it's small enough)
+          if [ -f "README-DOCKER.md" ]; then
+            FULL_DESCRIPTION=$(cat README-DOCKER.md | jq -Rs '.')
+            echo "Using README-DOCKER.md for full description"
+          else
+            FULL_DESCRIPTION=$(head -c 10000 README.md | jq -Rs '.[:-1]')
+            echo "Using truncated README.md for full description (README-DOCKER.md not found)"
+          fi
           
           # Update repository description and overview
           echo "Updating Docker Hub repository description..."
@@ -438,22 +444,44 @@ jobs:
             echo "⚠️ Description update response: $RESPONSE"
           fi
           
-          # Update categories separately using the categories endpoint
+          # Update categories using Docker Hub's categories endpoint
           echo "Updating Docker Hub categories..."
-          # Docker Hub category slugs: developer_tools, security, devops
-          CATEGORIES_PAYLOAD='{"categories": ["developer_tools", "security", "devops"]}'
           
-          CAT_RESPONSE=$(curl -s -X PUT \
+          # First, try to get available categories to verify the endpoint
+          echo "Checking available categories..."
+          CATEGORIES_LIST=$(curl -s -H "Authorization: JWT $TOKEN" \
+            "https://hub.docker.com/v2/categories/")
+          
+          # Try multiple formats for categories
+          # Format 1: Simple array with category names
+          CATEGORIES_PAYLOAD1='["developer_tools", "security", "devops"]'
+          
+          # Format 2: Object with categories array  
+          CATEGORIES_PAYLOAD2='{"categories": ["developer_tools", "security", "devops"]}'
+          
+          # Format 3: Array of objects with name/slug
+          CATEGORIES_PAYLOAD3='[{"slug": "developer_tools"}, {"slug": "security"}, {"slug": "devops"}]'
+          
+          # Try PATCH on repository with categories
+          echo "Trying to update categories via repository PATCH..."
+          CAT_PAYLOAD=$(jq -n '{categories: ["developer_tools", "security", "devops"]}')
+          
+          CAT_RESPONSE=$(curl -s -X PATCH \
             -H "Authorization: JWT $TOKEN" \
             -H "Content-Type: application/json" \
-            -d "$CATEGORIES_PAYLOAD" \
-            "https://hub.docker.com/v2/repositories/${DOCKERHUB_USERNAME}/${REPO_NAME}/categories/")
+            -d "$CAT_PAYLOAD" \
+            "https://hub.docker.com/v2/repositories/${DOCKERHUB_USERNAME}/${REPO_NAME}/")
           
-          if [ -z "$CAT_RESPONSE" ] || echo "$CAT_RESPONSE" | jq -e '.categories' > /dev/null 2>&1; then
-            echo "✅ Categories updated: developer_tools, security, devops"
+          echo "Categories update response: $CAT_RESPONSE"
+          
+          # Check if categories were updated
+          if echo "$CAT_RESPONSE" | jq -e '.categories | length > 0' > /dev/null 2>&1; then
+            echo "✅ Categories updated successfully"
           else
-            echo "⚠️ Categories update response: $CAT_RESPONSE"
-            echo "Note: Categories may need to be set manually in Docker Hub UI"
+            echo "⚠️ Categories may need manual configuration in Docker Hub UI"
+            echo "Attempted categories: developer_tools, security, devops"
+            # Print full response for debugging
+            echo "$CAT_RESPONSE" | jq '.' 2>/dev/null || echo "$CAT_RESPONSE"
           fi
 
   # ==========================================================================
