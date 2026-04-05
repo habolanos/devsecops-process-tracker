@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.17.0](https://github.com/habolanos/devsecops-process-tracker/compare/1.16.0...1.17.0) (2026-04-05)
+
+
+### 🚀 Features
+
+* Fixed. The github-script action needs actions: write permission to trigger workflows via the API. Added actions: write to the workflow permissions at [@c](https://github.com/c):\Users\harold.bolanos\repos-publics\devsecops-process-tracker\.github\workflows\cd-release.yml:25 ([8d01f0c](https://github.com/habolanos/devsecops-process-tracker/commit/8d01f0c4f46a9e089cd2c4c9eca043ff0ec76c8e))
+
 ## [1.16.0](https://github.com/habolanos/devsecops-process-tracker/compare/1.15.0...1.16.0) (2026-04-05)
 
 
