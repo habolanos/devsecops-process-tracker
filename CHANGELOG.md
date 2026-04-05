@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.15.0](https://github.com/habolanos/devsecops-process-tracker/compare/1.14.0...1.15.0) (2026-04-05)
+
+
+### 🚀 Features
+
+* add Bitbucket Pipelines configuration ([7db4493](https://github.com/habolanos/devsecops-process-tracker/commit/7db449351d6669826cede7bc327cbee7aa2257db))
+* set node 24 on cd-release ([7b4dc1e](https://github.com/habolanos/devsecops-process-tracker/commit/7b4dc1e44db4417b7fb0de39f59d98a112337f7e))
+
+
+### 🐛 Bug Fixes
+
+* **release:** capture semantic-release outputs correctly for job dependencies ([17e6283](https://github.com/habolanos/devsecops-process-tracker/commit/17e628380d0909faaae62f54cfd81e44057849a7))
+
 ## [1.14.0](https://github.com/habolanos/devsecops-process-tracker/compare/1.13.4...1.14.0) (2026-04-05)
 
 
