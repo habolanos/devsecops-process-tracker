@@ -298,6 +298,125 @@ jobs:
           push-to-registry: true
 
   # ==========================================================================
+  # Cleanup Old GHCR Images (keep only latest)
+  # ==========================================================================
+  cleanup-ghcr:
+    name: 🧹 Cleanup Old GHCR Images
+    runs-on: ubuntu-latest
+    needs: [build-and-push, attestation]
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'release'
+    permissions:
+      packages: write
+    steps:
+      - name: Delete old GHCR package versions
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const packageName = '${{ env.IMAGE_NAME_GHCR }}';
+            const packageType = 'container';
+            
+            // Get all package versions
+            const { data: versions } = await github.rest.packages.getAllPackageVersionsForPackageOwnedByOrg({
+              package_type: packageType,
+              package_name: packageName,
+              org: context.repo.owner,
+              per_page: 100
+            });
+            
+            if (versions.length <= 1) {
+              console.log('Only one or zero versions found, nothing to delete');
+              return;
+            }
+            
+            // Sort by created_at descending (newest first)
+            versions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            
+            // Keep the latest, delete the rest
+            const latestVersion = versions[0];
+            const versionsToDelete = versions.slice(1);
+            
+            console.log(`Keeping latest version: ${latestVersion.id} (created: ${latestVersion.created_at})`);
+            console.log(`Deleting ${versionsToDelete.length} old version(s)...`);
+            
+            for (const version of versionsToDelete) {
+              try {
+                await github.rest.packages.deletePackageVersionForOrg({
+                  package_type: packageType,
+                  package_name: packageName,
+                  org: context.repo.owner,
+                  package_version_id: version.id
+                });
+                console.log(`✅ Deleted version ${version.id} (created: ${version.created_at})`);
+              } catch (error) {
+                console.error(`❌ Failed to delete version ${version.id}: ${error.message}`);
+              }
+            }
+            
+            console.log('Cleanup complete!');
+
+  # ==========================================================================
+  # Cleanup Old Docker Hub Images (keep only latest)
+  # ==========================================================================
+  cleanup-dockerhub:
+    name: 🧹 Cleanup Old Docker Hub Images
+    runs-on: ubuntu-latest
+    needs: [build-and-push, sign]
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'release'
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      REPO_NAME: devsecops-process-tracker
+    steps:
+      - name: Delete old Docker Hub tags
+        run: |
+          # Get JWT token
+          TOKEN=$(curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -d '{"username":"'${DOCKERHUB_USERNAME}'","password":"'${DOCKERHUB_TOKEN}'"}' \
+            https://hub.docker.com/v2/users/login/ | jq -r .token)
+          
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            echo "❌ Failed to get Docker Hub token"
+            exit 1
+          fi
+          
+          # Get all tags
+          echo "Fetching tags from Docker Hub..."
+          TAGS_RESPONSE=$(curl -s -H "Authorization: JWT $TOKEN" \
+            "https://hub.docker.com/v2/repositories/${DOCKERHUB_USERNAME}/${REPO_NAME}/tags?page_size=100")
+          
+          # Parse tags and their last_updated dates
+          echo "$TAGS_RESPONSE" | jq -r '.results[] | "\(.name)|\(.last_updated)"' | sort -t'|' -k2 -r > /tmp/tags_sorted.txt
+          
+          TAG_COUNT=$(wc -l < /tmp/tags_sorted.txt)
+          echo "Found $TAG_COUNT tag(s)"
+          
+          if [ "$TAG_COUNT" -le 1 ]; then
+            echo "Only one or zero tags found, nothing to delete"
+            exit 0
+          fi
+          
+          # Keep the first (most recent) tag, delete the rest
+          LATEST_TAG=$(head -n1 /tmp/tags_sorted.txt | cut -d'|' -f1)
+          echo "Keeping latest tag: $LATEST_TAG"
+          
+          # Delete all tags except the latest
+          tail -n +2 /tmp/tags_sorted.txt | while IFS='|' read -r tag_name last_updated; do
+            echo "Deleting tag: $tag_name (last updated: $last_updated)"
+            DELETE_RESPONSE=$(curl -s -X DELETE \
+              -H "Authorization: JWT $TOKEN" \
+              "https://hub.docker.com/v2/repositories/${DOCKERHUB_USERNAME}/${REPO_NAME}/tags/${tag_name}/")
+            
+            if [ -z "$DELETE_RESPONSE" ]; then
+              echo "✅ Deleted tag: $tag_name"
+            else
+              echo "⚠️ Delete response for $tag_name: $DELETE_RESPONSE"
+            fi
+          done
+          
+          echo "Docker Hub cleanup complete!"
+
+  # ==========================================================================
   # Publish Summary
   # ==========================================================================
   summary:
