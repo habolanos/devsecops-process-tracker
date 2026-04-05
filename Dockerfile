@@ -13,8 +13,9 @@ ARG VERSION=latest
 # ==========================================================================
 FROM node:24-alpine AS deps
 
-# Security: Install only necessary packages
-RUN apk add --no-cache libc6-compat
+# Security: Update Alpine packages to fix vulnerabilities (zlib, etc.)
+RUN apk update && apk upgrade --no-cache && \
+    apk add --no-cache libc6-compat
 
 WORKDIR /app
 
@@ -22,13 +23,18 @@ WORKDIR /app
 COPY nextjs_space/package.json nextjs_space/package-lock.json* ./
 
 # Install dependencies with cache mount for faster rebuilds
+# Then run audit fix to auto-fix vulnerabilities
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefer-offline --no-audit
+    npm ci --prefer-offline --no-audit && \
+    npm audit fix --force || true
 
 # ==========================================================================
 # Stage 2: Builder
 # ==========================================================================
 FROM node:24-alpine AS builder
+
+# Security: Update Alpine packages
+RUN apk update && apk upgrade --no-cache
 
 WORKDIR /app
 
@@ -49,6 +55,9 @@ RUN --mount=type=cache,target=/root/.npm \
 # Stage 3: Production Runner
 # ==========================================================================
 FROM node:24-alpine AS runner
+
+# Security: Update Alpine packages
+RUN apk update && apk upgrade --no-cache
 
 # Re-declare build args for this stage (required for LABEL to access them)
 ARG BUILD_DATE
