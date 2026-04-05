@@ -19,14 +19,13 @@ RUN apk update && apk upgrade --no-cache && \
 
 WORKDIR /app
 
-# Copy package files
-COPY nextjs_space/package.json nextjs_space/package-lock.json* ./
+# Copy package files (without lock file to apply overrides)
+COPY nextjs_space/package.json ./
 
 # Install dependencies with cache mount for faster rebuilds
-# Using npm install (not ci) to apply overrides from package.json
+# Overrides in package.json will force secure versions
 RUN --mount=type=cache,target=/root/.npm \
-    npm install --prefer-offline --no-audit && \
-    npm install --save minimatch@10.2.3 picomatch@4.0.4 tar@7.5.11 brace-expansion@5.0.5 --prefer-offline --no-audit
+    npm install --prefer-offline --no-audit
 
 # ==========================================================================
 # Stage 2: Builder
