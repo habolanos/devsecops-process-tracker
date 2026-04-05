@@ -312,7 +312,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const packageName = '${{ env.IMAGE_NAME_GHCR }}';
+            const packageName = context.repo.repo; // Just 'devsecops-process-tracker', not 'owner/repo'
             const packageType = 'container';
             
             // Try user-owned package first, fall back to org-owned
