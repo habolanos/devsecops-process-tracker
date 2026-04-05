@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.21.4](https://github.com/habolanos/devsecops-process-tracker/compare/1.21.3...1.21.4) (2026-04-05)
+
+
+### 🐛 Bug Fixes
+
+* update Alpine packages and apply npm audit fix to resolve security vulnerabilities ([16cc052](https://github.com/habolanos/devsecops-process-tracker/commit/16cc0520223298cea42fb1ee8a2bb04bde3b18c6))
+
+
+### 🔀 CI/CD
+
+* ensure Trivy table report always runs to show vulnerabilities before job fails ([dfcaaf5](https://github.com/habolanos/devsecops-process-tracker/commit/dfcaaf59c3b11679ce6f66a0dadbdee159b4f259))
+* fix README ([c593b51](https://github.com/habolanos/devsecops-process-tracker/commit/c593b517372d2fe0d95cebc00049ae06bc263bac))
+* fix README escaping with --rawfile and simplify categories to manual instructions ([ab302b5](https://github.com/habolanos/devsecops-process-tracker/commit/ab302b5a2a0b7beaf91259466d48ac451d66f3cf))
+* include MEDIUM severity in blocking security scan ([9954783](https://github.com/habolanos/devsecops-process-tracker/commit/9954783ae90d3cbd8ac1adc80c8f090d091e9902))
+* make security scan BLOCKING - fail pipeline on HIGH/CRITICAL vulnerabilities ([91b9d07](https://github.com/habolanos/devsecops-process-tracker/commit/91b9d07e0d3dfc407a65fd3381ed2c2eb8517868))
+* restructure workflow to scan BEFORE push - security-first pipeline ([a2906e5](https://github.com/habolanos/devsecops-process-tracker/commit/a2906e5b755f25a99fb895100f9241c2e9b28222))
+* update Docker image labels - vendor to Harold Adrian, license to GPL-3.0 ([9c16894](https://github.com/habolanos/devsecops-process-tracker/commit/9c168943aa2fff2393cf8272fe11cca836f2d805))
+
 ## [1.21.3](https://github.com/habolanos/devsecops-process-tracker/compare/1.21.2...1.21.3) (2026-04-05)
 
 
