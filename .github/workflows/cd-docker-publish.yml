@@ -418,18 +418,19 @@ jobs:
           
           # Create full description from Docker-specific README (entire file, it's small enough)
           if [ -f "README-DOCKER.md" ]; then
-            FULL_DESCRIPTION=$(cat README-DOCKER.md | jq -Rs '.')
+            FULL_DESCRIPTION=$(cat README-DOCKER.md)
             echo "Using README-DOCKER.md for full description"
           else
-            FULL_DESCRIPTION=$(head -c 10000 README.md | jq -Rs '.[:-1]')
+            FULL_DESCRIPTION=$(head -c 10000 README.md)
             echo "Using truncated README.md for full description (README-DOCKER.md not found)"
           fi
           
           # Update repository description and overview
           echo "Updating Docker Hub repository description..."
+          # Build payload with proper JSON encoding for full_description
           PAYLOAD=$(jq -n \
             --arg desc "Web application for DevSecOps process management with evidence tracking, dependencies, and exports" \
-            --arg full_desc "$FULL_DESCRIPTION" \
+            --rawfile full_desc <(echo "$FULL_DESCRIPTION") \
             '{description: $desc, full_description: $full_desc}')
           
           RESPONSE=$(curl -s -X PATCH \
@@ -444,60 +445,17 @@ jobs:
             echo "⚠️ Description update response: $RESPONSE"
           fi
           
-          # Update categories using Docker Hub's categories endpoint
-          echo "Updating Docker Hub categories..."
-          
-          # First, fetch and display available categories
-          echo "Fetching available categories from Docker Hub..."
-          CATEGORIES_LIST=$(curl -s -H "Authorization: JWT $TOKEN" \
-            "https://hub.docker.com/v2/categories/" 2>/dev/null)
-          
-          # Display available categories
-          echo "Available Docker Hub categories:"
-          echo "$CATEGORIES_LIST" | jq -r '.results[] | "  - \(.slug): \(.name)"' 2>/dev/null || echo "  (Could not fetch categories list)"
+          # Update categories - Note: Docker Hub API has limited support for categories
           echo ""
-          
-          # Try to set categories - Docker Hub uses category slugs
-          # Common slugs: developer_tools, security, devops, monitoring, storage, networking, etc.
-          echo "Attempting to set categories: developer_tools, security, devops"
-          
-          # Try PATCH on repository with categories field
-          CAT_PAYLOAD=$(jq -n '{categories: ["developer_tools", "security", "devops"]}')
-          
-          CAT_RESPONSE=$(curl -s -X PATCH \
-            -H "Authorization: JWT $TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "$CAT_PAYLOAD" \
-            "https://hub.docker.com/v2/repositories/${DOCKERHUB_USERNAME}/${REPO_NAME}/")
-          
-          # Check response
-          if echo "$CAT_RESPONSE" | jq -e '.name' > /dev/null 2>&1; then
-            echo "✅ Repository updated"
-            # Check if categories were actually set
-            UPDATED_CATS=$(echo "$CAT_RESPONSE" | jq -r '.categories // empty')
-            if [ -n "$UPDATED_CATS" ] && [ "$UPDATED_CATS" != "[]" ] && [ "$UPDATED_CATS" != "null" ]; then
-              echo "✅ Categories set: $UPDATED_CATS"
-            else
-              echo "⚠️ Categories not returned in response - checking repository..."
-              # Fetch fresh repository data
-              REPO_DATA=$(curl -s -H "Authorization: JWT $TOKEN" \
-                "https://hub.docker.com/v2/repositories/${DOCKERHUB_USERNAME}/${REPO_NAME}/")
-              REPO_CATS=$(echo "$REPO_DATA" | jq -r '.categories // empty')
-              if [ -n "$REPO_CATS" ] && [ "$REPO_CATS" != "[]" ] && [ "$REPO_CATS" != "null" ]; then
-                echo "✅ Categories confirmed: $REPO_CATS"
-              else
-                echo "⚠️ Categories may require manual configuration in Docker Hub UI"
-                echo "   Visit: https://hub.docker.com/repository/docker/${DOCKERHUB_USERNAME}/${REPO_NAME}/settings/categories"
-              fi
-            fi
-          else
-            echo "⚠️ Could not update categories"
-            echo "Response: $CAT_RESPONSE" | jq '.' 2>/dev/null || echo "$CAT_RESPONSE"
-            echo ""
-            echo "Note: Docker Hub API has limitations for category updates."
-            echo "You may need to set categories manually in Docker Hub UI:"
-            echo "https://hub.docker.com/repository/docker/${DOCKERHUB_USERNAME}/${REPO_NAME}/settings/categories"
-          fi
+          echo "=== Docker Hub Categories ==="
+          echo "Note: Docker Hub does not support setting categories via public API."
+          echo "Categories must be configured manually in Docker Hub UI."
+          echo ""
+          echo "📋 To set categories manually:"
+          echo "   1. Visit: https://hub.docker.com/repository/docker/${DOCKERHUB_USERNAME}/${REPO_NAME}/settings/categories"
+          echo "   2. Select categories: Developer Tools, Security, DevOps"
+          echo "   3. Click 'Save Changes'"
+          echo ""
 
   # ==========================================================================
   # Cleanup Old Docker Hub Images (keep only latest)
