@@ -416,31 +416,44 @@ jobs:
             exit 1
           fi
           
-          # Create a concise full description (first 5000 chars of README to avoid API limits)
-          FULL_DESCRIPTION=$(head -c 5000 README.md | jq -Rs '.[:-1]')
+          # Create a comprehensive full description (first 15000 chars of README)
+          FULL_DESCRIPTION=$(head -c 15000 README.md | jq -Rs '.[:-1]')
           
-          # Build JSON payload using jq for proper escaping
+          # Update repository description and overview
+          echo "Updating Docker Hub repository description..."
           PAYLOAD=$(jq -n \
             --arg desc "Web application for DevSecOps process management with evidence tracking, dependencies, and exports" \
             --arg full_desc "$FULL_DESCRIPTION" \
-            '{description: $desc, full_description: $full_desc, categories: ["developer-tools", "security", "devops"]}')
+            '{description: $desc, full_description: $full_desc}')
           
-          # Update repository metadata
-          echo "Updating Docker Hub repository metadata..."
           RESPONSE=$(curl -s -X PATCH \
             -H "Authorization: JWT $TOKEN" \
             -H "Content-Type: application/json" \
             -d "$PAYLOAD" \
             "https://hub.docker.com/v2/repositories/${DOCKERHUB_USERNAME}/${REPO_NAME}/")
           
-          # Check response
-          if echo "$RESPONSE" | grep -q '"id":'; then
-            echo "✅ Docker Hub metadata updated successfully"
-          elif echo "$RESPONSE" | grep -q '"message":"internal error"'; then
-            echo "⚠️ Docker Hub returned internal error (may be due to content size), but continuing..."
-            echo "Response: $RESPONSE"
+          if echo "$RESPONSE" | jq -e '.name' > /dev/null 2>&1; then
+            echo "✅ Description and overview updated"
           else
-            echo "⚠️ Unexpected response: $RESPONSE"
+            echo "⚠️ Description update response: $RESPONSE"
+          fi
+          
+          # Update categories separately using the categories endpoint
+          echo "Updating Docker Hub categories..."
+          # Docker Hub category slugs: developer_tools, security, devops
+          CATEGORIES_PAYLOAD='{"categories": ["developer_tools", "security", "devops"]}'
+          
+          CAT_RESPONSE=$(curl -s -X PUT \
+            -H "Authorization: JWT $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$CATEGORIES_PAYLOAD" \
+            "https://hub.docker.com/v2/repositories/${DOCKERHUB_USERNAME}/${REPO_NAME}/categories/")
+          
+          if [ -z "$CAT_RESPONSE" ] || echo "$CAT_RESPONSE" | jq -e '.categories' > /dev/null 2>&1; then
+            echo "✅ Categories updated: developer_tools, security, devops"
+          else
+            echo "⚠️ Categories update response: $CAT_RESPONSE"
+            echo "Note: Categories may need to be set manually in Docker Hub UI"
           fi
 
   # ==========================================================================
