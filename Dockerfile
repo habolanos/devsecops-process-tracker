@@ -23,10 +23,9 @@ WORKDIR /app
 COPY nextjs_space/package.json nextjs_space/package-lock.json* ./
 
 # Install dependencies with cache mount for faster rebuilds
-# Then run audit fix to auto-fix vulnerabilities
+# Using npm install (not ci) to apply overrides from package.json
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefer-offline --no-audit && \
-    npm audit fix --force || true
+    npm install --prefer-offline --no-audit
 
 # ==========================================================================
 # Stage 2: Builder
