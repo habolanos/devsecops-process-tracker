@@ -737,11 +737,210 @@ npm run test:all         # Todos los tests (unitarios + E2E)
 
 ## 🐳 Docker
 
+### Opción 1: Ejecutar con Imagen Pre-construida (Recomendado)
+
+Usa esta opción si solo quieres ejecutar la aplicación sin necesidad de compilar código fuente.
+
+#### Paso 1: Descargar la Imagen
+
 ```bash
-# Construir y ejecutar
+# Pull la última versión estable
+docker pull habolanos/devsecops-process-tracker:latest
+
+# O pull una versión específica (reemplaza X.X.X con el número de versión)
+docker pull habolanos/devsecops-process-tracker:1.20.0
+```
+
+#### Paso 2: Ejecutar el Contenedor
+
+**Opción A - Básica (modo local, datos en localStorage):**
+```bash
+docker run -d \
+  --name devsecops-tracker \
+  -p 3000:3000 \
+  habolanos/devsecops-process-tracker:latest
+```
+
+**Opción B - Con persistencia de datos (volumen Docker):**
+```bash
+# Crear volumen para persistir datos
+docker volume create devsecops-data
+
+# Ejecutar con volumen montado
+docker run -d \
+  --name devsecops-tracker \
+  -p 3000:3000 \
+  -v devsecops-data:/app/data \
+  habolanos/devsecops-process-tracker:latest
+```
+
+**Opción C - Con variables de entorno (S3 opcional):**
+```bash
+docker run -d \
+  --name devsecops-tracker \
+  -p 3000:3000 \
+  -e AWS_BUCKET_NAME=tu-bucket \
+  -e AWS_REGION=us-east-1 \
+  -e AWS_ACCESS_KEY_ID=tu-key \
+  -e AWS_SECRET_ACCESS_KEY=tu-secret \
+  habolanos/devsecops-process-tracker:latest
+```
+
+#### Paso 3: Acceder a la Aplicación
+
+- Abre tu navegador en: `http://localhost:3000`
+- La aplicación estará lista en ~5-10 segundos
+
+#### Paso 4: Comandos Útiles de Gestión
+
+```bash
+# Ver logs en tiempo real
+docker logs -f devsecops-tracker
+
+# Detener el contenedor
+docker stop devsecops-tracker
+
+# Iniciar el contenedor (después de detener)
+docker start devsecops-tracker
+
+# Eliminar el contenedor (datos se pierden si no usaste volumen)
+docker rm devsecops-tracker
+
+# Actualizar a nueva versión
+docker pull habolanos/devsecops-process-tracker:latest
+docker stop devsecops-tracker
+docker rm devsecops-tracker
+docker run -d --name devsecops-tracker -p 3000:3000 habolanos/devsecops-process-tracker:latest
+```
+
+#### Verificación de Seguridad (Firma Cosign)
+
+```bash
+# Verificar firma criptográfica de la imagen
+cosign verify habolanos/devsecops-process-tracker:latest \
+  --certificate-identity-regexp="https://github.com/habolanos/devsecops-process-tracker/*" \
+  --certificate-oidc-issuer="https://token.actions.githubusercontent.com"
+```
+
+---
+
+### Opción 2: Construir y Ejecutar desde Código Fuente
+
+Usa esta opción si necesitas modificar el código, agregar funcionalidades personalizadas, o debuggear.
+
+#### Paso 1: Clonar el Repositorio
+
+```bash
+# Clonar el código fuente
+git clone https://github.com/habolanos/devsecops-process-tracker.git
+
+# Entrar al directorio
+cd devsecops-process-tracker
+```
+
+#### Paso 2: Opciones de Ejecución
+
+**Opción A - Docker Compose (Recomendado para desarrollo):**
+
+```bash
+# Construir y ejecutar con docker-compose
 docker-compose up --build
 
-# Acceder en http://localhost:3000
+# Ejecutar en segundo plano
+docker-compose up --build -d
+
+# Ver logs
+docker-compose logs -f
+
+# Detener
+docker-compose down
+```
+
+**Opción B - Docker Build Manual:**
+
+```bash
+# Construir la imagen localmente
+docker build -t devsecops-tracker:local .
+
+# Ejecutar la imagen local
+docker run -d \
+  --name devsecops-tracker-local \
+  -p 3000:3000 \
+  devsecops-tracker:local
+```
+
+**Opción C - Desarrollo con Hot-Reload (volumen montado):**
+
+```bash
+# Ejecutar con código fuente montado (cambios se reflejan inmediatamente)
+docker run -d \
+  --name devsecops-tracker-dev \
+  -p 3000:3000 \
+  -v $(pwd)/nextjs_space:/app \
+  -v /app/node_modules \
+  devsecops-tracker:local
+```
+
+#### Paso 3: Desarrollo Local (Sin Docker)
+
+Si prefieres desarrollar sin Docker:
+
+```bash
+# Entrar al directorio del proyecto Next.js
+cd nextjs_space
+
+# Instalar dependencias
+npm install
+
+# Iniciar servidor de desarrollo
+npm run dev
+
+# Ejecutar tests
+npm run test
+
+# Build de producción
+npm run build
+npm run start
+```
+
+#### Paso 4: Publicar tu Propia Imagen (Opcional)
+
+Si hiciste modificaciones y quieres publicar tu imagen:
+
+```bash
+# Taggear con tu usuario de Docker Hub
+docker tag devsecops-tracker:local tuusuario/devsecops-process-tracker:custom
+
+# Login a Docker Hub
+docker login
+
+# Push a Docker Hub
+docker push tuusuario/devsecops-process-tracker:custom
+```
+
+---
+
+### Resumen de Comparación
+
+| Aspecto | Imagen Pre-construida | Construir desde Código |
+|---------|----------------------|------------------------|
+| **Tiempo de inicio** | ~5-10 segundos | ~2-5 minutos (primera vez) |
+| **Requiere código** | No | Sí |
+| **Personalizable** | No | Sí |
+| **Hot-reload** | No | Sí (con volumen) |
+| **Ideal para** | Usuarios finales | Desarrolladores |
+| **Persistencia** | localStorage o S3 | localStorage, S3, o volúmenes |
+
+### Troubleshooting Docker
+
+| Problema | Solución |
+|----------|----------|
+| `port 3000 already in use` | Cambiar puerto: `-p 3001:3000` |
+| `permission denied` | Ejecutar con `sudo` (Linux) o verificar Docker Desktop (Windows/Mac) |
+| `image not found` | Ejecutar `docker pull` nuevamente |
+| Datos no persisten | Usar volumen Docker o configurar S3 |
+| Contenedor no inicia | Ver logs: `docker logs devsecops-tracker` |
+
 ```
 
 ## 🚀 CI/CD Pipelines
@@ -922,6 +1121,8 @@ docker run -p 3000:3000 <username>/devsecops-process-tracker:latest
 
 | Fecha | Versión | Descripción |
 |-------|---------|-------------|
+| 2026-04-04 | 1.20.0 | **Docker Hub Metadata & Cleanup**: Actualización automática de descripción, overview y categorías en Docker Hub, cleanup de imágenes antiguas preservando solo versión semver en Docker Hub y GHCR, fix API GHCR para paquetes de usuario |
+| 2026-04-04 | 1.19.0 | **CI/CD Fixes**: Fix Node.js 24 warnings, Dockerfile ARG declarations para BUILD_DATE/VCS_REF/VERSION, CodeQL v4 upgrade, FORCE_JAVASCRIPT_ACTIONS_TO_NODE24, simplificación de tags Docker (solo semver sin major/minor aliases) |
 | 2026-04-02 | 1.13.1 | **Fix CI/CD y Tests**: Migración ESLint de `next lint` a ESLint CLI, permisos SARIF corregidos (`security-events: write`), CodeQL actualizado a v4, coverage tests aumentado a 127 tests (67% coverage), tipos corregidos en json-utils.ts, script Abacus AI eliminado por seguridad |
 | 2026-04-02 | 1.13.0 | **CI/CD con GitHub Actions**: Workflows completos (CI, Release, Docker), Semantic Versioning automático, Conventional Commits, CodeQL SAST, Trivy scanning, Docker multi-arch con Cosign signing, SBOM (SPDX/CycloneDX), SLSA Level 3 attestations, health check endpoint |
 | 2026-04-02 | 1.12.0 | **Task Types y Clipboard**: Soporte para 3 tipos de tareas (`standard`, `check`, `multicheck`), validación de checkItems requeridos/opcionales, clipboard paste (Ctrl+V) para imágenes, botón "Terminar Tarea" en modal, ActivityCard con imágenes y links dinámicos, i18n actualizado |
