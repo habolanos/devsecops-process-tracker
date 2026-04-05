@@ -43,6 +43,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Get commit timestamp
+        id: commit_info
+        run: |
+          echo "timestamp=$(git log -1 --pretty=%ct)" >> $GITHUB_OUTPUT
+          echo "date=$(date -u +"%Y-%m-%dT%H:%M:%SZ" --date="@$(git log -1 --pretty=%ct)")" >> $GITHUB_OUTPUT
+
       - name: Set up QEMU (multi-architecture)
         uses: docker/setup-qemu-action@v3
 
@@ -115,7 +121,7 @@ jobs:
           sbom: true
           provenance: mode=max
           build-args: |
-            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            BUILD_DATE=${{ steps.commit_info.outputs.date }}
             VCS_REF=${{ github.sha }}
             VERSION=${{ github.event.inputs.version }}
 
@@ -132,7 +138,7 @@ jobs:
           cache-from: type=gha
           provenance: mode=max
           build-args: |
-            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            BUILD_DATE=${{ steps.commit_info.outputs.date }}
             VCS_REF=${{ github.sha }}
             VERSION=${{ github.event.inputs.version }}
 
