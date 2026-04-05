@@ -315,15 +315,34 @@ jobs:
             const packageName = '${{ env.IMAGE_NAME_GHCR }}';
             const packageType = 'container';
             
-            // Get all package versions
-            const { data: versions } = await github.rest.packages.getAllPackageVersionsForPackageOwnedByOrg({
-              package_type: packageType,
-              package_name: packageName,
-              org: context.repo.owner,
-              per_page: 100
-            });
+            // Try user-owned package first, fall back to org-owned
+            let versions;
+            try {
+              const { data } = await github.rest.packages.getAllPackageVersionsForPackageOwnedByAuthenticatedUser({
+                package_type: packageType,
+                package_name: packageName,
+                per_page: 100
+              });
+              versions = data;
+              console.log('Using user-owned package API');
+            } catch (userError) {
+              console.log('User-owned API failed, trying org-owned...');
+              try {
+                const { data } = await github.rest.packages.getAllPackageVersionsForPackageOwnedByOrg({
+                  package_type: packageType,
+                  package_name: packageName,
+                  org: context.repo.owner,
+                  per_page: 100
+                });
+                versions = data;
+                console.log('Using org-owned package API');
+              } catch (orgError) {
+                console.error('Both APIs failed:', orgError.message);
+                throw orgError;
+              }
+            }
             
-            if (versions.length <= 1) {
+            if (!versions || versions.length <= 1) {
               console.log('Only one or zero versions found, nothing to delete');
               return;
             }
@@ -331,22 +350,36 @@ jobs:
             // Sort by created_at descending (newest first)
             versions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
             
-            // Keep the latest, delete the rest
-            const latestVersion = versions[0];
-            const versionsToDelete = versions.slice(1);
+            // Find the first version that has a semver tag (not sha-xxx)
+            const semverVersion = versions.find(v => 
+              v.metadata && v.metadata.container && v.metadata.container.tags &&
+              v.metadata.container.tags.some(tag => /^\d+\.\d+\.\d+$/.test(tag))
+            ) || versions[0];
             
-            console.log(`Keeping latest version: ${latestVersion.id} (created: ${latestVersion.created_at})`);
+            const versionsToDelete = versions.filter(v => v.id !== semverVersion.id);
+            
+            const semverTag = semverVersion.metadata?.container?.tags?.find(t => /^\d+\.\d+\.\d+$/.test(t)) || 'unknown';
+            console.log(`Keeping version with semver tag: ${semverTag} (id: ${semverVersion.id})`);
             console.log(`Deleting ${versionsToDelete.length} old version(s)...`);
             
             for (const version of versionsToDelete) {
               try {
-                await github.rest.packages.deletePackageVersionForOrg({
-                  package_type: packageType,
-                  package_name: packageName,
-                  org: context.repo.owner,
-                  package_version_id: version.id
-                });
-                console.log(`✅ Deleted version ${version.id} (created: ${version.created_at})`);
+                // Try user delete first, fall back to org delete
+                try {
+                  await github.rest.packages.deletePackageVersionForAuthenticatedUser({
+                    package_type: packageType,
+                    package_name: packageName,
+                    package_version_id: version.id
+                  });
+                } catch (userDeleteError) {
+                  await github.rest.packages.deletePackageVersionForOrg({
+                    package_type: packageType,
+                    package_name: packageName,
+                    org: context.repo.owner,
+                    package_version_id: version.id
+                  });
+                }
+                console.log(`✅ Deleted version ${version.id}`);
               } catch (error) {
                 console.error(`❌ Failed to delete version ${version.id}: ${error.message}`);
               }
@@ -385,24 +418,35 @@ jobs:
           TAGS_RESPONSE=$(curl -s -H "Authorization: JWT $TOKEN" \
             "https://hub.docker.com/v2/repositories/${DOCKERHUB_USERNAME}/${REPO_NAME}/tags?page_size=100")
           
-          # Parse tags and their last_updated dates
-          echo "$TAGS_RESPONSE" | jq -r '.results[] | "\(.name)|\(.last_updated)"' | sort -t'|' -k2 -r > /tmp/tags_sorted.txt
+          # Parse tags and identify semver vs sha tags
+          echo "$TAGS_RESPONSE" | jq -r '.results[] | "\(.name)|\(.last_updated)"' > /tmp/tags_all.txt
           
-          TAG_COUNT=$(wc -l < /tmp/tags_sorted.txt)
-          echo "Found $TAG_COUNT tag(s)"
+          # Find semver tag (x.x.x format) to keep
+          SEMVER_TAG=$(grep -E '^[0-9]+\.[0-9]+\.[0-9]+\|' /tmp/tags_all.txt | head -n1 | cut -d'|' -f1)
           
-          if [ "$TAG_COUNT" -le 1 ]; then
-            echo "Only one or zero tags found, nothing to delete"
+          if [ -z "$SEMVER_TAG" ]; then
+            # Fallback to most recent if no semver found
+            SEMVER_TAG=$(sort -t'|' -k2 -r /tmp/tags_all.txt | head -n1 | cut -d'|' -f1)
+            echo "No semver tag found, keeping most recent: $SEMVER_TAG"
+          else
+            echo "Keeping semver tag: $SEMVER_TAG"
+          fi
+          
+          # Get all tags except the one we're keeping
+          TAGS_TO_DELETE=$(grep -v "^${SEMVER_TAG}|" /tmp/tags_all.txt | cut -d'|' -f1)
+          
+          TAG_COUNT=$(echo "$TAGS_TO_DELETE" | grep -c . || true)
+          echo "Found $TAG_COUNT tag(s) to delete"
+          
+          if [ -z "$TAGS_TO_DELETE" ]; then
+            echo "No tags to delete"
             exit 0
           fi
           
-          # Keep the first (most recent) tag, delete the rest
-          LATEST_TAG=$(head -n1 /tmp/tags_sorted.txt | cut -d'|' -f1)
-          echo "Keeping latest tag: $LATEST_TAG"
-          
-          # Delete all tags except the latest
-          tail -n +2 /tmp/tags_sorted.txt | while IFS='|' read -r tag_name last_updated; do
-            echo "Deleting tag: $tag_name (last updated: $last_updated)"
+          # Delete all tags except the semver one
+          echo "$TAGS_TO_DELETE" | while read -r tag_name; do
+            [ -z "$tag_name" ] && continue
+            echo "Deleting tag: $tag_name"
             DELETE_RESPONSE=$(curl -s -X DELETE \
               -H "Authorization: JWT $TOKEN" \
               "https://hub.docker.com/v2/repositories/${DOCKERHUB_USERNAME}/${REPO_NAME}/tags/${tag_name}/")
