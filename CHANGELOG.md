@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0](https://github.com/habolanos/devsecops-process-tracker/compare/1.13.4...1.14.0) (2026-04-05)
+
+
+### 🚀 Features
+
+* trigger release to test docker version tags ([efbfcfb](https://github.com/habolanos/devsecops-process-tracker/commit/efbfcfb682ff1533f20b8334f255cc0faaa71800))
+* update Azure Pipelines and GitLab CI with latest GitHub workflow definitions ([95ea023](https://github.com/habolanos/devsecops-process-tracker/commit/95ea02386e2289924249144151af0ef7ce5a8c3e))
+
+
+### 🔀 CI/CD
+
+* **docker:** fix version tags and attestation digest for GHCR ([6cf261e](https://github.com/habolanos/devsecops-process-tracker/commit/6cf261e462b0a35f34859a895442a98f379923d1))
+* **docker:** fix version tags and build args for cd-docker-publish ([0656d3c](https://github.com/habolanos/devsecops-process-tracker/commit/0656d3c552b71845ec1d88af58533c41c7a67352))
+* **release:** fix broken emoji in job name ([9e88c10](https://github.com/habolanos/devsecops-process-tracker/commit/9e88c106764d3da7c48bf5d7cbd597dce7024198))
+* **release:** Rename CI and CD ([4122a19](https://github.com/habolanos/devsecops-process-tracker/commit/4122a194facf4bc7d9f2fb3c063a379da281716b))
+
 ## [1.13.4](https://github.com/habolanos/devsecops-process-tracker/compare/1.13.3...1.13.4) (2026-04-03)
 
 
