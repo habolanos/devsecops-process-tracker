@@ -76,11 +76,8 @@ jobs:
           images: ${{ env.IMAGE_NAME_DOCKER }}
           tags: |
             type=raw,value=${{ github.event.inputs.version }}
-            type=semver,pattern={{version}},value=${{ github.event.inputs.version }},enable=${{ github.event.inputs.version != '' }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ github.event.inputs.version }},enable=${{ github.event.inputs.version != '' }}
-            type=semver,pattern={{major}},value=${{ github.event.inputs.version }},enable=${{ github.event.inputs.version != '' }}
-            type=sha,prefix=sha-
-            type=raw,value=latest,enable=${{ github.event_name == 'release' || github.event_name == 'workflow_dispatch' }}
+            type=sha,prefix=sha-,enable=${{ github.event_name == 'release' }}
+            type=raw,value=latest,enable=${{ github.event_name == 'release' }}
           labels: |
             org.opencontainers.image.title=DevSecOps Process Tracker
             org.opencontainers.image.description=Web application for DevSecOps process management with evidence tracking
@@ -95,11 +92,8 @@ jobs:
           images: ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME_GHCR }}
           tags: |
             type=raw,value=${{ github.event.inputs.version }}
-            type=semver,pattern={{version}},value=${{ github.event.inputs.version }},enable=${{ github.event.inputs.version != '' }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ github.event.inputs.version }},enable=${{ github.event.inputs.version != '' }}
-            type=semver,pattern={{major}},value=${{ github.event.inputs.version }},enable=${{ github.event.inputs.version != '' }}
-            type=sha,prefix=sha-
-            type=raw,value=latest,enable=${{ github.event_name == 'release' || github.event_name == 'workflow_dispatch' }}
+            type=sha,prefix=sha-,enable=${{ github.event_name == 'release' }}
+            type=raw,value=latest,enable=${{ github.event_name == 'release' }}
           labels: |
             org.opencontainers.image.title=DevSecOps Process Tracker
             org.opencontainers.image.description=Web application for DevSecOps process management with evidence tracking

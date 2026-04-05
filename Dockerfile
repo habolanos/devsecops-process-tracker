@@ -11,7 +11,7 @@ ARG VERSION=latest
 # ==========================================================================
 # Stage 1: Dependencies
 # ==========================================================================
-FROM node:20-alpine AS deps
+FROM node:24-alpine AS deps
 
 # Security: Install only necessary packages
 RUN apk add --no-cache libc6-compat
@@ -28,7 +28,7 @@ RUN --mount=type=cache,target=/root/.npm \
 # ==========================================================================
 # Stage 2: Builder
 # ==========================================================================
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
@@ -48,7 +48,7 @@ RUN --mount=type=cache,target=/root/.npm \
 # ==========================================================================
 # Stage 3: Production Runner
 # ==========================================================================
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
 
 # Re-declare build args for this stage (required for LABEL to access them)
 ARG BUILD_DATE
