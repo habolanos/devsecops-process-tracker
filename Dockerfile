@@ -50,6 +50,11 @@ RUN --mount=type=cache,target=/root/.npm \
 # ==========================================================================
 FROM node:20-alpine AS runner
 
+# Re-declare build args for this stage (required for LABEL to access them)
+ARG BUILD_DATE
+ARG VCS_REF
+ARG VERSION
+
 # OCI Image Labels (https://github.com/opencontainers/image-spec/blob/main/annotations.md)
 LABEL org.opencontainers.image.title="DevSecOps Process Tracker" \
       org.opencontainers.image.description="Web application for DevSecOps process management with evidence tracking, dependencies, and exports" \
