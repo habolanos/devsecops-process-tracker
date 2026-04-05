@@ -447,23 +447,21 @@ jobs:
           # Update categories using Docker Hub's categories endpoint
           echo "Updating Docker Hub categories..."
           
-          # First, try to get available categories to verify the endpoint
-          echo "Checking available categories..."
+          # First, fetch and display available categories
+          echo "Fetching available categories from Docker Hub..."
           CATEGORIES_LIST=$(curl -s -H "Authorization: JWT $TOKEN" \
-            "https://hub.docker.com/v2/categories/")
+            "https://hub.docker.com/v2/categories/" 2>/dev/null)
           
-          # Try multiple formats for categories
-          # Format 1: Simple array with category names
-          CATEGORIES_PAYLOAD1='["developer_tools", "security", "devops"]'
+          # Display available categories
+          echo "Available Docker Hub categories:"
+          echo "$CATEGORIES_LIST" | jq -r '.results[] | "  - \(.slug): \(.name)"' 2>/dev/null || echo "  (Could not fetch categories list)"
+          echo ""
           
-          # Format 2: Object with categories array  
-          CATEGORIES_PAYLOAD2='{"categories": ["developer_tools", "security", "devops"]}'
+          # Try to set categories - Docker Hub uses category slugs
+          # Common slugs: developer_tools, security, devops, monitoring, storage, networking, etc.
+          echo "Attempting to set categories: developer_tools, security, devops"
           
-          # Format 3: Array of objects with name/slug
-          CATEGORIES_PAYLOAD3='[{"slug": "developer_tools"}, {"slug": "security"}, {"slug": "devops"}]'
-          
-          # Try PATCH on repository with categories
-          echo "Trying to update categories via repository PATCH..."
+          # Try PATCH on repository with categories field
           CAT_PAYLOAD=$(jq -n '{categories: ["developer_tools", "security", "devops"]}')
           
           CAT_RESPONSE=$(curl -s -X PATCH \
@@ -472,16 +470,33 @@ jobs:
             -d "$CAT_PAYLOAD" \
             "https://hub.docker.com/v2/repositories/${DOCKERHUB_USERNAME}/${REPO_NAME}/")
           
-          echo "Categories update response: $CAT_RESPONSE"
-          
-          # Check if categories were updated
-          if echo "$CAT_RESPONSE" | jq -e '.categories | length > 0' > /dev/null 2>&1; then
-            echo "✅ Categories updated successfully"
+          # Check response
+          if echo "$CAT_RESPONSE" | jq -e '.name' > /dev/null 2>&1; then
+            echo "✅ Repository updated"
+            # Check if categories were actually set
+            UPDATED_CATS=$(echo "$CAT_RESPONSE" | jq -r '.categories // empty')
+            if [ -n "$UPDATED_CATS" ] && [ "$UPDATED_CATS" != "[]" ] && [ "$UPDATED_CATS" != "null" ]; then
+              echo "✅ Categories set: $UPDATED_CATS"
+            else
+              echo "⚠️ Categories not returned in response - checking repository..."
+              # Fetch fresh repository data
+              REPO_DATA=$(curl -s -H "Authorization: JWT $TOKEN" \
+                "https://hub.docker.com/v2/repositories/${DOCKERHUB_USERNAME}/${REPO_NAME}/")
+              REPO_CATS=$(echo "$REPO_DATA" | jq -r '.categories // empty')
+              if [ -n "$REPO_CATS" ] && [ "$REPO_CATS" != "[]" ] && [ "$REPO_CATS" != "null" ]; then
+                echo "✅ Categories confirmed: $REPO_CATS"
+              else
+                echo "⚠️ Categories may require manual configuration in Docker Hub UI"
+                echo "   Visit: https://hub.docker.com/repository/docker/${DOCKERHUB_USERNAME}/${REPO_NAME}/settings/categories"
+              fi
+            fi
           else
-            echo "⚠️ Categories may need manual configuration in Docker Hub UI"
-            echo "Attempted categories: developer_tools, security, devops"
-            # Print full response for debugging
-            echo "$CAT_RESPONSE" | jq '.' 2>/dev/null || echo "$CAT_RESPONSE"
+            echo "⚠️ Could not update categories"
+            echo "Response: $CAT_RESPONSE" | jq '.' 2>/dev/null || echo "$CAT_RESPONSE"
+            echo ""
+            echo "Note: Docker Hub API has limitations for category updates."
+            echo "You may need to set categories manually in Docker Hub UI:"
+            echo "https://hub.docker.com/repository/docker/${DOCKERHUB_USERNAME}/${REPO_NAME}/settings/categories"
           fi
 
   # ==========================================================================
