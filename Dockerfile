@@ -23,9 +23,10 @@ WORKDIR /app
 COPY nextjs_space/package.json ./
 
 # Install dependencies with cache mount for faster rebuilds
-# Overrides in package.json will force secure versions
+# Override versions in package.json will force secure versions
 RUN --mount=type=cache,target=/root/.npm \
-    npm install --prefer-offline --no-audit
+    npm install --prefer-offline --no-audit && \
+    npm audit fix --force || true
 
 # ==========================================================================
 # Stage 2: Builder
