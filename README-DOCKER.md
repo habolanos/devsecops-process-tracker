@@ -60,17 +60,28 @@ docker run -d -p 3000:3000 --name devsecops-tracker devsecops-tracker:local
 
 ### docker-compose
 
-```yaml
-version: '3.8'
-services:
-  app:
-    image: habolanos/devsecops-process-tracker:latest
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-    restart: unless-stopped
+El repositorio incluye un archivo `docker-compose.yml` preconfigurado.
+
+**Usar imagen pre-built desde Docker Hub:**
+```bash
+# Descargar docker-compose.yml
+curl -O https://raw.githubusercontent.com/habolanos/devsecops-process-tracker/main/docker-compose.yml
+
+# Modificar para usar imagen pre-built (cambiar 'build' por 'image')
+# Luego ejecutar:
+docker-compose up -d
 ```
+
+**Build local desde código fuente:**
+```bash
+git clone https://github.com/habolanos/devsecops-process-tracker.git
+cd devsecops-process-tracker
+docker-compose up --build -d
+```
+
+**Servicios incluidos:**
+- `process-tracker`: Aplicación web en puerto 3000
+- Red `app-network` para comunicación entre servicios
 
 ## 📄 Licencia
 
