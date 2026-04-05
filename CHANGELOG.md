@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.21.3](https://github.com/habolanos/devsecops-process-tracker/compare/1.21.2...1.21.3) (2026-04-05)
+
+
+### 🐛 Bug Fixes
+
+* add README-DOCKER.md for Docker Hub with author info and improved categories API ([d4b80a7](https://github.com/habolanos/devsecops-process-tracker/commit/d4b80a71c6a75471ac2235d8e5049d25bfe3be5c))
+
+
+### 📖 Documentation
+
+* update docker-compose section to reference existing docker-compose.yml file ([6396e74](https://github.com/habolanos/devsecops-process-tracker/commit/6396e745e39e7392778d6e2dc18db888915a8f37))
+
+
+### 🔀 CI/CD
+
+* add Docker Hub category listing and improved category API handling ([372da6c](https://github.com/habolanos/devsecops-process-tracker/commit/372da6c8a472034e6d2e2a162576694078f8ae68))
+
 ## [1.21.2](https://github.com/habolanos/devsecops-process-tracker/compare/1.21.1...1.21.2) (2026-04-05)
 
 
