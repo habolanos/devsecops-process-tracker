@@ -111,8 +111,8 @@ jobs:
             await github.rest.actions.createWorkflowDispatch({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              workflow_id: 'docker-publish.yml',
-              ref: 'main',
+              workflow_id: 'cd-docker-publish.yml',
+              ref: 'master',
               inputs: {
                 version: '${{ needs.release.outputs.new_release_version }}'
               }

@@ -68,10 +68,10 @@ jobs:
         with:
           images: ${{ env.IMAGE_NAME_DOCKER }}
           tags: |
-            type=raw,value=${{ github.event.inputs.version || github.ref_name }}
-            type=semver,pattern={{version}},value=${{ github.event.inputs.version || github.ref_name }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ github.event.inputs.version || github.ref_name }}
-            type=semver,pattern={{major}},value=${{ github.event.inputs.version || github.ref_name }}
+            type=raw,value=${{ github.event.inputs.version }}
+            type=semver,pattern={{version}},value=${{ github.event.inputs.version }},enable=${{ github.event.inputs.version != '' }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ github.event.inputs.version }},enable=${{ github.event.inputs.version != '' }}
+            type=semver,pattern={{major}},value=${{ github.event.inputs.version }},enable=${{ github.event.inputs.version != '' }}
             type=sha,prefix=sha-
             type=raw,value=latest,enable=${{ github.event_name == 'release' || github.event_name == 'workflow_dispatch' }}
           labels: |
@@ -87,10 +87,10 @@ jobs:
         with:
           images: ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME_GHCR }}
           tags: |
-            type=raw,value=${{ github.event.inputs.version || github.ref_name }}
-            type=semver,pattern={{version}},value=${{ github.event.inputs.version || github.ref_name }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ github.event.inputs.version || github.ref_name }}
-            type=semver,pattern={{major}},value=${{ github.event.inputs.version || github.ref_name }}
+            type=raw,value=${{ github.event.inputs.version }}
+            type=semver,pattern={{version}},value=${{ github.event.inputs.version }},enable=${{ github.event.inputs.version != '' }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ github.event.inputs.version }},enable=${{ github.event.inputs.version != '' }}
+            type=semver,pattern={{major}},value=${{ github.event.inputs.version }},enable=${{ github.event.inputs.version != '' }}
             type=sha,prefix=sha-
             type=raw,value=latest,enable=${{ github.event_name == 'release' || github.event_name == 'workflow_dispatch' }}
           labels: |
@@ -117,7 +117,7 @@ jobs:
           build-args: |
             BUILD_DATE=${{ github.event.head_commit.timestamp }}
             VCS_REF=${{ github.sha }}
-            VERSION=${{ github.event.inputs.version || github.ref_name }}
+            VERSION=${{ github.event.inputs.version }}
 
       - name: Build and push Docker image to GHCR
         id: push-ghcr
@@ -134,13 +134,15 @@ jobs:
           build-args: |
             BUILD_DATE=${{ github.event.head_commit.timestamp }}
             VCS_REF=${{ github.sha }}
-            VERSION=${{ github.event.inputs.version || github.ref_name }}
+            VERSION=${{ github.event.inputs.version }}
 
       - name: Export digest
         run: |
           echo "Image pushed with digest: ${{ steps.push.outputs.digest }}"
           echo "Docker Hub tags: ${{ steps.meta-docker.outputs.tags }}"
           echo "GHCR tags: ${{ steps.meta-ghcr.outputs.tags }}"
+          echo "Input version: ${{ github.event.inputs.version }}"
+          echo "Event name: ${{ github.event_name }}"
 
   # ==========================================================================
   # Sign Image with Cosign (Sigstore)
