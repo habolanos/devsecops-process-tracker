@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.0](https://github.com/habolanos/devsecops-process-tracker/compare/1.15.0...1.16.0) (2026-04-05)
+
+
+### 🚀 Features
+
+* The issue was that github.event.head_commit only exists for push events, but your workflow triggers on release and workflow_dispatch events. ([4a4fe47](https://github.com/habolanos/devsecops-process-tracker/commit/4a4fe47f9f45c1be053a08e62e241d9b7b050051))
+
 ## [1.15.0](https://github.com/habolanos/devsecops-process-tracker/compare/1.14.0...1.15.0) (2026-04-05)
 
 
