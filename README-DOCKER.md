@@ -2,7 +2,8 @@
 
 Aplicación web para gestión y seguimiento de procesos DevSecOps con soporte para evidencias, dependencias entre tareas, links dinámicos y exportación de resultados.
 
-**Autor:** Harold Adrian  
+**Autor:** Harold Adrian 
+**LinkedIn:** https://www.linkedin.com/in/habolanos
 **Repositorio:** https://github.com/habolanos/devsecops-process-tracker
 
 ---
