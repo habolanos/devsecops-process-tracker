@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.0](https://github.com/habolanos/devsecops-process-tracker/compare/1.17.0...1.18.0) (2026-04-05)
+
+
+### 🚀 Features
+
+* Annotations ([24551ed](https://github.com/habolanos/devsecops-process-tracker/commit/24551ed0a5f8613f0c4476a3e877a48955a2525a)), closes [Dockerfile#L54](https://github.com/habolanos/Dockerfile/issues/L54) [Dockerfile#L54](https://github.com/habolanos/Dockerfile/issues/L54) [Dockerfile#L54](https://github.com/habolanos/Dockerfile/issues/L54) [Dockerfile#L54](https://github.com/habolanos/Dockerfile/issues/L54) [Dockerfile#L54](https://github.com/habolanos/Dockerfile/issues/L54) [Dockerfile#L54](https://github.com/habolanos/Dockerfile/issues/L54)
+
 ## [1.17.0](https://github.com/habolanos/devsecops-process-tracker/compare/1.16.0...1.17.0) (2026-04-05)
 
 
