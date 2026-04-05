@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.21.1](https://github.com/habolanos/devsecops-process-tracker/compare/1.21.0...1.21.1) (2026-04-05)
+
+
+### 🐛 Bug Fixes
+
+* Docker Hub metadata API payload size and JSON escaping ([1e64594](https://github.com/habolanos/devsecops-process-tracker/commit/1e64594afdfa21331ac633a439b8c4ad301db920))
+
+
+### 📖 Documentation
+
+* enrich Docker section with detailed execution guides and update history ([e6a5d86](https://github.com/habolanos/devsecops-process-tracker/commit/e6a5d867ea278115102e6157dabd0197690db1e5))
+* fix duplicate Docker section and change license from MIT to GNU GPL-3.0 ([a1ca656](https://github.com/habolanos/devsecops-process-tracker/commit/a1ca656ecb2f60b3f46d512a39328420b17b61be))
+
 ## [1.21.0](https://github.com/habolanos/devsecops-process-tracker/compare/1.20.0...1.21.0) (2026-04-05)
 
 
