@@ -1099,24 +1099,6 @@ docs(readme): update CI/CD documentation
 perf(store): optimize state updates
 ```
 
-#### Docker Hub
-
-La imagen se publica automáticamente en Docker Hub con:
-
-```bash
-# Pull la última versión
-docker pull <username>/devsecops-process-tracker:latest
-
-# Pull versión específica
-docker pull <username>/devsecops-process-tracker:1.12.0
-
-# Verificar firma
-cosign verify <username>/devsecops-process-tracker:latest
-
-# Ejecutar
-docker run -p 3000:3000 <username>/devsecops-process-tracker:latest
-```
-
 ## 📊 Historial de Cambios
 
 | Fecha | Versión | Descripción |
@@ -1145,7 +1127,11 @@ docker run -p 3000:3000 <username>/devsecops-process-tracker:latest
 
 ## 📄 Licencia
 
-MIT License - Libre para uso educativo y comercial.
+GNU General Public License v3.0 (GPL-3.0) - Software libre para uso educativo y comercial.
+
+Este programa es software libre: puedes redistribuirlo y/o modificarlo bajo los términos de la Licencia Pública General de GNU publicada por la Free Software Foundation, ya sea la versión 3 de la Licencia, o (a tu elección) cualquier versión posterior.
+
+Este programa se distribuye con la esperanza de que sea útil, pero SIN NINGUNA GARANTÍA; sin siquiera la garantía implícita de COMERCIALIZACIÓN o IDONEIDAD PARA UN PROPÓSITO PARTICULAR. Consulta la Licencia Pública General de GNU para más detalles.
 
 ---
 
