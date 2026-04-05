@@ -416,22 +416,32 @@ jobs:
             exit 1
           fi
           
-          # Read README for full description
-          FULL_DESCRIPTION=$(cat README.md | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+          # Create a concise full description (first 5000 chars of README to avoid API limits)
+          FULL_DESCRIPTION=$(head -c 5000 README.md | jq -Rs '.[:-1]')
+          
+          # Build JSON payload using jq for proper escaping
+          PAYLOAD=$(jq -n \
+            --arg desc "Web application for DevSecOps process management with evidence tracking, dependencies, and exports" \
+            --arg full_desc "$FULL_DESCRIPTION" \
+            '{description: $desc, full_description: $full_desc, categories: ["developer-tools", "security", "devops"]}')
           
           # Update repository metadata
           echo "Updating Docker Hub repository metadata..."
-          curl -X PATCH \
+          RESPONSE=$(curl -s -X PATCH \
             -H "Authorization: JWT $TOKEN" \
             -H "Content-Type: application/json" \
-            -d '{
-              "description": "Web application for DevSecOps process management with evidence tracking, dependencies, and exports",
-              "full_description": "'"$FULL_DESCRIPTION"'",
-              "categories": ["developer-tools", "security", "devops"]
-            }' \
-            "https://hub.docker.com/v2/repositories/${DOCKERHUB_USERNAME}/${REPO_NAME}/"
+            -d "$PAYLOAD" \
+            "https://hub.docker.com/v2/repositories/${DOCKERHUB_USERNAME}/${REPO_NAME}/")
           
-          echo "✅ Docker Hub metadata updated"
+          # Check response
+          if echo "$RESPONSE" | grep -q '"id":'; then
+            echo "✅ Docker Hub metadata updated successfully"
+          elif echo "$RESPONSE" | grep -q '"message":"internal error"'; then
+            echo "⚠️ Docker Hub returned internal error (may be due to content size), but continuing..."
+            echo "Response: $RESPONSE"
+          else
+            echo "⚠️ Unexpected response: $RESPONSE"
+          fi
 
   # ==========================================================================
   # Cleanup Old Docker Hub Images (keep only latest)
