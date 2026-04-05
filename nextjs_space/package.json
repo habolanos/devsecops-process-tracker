@@ -142,18 +142,16 @@
     "webpack": "^5.105.4",
     "yup": "1.3.0",
     "zod": "3.23.8",
-    "zustand": "^5.0.12"
+    "zustand": "^5.0.12",
+    "minimatch": "^10.2.3",
+    "picomatch": "^4.0.4",
+    "tar": "^7.5.11",
+    "brace-expansion": "^5.0.5"
   },
   "browserslist": [
     "ie >= 11",
     "> 0.5%",
     "last 2 versions",
     "not dead"
-  ],
-  "overrides": {
-    "minimatch": "^10.2.3",
-    "picomatch": "^4.0.4",
-    "tar": "^7.5.11",
-    "brace-expansion": "^5.0.5"
-  }
+  ]
 }
