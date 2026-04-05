@@ -1,0 +1,270 @@
+# ============================================================================
+# Bitbucket Pipelines - DevSecOps Process Tracker
+# Standards: ISO 27001, OWASP, CIS Benchmarks, SLSA Level 2
+# ============================================================================
+
+image: node:24-slim
+
+# Pipeline definitions
+pipelines:
+  # ==========================================================================
+  # Pull Request Pipeline
+  # ==========================================================================
+  pull-requests:
+    '**':
+      - step:
+          name: 🔍 Lint & Format
+          caches:
+            - node
+          script:
+            - cd nextjs_space
+            - npm ci
+            - npm run lint
+      
+      - step:
+          name: 📝 Commit Lint
+          script:
+            - npm install -g @commitlint/cli @commitlint/config-conventional
+            - npx commitlint --from ${BITBUCKET_PR_DESTINATION_COMMIT} --to ${BITBUCKET_COMMIT} --verbose
+      
+      - step:
+          name: 🧪 Unit Tests
+          caches:
+            - node
+          script:
+            - cd nextjs_space
+            - npm ci
+            - npm run test:coverage
+          artifacts:
+            - nextjs_space/coverage/**
+      
+      - step:
+          name: 🎭 E2E Tests
+          caches:
+            - node
+            - playwright
+          script:
+            - cd nextjs_space
+            - npm ci
+            - npx playwright install --with-deps chromium
+            - npx playwright test --project=chromium
+          artifacts:
+            - nextjs_space/playwright-report/**
+      
+      - step:
+          name: 🔐 Security Scan
+          caches:
+            - node
+          script:
+            - cd nextjs_space
+            - npm ci
+            - npm audit --audit-level=high || true
+      
+      - step:
+          name: 🏗️ Build Application
+          caches:
+            - node
+          script:
+            - cd nextjs_space
+            - npm ci
+            - npm run build
+          artifacts:
+            - nextjs_space/.next/**
+            - nextjs_space/public/**
+      
+      - step:
+          name: 🐳 Docker Build Test
+          image: docker:latest
+          services:
+            - docker
+          script:
+            - docker build --target runner -t devsecops-process-tracker:test .
+            - docker images
+
+  # ==========================================================================
+  # Branch Pipeline (master/develop/QA)
+  # ==========================================================================
+  branches:
+    master:
+      - step:
+          name: 🔍 Lint & Format
+          caches:
+            - node
+          script:
+            - cd nextjs_space
+            - npm ci
+            - npm run lint
+      
+      - step:
+          name: 🧪 Unit Tests
+          caches:
+            - node
+          script:
+            - cd nextjs_space
+            - npm ci
+            - npm run test:coverage
+          artifacts:
+            - nextjs_space/coverage/**
+      
+      - step:
+          name: 🎭 E2E Tests
+          caches:
+            - node
+            - playwright
+          script:
+            - cd nextjs_space
+            - npm ci
+            - npx playwright install --with-deps chromium
+            - npx playwright test --project=chromium
+          artifacts:
+            - nextjs_space/playwright-report/**
+      
+      - step:
+          name: 🔐 Security Scan
+          caches:
+            - node
+          script:
+            - cd nextjs_space
+            - npm ci
+            - npm audit --audit-level=high || true
+      
+      - step:
+          name: 🏗️ Build Application
+          caches:
+            - node
+          script:
+            - cd nextjs_space
+            - npm ci
+            - npm run build
+          artifacts:
+            - nextjs_space/.next/**
+            - nextjs_space/public/**
+      
+      - step:
+          name: 🚀 Semantic Release
+          image: node:20-slim
+          trigger: automatic
+          script:
+            - apt-get update -qq && apt-get install -y -qq git
+            - npm install -g semantic-release@23 @semantic-release/changelog@6 @semantic-release/git@10 @semantic-release/github@10 @semantic-release/commit-analyzer@12 @semantic-release/release-notes-generator@13 conventional-changelog-conventionalcommits@7
+            - npx semantic-release
+          artifacts:
+            - CHANGELOG.md
+      
+      - step:
+          name: 🐳 Docker Publish
+          image: docker:latest
+          services:
+            - docker
+          trigger: manual
+          script:
+            - echo ${DOCKERHUB_TOKEN} | docker login -u ${DOCKERHUB_USERNAME} --password-stdin
+            - docker buildx create --use
+            - |
+              docker buildx build \
+                --platform linux/amd64,linux/arm64 \
+                --push \
+                -t ${DOCKERHUB_USERNAME}/devsecops-process-tracker:${BITBUCKET_COMMIT} \
+                -t ${DOCKERHUB_USERNAME}/devsecops-process-tracker:latest \
+                -t ${DOCKERHUB_USERNAME}/devsecops-process-tracker:${BITBUCKET_TAG:-latest} \
+                --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+                --build-arg VCS_REF=${BITBUCKET_COMMIT} \
+                --build-arg VERSION=${BITBUCKET_TAG:-latest} \
+                .
+            - docker logout
+
+    develop:
+      - step:
+          name: 🔍 Lint & Format
+          caches:
+            - node
+          script:
+            - cd nextjs_space
+            - npm ci
+            - npm run lint
+      
+      - step:
+          name: 🧪 Unit Tests
+          caches:
+            - node
+          script:
+            - cd nextjs_space
+            - npm ci
+            - npm run test:coverage
+      
+      - step:
+          name: 🏗️ Build Application
+          caches:
+            - node
+          script:
+            - cd nextjs_space
+            - npm ci
+            - npm run build
+
+    QA:
+      - step:
+          name: 🔍 Lint & Format
+          caches:
+            - node
+          script:
+            - cd nextjs_space
+            - npm ci
+            - npm run lint
+      
+      - step:
+          name: 🧪 Unit Tests
+          caches:
+            - node
+          script:
+            - cd nextjs_space
+            - npm ci
+            - npm run test:coverage
+      
+      - step:
+          name: 🏗️ Build Application
+          caches:
+            - node
+          script:
+            - cd nextjs_space
+            - npm ci
+            - npm run build
+
+  # ==========================================================================
+  # Custom Pipeline (Manual Trigger)
+  # ==========================================================================
+  custom:
+    docker-publish:
+      - step:
+          name: 🐳 Docker Publish (Manual)
+          image: docker:latest
+          services:
+            - docker
+          script:
+            - echo ${DOCKERHUB_TOKEN} | docker login -u ${DOCKERHUB_USERNAME} --password-stdin
+            - docker buildx create --use
+            - |
+              docker buildx build \
+                --platform linux/amd64,linux/arm64 \
+                --push \
+                -t ${DOCKERHUB_USERNAME}/devsecops-process-tracker:${BITBUCKET_COMMIT} \
+                -t ${DOCKERHUB_USERNAME}/devsecops-process-tracker:latest \
+                --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+                --build-arg VCS_REF=${BITBUCKET_COMMIT} \
+                --build-arg VERSION=${VERSION:-manual} \
+                .
+            - docker logout
+
+# ==========================================================================
+# Cache Definitions
+# ==========================================================================
+definitions:
+  caches:
+    node: nextjs_space/node_modules
+    playwright: ~/.cache/ms-playwright
+  
+  services:
+    docker:
+      image: docker:dind
+      variables:
+        DOCKER_TLS_CERTDIR: ""
+        DOCKER_BUILDKIT: "1"
