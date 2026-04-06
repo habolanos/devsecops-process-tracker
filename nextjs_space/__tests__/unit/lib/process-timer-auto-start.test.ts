@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { act } from '@testing-library/react';
 import { useProcessStore } from '@/lib/store';
 import { ProcessState } from '@/lib/types';
 
@@ -108,7 +108,8 @@ describe('ProcessTimer - Auto-start on first interaction', () => {
         isBlocked: false,
         type: 'standard',
         dynamicLinks: [],
-        references: []
+        references: [],
+        checkItems: []
       }
     ];
     
@@ -135,7 +136,10 @@ describe('ProcessTimer - Auto-start on first interaction', () => {
         name: 'Activity 1',
         description: '',
         order: 1,
-        tasks: []
+        tasks: [],
+        progress: 0,
+        dynamicLinks: [],
+        images: []
       }
     ];
     
