@@ -156,9 +156,9 @@ export default function ProcessPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-background border-b border-border shadow-sm">
+    <div className="h-screen flex flex-col bg-background overflow-hidden">
+      {/* Header - Fixed at top */}
+      <header className="flex-shrink-0 bg-background border-b border-border shadow-sm z-50">
         <div className="max-w-7xl mx-auto px-6 py-3">
           <div className="flex items-center justify-between gap-4">
             {/* Left side: Back button + Timer */}
@@ -250,26 +250,28 @@ export default function ProcessPage() {
           </div>
           </div>
 
-          {/* Process Name and Progress Bar */}
+          {/* Process Name and Tabs Row */}
           <div className="mt-3">
-            <div className="flex items-center justify-between mb-2">
-              <div>
+            <div className="flex items-center justify-between gap-4 mb-2">
+              <div className="flex-shrink-0">
                 <h1 className="text-xl font-bold text-foreground">{process.name}</h1>
                 <p className="text-xs text-muted-foreground">
                   {t('process.version')}: {process.version}
                 </p>
               </div>
+              {/* Process Tabs - moved inline */}
+              <div className="flex-1 overflow-x-auto">
+                <ProcessTabs language={language} />
+              </div>
             </div>
             <ProgressBar progress={process.progress ?? 0} label={t('process.progress')} />
           </div>
-
-          {/* Process Tabs */}
-          <ProcessTabs language={language} />
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="flex max-w-7xl mx-auto">
+      {/* Main Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="flex max-w-7xl mx-auto">
         {/* Sidebar */}
         <ProcessSidebar />
 
@@ -278,7 +280,7 @@ export default function ProcessPage() {
           {currentPhase && (
             <div>
               <div className="mb-6">
-                <h2 className="text-3xl font-bold text-foreground mb-2">
+                <h2 className="text-xl font-bold text-foreground mb-2">
                   {currentPhase.name}
                 </h2>
                 {currentPhase.description && (
@@ -330,6 +332,7 @@ export default function ProcessPage() {
             </div>
           )}
         </main>
+        </div>
       </div>
 
       {/* Evidence Modal - Lazy loaded */}
