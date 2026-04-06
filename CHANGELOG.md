@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.22.1](https://github.com/habolanos/devsecops-process-tracker/compare/1.22.0...1.22.1) (2026-04-06)
+
+
+### 🐛 Bug Fixes
+
+* add minimatch and brace-expansion overrides with secure older versions compatible with ESLint ([43fa9b9](https://github.com/habolanos/devsecops-process-tracker/commit/43fa9b9127c288db31b3350b23cc23684eaaaa9f))
+* remove minimatch and brace-expansion overrides (ESLint compatibility issue) ([dec0c0a](https://github.com/habolanos/devsecops-process-tracker/commit/dec0c0ac7caf64349cd77b2c281ab89f5e254085))
+* update npm and add overrides for vulnerable packages (minimatch, brace-expansion, picomatch, tar) ([f9f3956](https://github.com/habolanos/devsecops-process-tracker/commit/f9f3956cd274da89eb97bbca0ba620ef173ef383))
+
 ## [1.22.0](https://github.com/habolanos/devsecops-process-tracker/compare/1.21.4...1.22.0) (2026-04-06)
 
 
