@@ -159,33 +159,28 @@ export default function ProcessPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background border-b border-border shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
+        <div className="max-w-7xl mx-auto px-6 py-3">
+          <div className="flex items-center justify-between gap-4">
+            {/* Left side: Back button + Timer */}
+            <div className="flex items-center gap-3">
               <button
                 onClick={handleBackToHome}
-                className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>{t('process.back')}</span>
               </button>
               
-              <div className="min-w-[200px]">
-                <h1 className="text-2xl font-bold text-foreground">{process.name}</h1>
-                <p className="text-sm text-muted-foreground">
-                  {t('process.version')}: {process.version}
-                </p>
-              </div>
-              
               {/* Process Timer */}
               <ProcessTimer />
             </div>
 
-            <div className="flex items-center gap-3">
+            {/* Right side: Action buttons */}
+            <div className="flex items-center gap-2">
               {/* Config Upload Button */}
               <button
                 onClick={() => setShowConfigUpload(true)}
-                className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors ${
+                className={`flex items-center gap-2 px-3 py-2 border rounded-lg transition-colors ${
                   configIsLoaded 
                     ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' 
                     : 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100'
@@ -193,17 +188,17 @@ export default function ProcessPage() {
                 title={configIsLoaded ? `Config: ${configFileName}` : 'Cargar configuración DevOps'}
               >
                 <FileJson className="w-4 h-4" />
-                <span className="font-medium">{configIsLoaded ? 'Config ✓' : 'Config'}</span>
+                <span className="font-medium text-sm">{configIsLoaded ? 'Config ✓' : 'Config'}</span>
               </button>
 
               {/* Variables Button - only show if process has variables */}
               {process?.variableDefinitions && process.variableDefinitions.length > 0 && (
                 <button
                   onClick={() => setShowVariablesForm(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
+                  className="flex items-center gap-2 px-3 py-2 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
                 >
                   <Settings className="w-4 h-4" />
-                  <span className="font-medium">{t('variables.button') || 'Variables'}</span>
+                  <span className="font-medium text-sm">{t('variables.button') || 'Variables'}</span>
                 </button>
               )}
 
@@ -213,34 +208,34 @@ export default function ProcessPage() {
                 className="flex items-center gap-2 px-3 py-2 bg-secondary border border-border rounded-lg hover:bg-accent transition-colors"
               >
                 <Globe className="w-4 h-4 text-foreground" />
-                <span className="font-medium text-foreground">{language === 'es' ? 'ES' : 'EN'}</span>
+                <span className="font-medium text-sm text-foreground">{language === 'es' ? 'ES' : 'EN'}</span>
               </button>
               
               <button
                 onClick={handleExportJSON}
                 disabled={isExporting}
                 data-testid="export-json-btn"
-                className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors disabled:opacity-50"
               >
                 <Download className="w-4 h-4" />
-                <span className="font-medium">{t('export.json')}</span>
+                <span className="font-medium text-sm">{t('export.json')}</span>
               </button>
               
               <button
                 onClick={handleExportWord}
                 disabled={isExporting}
                 data-testid="export-word-btn"
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-3 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors disabled:opacity-50"
               >
                 <FileText className="w-4 h-4" />
-                <span className="font-medium">{t('export.word')}</span>
+                <span className="font-medium text-sm">{t('export.word')}</span>
               </button>
               
               <button
                 onClick={handleCompleteProcess}
                 disabled={isExporting || isProcessCompleted}
                 data-testid="complete-process-btn"
-                className={`flex items-center gap-2 px-6 py-2 rounded-lg transition-colors ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
                   isProcessCompleted
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : 'bg-green-600 text-white hover:bg-green-700 disabled:opacity-50'
@@ -256,7 +251,9 @@ export default function ProcessPage() {
           </div>
 
           {/* Progress Bar */}
-          <ProgressBar progress={process.progress ?? 0} label={t('process.progress')} />
+          <div className="mt-3">
+            <ProgressBar progress={process.progress ?? 0} label={t('process.progress')} />
+          </div>
 
           {/* Process Tabs */}
           <ProcessTabs language={language} />
@@ -270,6 +267,14 @@ export default function ProcessPage() {
 
         {/* Task List */}
         <main className="flex-1 p-6">
+          {/* Process Name and Version - moved here */}
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-foreground">{process.name}</h1>
+            <p className="text-sm text-muted-foreground">
+              {t('process.version')}: {process.version}
+            </p>
+          </div>
+
           {currentPhase && (
             <div>
               <div className="mb-6">

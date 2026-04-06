@@ -63,8 +63,8 @@ const translations: Translations = {
   'evidence.delete': { es: 'Eliminar', en: 'Delete' },
   
   // Export
-  'export.json': { es: 'Exportar JSON', en: 'Export JSON' },
-  'export.word': { es: 'Exportar Word', en: 'Export Word' },
+  'export.json': { es: 'JSON', en: 'JSON' },
+  'export.word': { es: 'Word', en: 'Word' },
   'export.success': { es: 'Exportado exitosamente', en: 'Exported successfully' },
   'export.generating': { es: 'Generando documento...', en: 'Generating document...' },
   
