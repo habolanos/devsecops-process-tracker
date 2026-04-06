@@ -1,13 +1,14 @@
 'use client';
 
-import { TaskState, CheckItemState } from '@/lib/types';
+import { TaskState } from '@/lib/types';
 import { useProcessStore } from '@/lib/store';
 import { canCompleteTask } from '@/lib/helpers';
 import { useI18n } from '@/lib/i18n-context';
 import { sanitizeText, sanitizeUrl } from '@/lib/sanitize';
-import { CheckCircle2, Circle, Lock, ExternalLink, FileText, Image as ImageIcon, Square, CheckSquare, ListChecks } from 'lucide-react';
+import { CheckCircle2, Circle, Lock, ExternalLink, FileText, Image as ImageIcon, Square, CheckSquare, ListChecks, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
 import { DynamicLinksList } from './dynamic-link-button';
+import { generateReleaseExcel, processToReleaseReport, downloadExcel, generateReleaseFilename } from '@/lib/excel-generator';
 
 interface TaskCardProps {
   task: TaskState;
@@ -25,8 +26,33 @@ export default function TaskCard({ task, phaseId, activityId, onViewEvidence }: 
 
   const taskType = task?.type || 'standard';
   const isCheckType = taskType === 'check' || taskType === 'multicheck';
+  const isExportExcelType = taskType === 'export-excel';
 
-  const handleToggleComplete = () => {
+  // Handle Excel export for export-excel task type
+  const handleExportExcel = async () => {
+    try {
+      const process = useProcessStore.getState().process;
+      if (!process) return;
+      
+      const reportData = processToReleaseReport(process);
+      const variables = process.capturedVariables || {};
+      const templatePath = task.exportConfig?.templatePath || '/templates/TEMPLATE_Checklist_Liberacion.xlsx';
+      
+      const blob = await generateReleaseExcel(templatePath, reportData);
+      const filename = generateReleaseFilename(
+        process.name || 'process',
+        variables.rfc,
+        variables.notaInstalacion
+      );
+      downloadExcel(blob, filename);
+      toast.success('Reporte Excel generado exitosamente');
+    } catch (error) {
+      console.error('Excel export error:', error);
+      toast.error('Error al generar el reporte Excel');
+    }
+  };
+
+  const handleToggleComplete = async () => {
     if (task?.completed) {
       uncompleteTask?.(phaseId, task.id, activityId);
       toast.info(t('task.uncompleted'));
@@ -38,6 +64,15 @@ export default function TaskCard({ task, phaseId, activityId, onViewEvidence }: 
         });
         return;
       }
+      
+      // For export-excel tasks, generate Excel on completion
+      if (isExportExcelType) {
+        await handleExportExcel();
+        completeTask?.(phaseId, task.id, activityId);
+        toast.success(t('task.completed'));
+        return;
+      }
+      
       if (canCompleteTask(task)) {
         completeTask?.(phaseId, task.id, activityId);
         toast.success(t('task.completed'));
@@ -130,6 +165,14 @@ export default function TaskCard({ task, phaseId, activityId, onViewEvidence }: 
                   <span className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-50 text-indigo-600 rounded text-xs">
                     <ListChecks className="w-3 h-3" />
                     <span>{checkedCount}/{totalCheckItems}</span>
+                  </span>
+                )}
+                
+                {/* Export Excel task badge */}
+                {isExportExcelType && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-600 rounded text-xs">
+                    <FileSpreadsheet className="w-3 h-3" />
+                    <span>Excel</span>
                   </span>
                 )}
 

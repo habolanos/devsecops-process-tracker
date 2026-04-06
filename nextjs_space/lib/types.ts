@@ -95,13 +95,20 @@ export interface TaskYAML {
   name: string;
   description?: string;                 // Optional for check/multicheck (checkItems have descriptions)
   order: number;
-  type?: 'standard' | 'check' | 'multicheck';  // Default: 'standard'
+  type?: 'standard' | 'check' | 'multicheck' | 'export-excel';  // Default: 'standard'
   checkItem?: CheckItemYAML;            // For type='check' (single checkbox)
   checkItems?: CheckItemYAML[];         // For type='multicheck' (multiple checkboxes)
   references?: Reference[];
   evidence: EvidenceConfig;
   dependencies?: string[];
   dynamicLinks?: DynamicLinkYAML[];     // Task-level dynamic links
+  exportConfig?: ExportExcelConfig;     // For type='export-excel'
+}
+
+export interface ExportExcelConfig {
+  templatePath: string;                 // Path to Excel template
+  outputFilename?: string;              // Custom filename pattern
+  autoDownload?: boolean;               // Auto-download on task completion (default: true)
 }
 
 export interface CheckItemYAML {
@@ -200,7 +207,7 @@ export interface TaskState {
   name: string;
   description: string;
   order: number;
-  type: 'standard' | 'check' | 'multicheck';  // Task type
+  type: 'standard' | 'check' | 'multicheck' | 'export-excel';  // Task type
   checkItems: CheckItemState[];       // Empty for 'standard', 1 for 'check', N for 'multicheck'
   references: Reference[];
   evidenceConfig: EvidenceConfig;
@@ -210,6 +217,7 @@ export interface TaskState {
   evidence: TaskEvidence;
   isBlocked: boolean;
   dynamicLinks: DynamicLinkYAML[];  // Task-level dynamic links
+  exportConfig?: ExportExcelConfig; // For type='export-excel'
 }
 
 export interface CheckItemState {
