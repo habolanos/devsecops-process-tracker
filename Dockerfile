@@ -19,14 +19,13 @@ RUN apk update && apk upgrade --no-cache && \
 
 WORKDIR /app
 
-# Copy package files (without lock file to apply overrides)
-COPY nextjs_space/package.json ./
+# Copy package files (with lock file for reproducible builds)
+COPY nextjs_space/package.json nextjs_space/package-lock.json ./
 
 # Install dependencies with cache mount for faster rebuilds
-# Override versions in package.json will force secure versions
+# Use npm ci with lock file to ensure reproducible builds with security fixes
 RUN --mount=type=cache,target=/root/.npm \
-    npm install --prefer-offline --no-audit && \
-    npm audit fix --force || true
+    npm ci --prefer-offline --no-audit
 
 # ==========================================================================
 # Stage 2: Builder
