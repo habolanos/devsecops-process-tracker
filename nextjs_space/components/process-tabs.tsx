@@ -80,7 +80,7 @@ export function ProcessTabs({ language = 'es', maxVisibleTabs = 4 }: ProcessTabs
             <StatusIcon className={`w-3 h-3 ${config.color}`} />
           </div>
           <span className="truncate max-w-[150px]">{process.processName}</span>
-          <span className="text-xs text-muted-foreground ml-auto">{Math.round(process.snapshot.progress)}%</span>
+          <span className="text-xs text-muted-foreground ml-auto">{Math.round(process.snapshot.progress * 100)}%</span>
         </DropdownMenuItem>
       );
     }
@@ -122,7 +122,7 @@ export function ProcessTabs({ language = 'es', maxVisibleTabs = 4 }: ProcessTabs
               process.status === 'active' ? 'bg-green-500' :
               process.status === 'cancelled' ? 'bg-red-500' : 'bg-amber-500'
             }`}
-            style={{ width: `${process.snapshot.progress}%` }}
+            style={{ width: `${process.snapshot.progress * 100}%` }}
           />
         </div>
       </button>

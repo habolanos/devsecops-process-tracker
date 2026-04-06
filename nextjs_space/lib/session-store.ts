@@ -95,7 +95,7 @@ export const useSessionStore = create<SessionStore>()(
           processId: process.id,
           processName: process.name,
           status: 'active',
-          progress: Math.round(process.progress), // Already in percentage (0-100)
+          progress: Math.round(process.progress * 100), // Convert decimal (0-1) to percentage (0-100)
           startedAt: now,
           lastActiveAt: now,
           totalActiveTime: process.timeTracking?.totalActiveTime || 0,
@@ -154,7 +154,7 @@ export const useSessionStore = create<SessionStore>()(
                   status: 'paused' as const,
                   pausedAt: now,
                   snapshot,
-                  progress: Math.round(snapshot.progress), // Already in percentage (0-100)
+                  progress: Math.round(snapshot.progress * 100), // Convert decimal (0-1) to percentage (0-100)
                   totalActiveTime: snapshot.timeTracking?.totalActiveTime || p.totalActiveTime,
                 }
               : p
@@ -208,7 +208,7 @@ export const useSessionStore = create<SessionStore>()(
               ? {
                   ...p,
                   snapshot,
-                  progress: Math.round(snapshot.progress), // Already in percentage (0-100)
+                  progress: Math.round(snapshot.progress * 100), // Convert decimal (0-1) to percentage (0-100)
                   lastActiveAt: new Date().toISOString(),
                   totalActiveTime: snapshot.timeTracking?.totalActiveTime || p.totalActiveTime,
                 }

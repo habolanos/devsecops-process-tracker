@@ -480,7 +480,7 @@ export default function HomePage() {
                     <div className="mt-4">
                       <div className="flex justify-between text-xs text-muted-foreground mb-1">
                         <span>{language === 'es' ? 'Progreso' : 'Progress'}</span>
-                        <span>{Math.round(item.snapshot.progress)}%</span>
+                        <span>{Math.round(item.snapshot.progress * 100)}%</span>
                       </div>
                       <div className="h-2 bg-secondary rounded-full overflow-hidden">
                         <div 
@@ -489,7 +489,7 @@ export default function HomePage() {
                             item.status === 'active' ? 'bg-green-500' :
                             item.status === 'cancelled' ? 'bg-red-500' : 'bg-amber-500'
                           }`}
-                          style={{ width: `${item.snapshot.progress}%` }}
+                          style={{ width: `${item.snapshot.progress * 100}%` }}
                         />
                       </div>
                     </div>
