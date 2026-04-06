@@ -157,7 +157,7 @@ export default function ProcessPage() {
             <div className="flex items-center gap-4">
               <button
                 onClick={handleBackToHome}
-                className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-accent rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span className="font-medium">{t('process.back')}</span>
