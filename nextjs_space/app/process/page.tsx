@@ -247,11 +247,19 @@ export default function ProcessPage() {
                 </span>
               </button>
 
-            </div>
+          </div>
           </div>
 
-          {/* Progress Bar */}
+          {/* Process Name and Progress Bar */}
           <div className="mt-3">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h1 className="text-xl font-bold text-foreground">{process.name}</h1>
+                <p className="text-xs text-muted-foreground">
+                  {t('process.version')}: {process.version}
+                </p>
+              </div>
+            </div>
             <ProgressBar progress={process.progress ?? 0} label={t('process.progress')} />
           </div>
 
@@ -267,14 +275,6 @@ export default function ProcessPage() {
 
         {/* Task List */}
         <main className="flex-1 p-6">
-          {/* Process Name and Version - moved here */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-foreground">{process.name}</h1>
-            <p className="text-sm text-muted-foreground">
-              {t('process.version')}: {process.version}
-            </p>
-          </div>
-
           {currentPhase && (
             <div>
               <div className="mb-6">

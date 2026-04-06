@@ -164,20 +164,22 @@ export default function ProcessTimer() {
         {(isIdle || isPaused) && (
           <button
             onClick={handleStart}
-            className="flex items-center gap-1 px-2 py-1 bg-green-500 hover:bg-green-600 text-white rounded text-xs font-medium transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors"
             title={isIdle ? t('timer.start') : t('timer.resume')}
           >
-            <Play className="w-3 h-3" />
+            <Play className="w-4 h-4" />
+            <span>{isIdle ? t('timer.start') : t('timer.resume')}</span>
           </button>
         )}
         
         {isRunning && (
           <button
             onClick={handlePause}
-            className="flex items-center gap-1 px-2 py-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded text-xs font-medium transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg text-sm font-medium transition-colors"
             title={t('timer.pause')}
           >
-            <Pause className="w-3 h-3" />
+            <Pause className="w-4 h-4" />
+            <span>{t('timer.pause')}</span>
           </button>
         )}
       </div>
