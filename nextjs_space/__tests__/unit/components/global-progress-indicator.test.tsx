@@ -35,7 +35,7 @@ describe('GlobalProgressIndicator', () => {
     
     const containerDiv = container.querySelector('.fixed');
     
-    expect(containerDiv).toHaveClass('h-1');
+    expect(containerDiv).toHaveClass('h-0.5');
     expect(containerDiv).toHaveClass('fixed');
     expect(containerDiv).toHaveClass('top-0');
     expect(containerDiv).toHaveClass('left-0');

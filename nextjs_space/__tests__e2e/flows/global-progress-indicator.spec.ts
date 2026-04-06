@@ -132,7 +132,7 @@ phases:
     // Check height
     const box = await progressBar.boundingBox();
     if (box) {
-      expect(box.height).toBe(4); // h-1 is 4px
+      expect(box.height).toBe(2); // h-0.5 is 2px
     }
   });
 });
