@@ -45,7 +45,12 @@ export default function TaskCard({ task, phaseId, activityId, onViewEvidence }: 
         variables.notaInstalacion
       );
       downloadExcel(blob, filename);
-      toast.success('Reporte Excel generado exitosamente');
+      
+      // Auto-complete task after successful Excel generation
+      if (!task.completed) {
+        completeTask?.(phaseId, task.id, activityId);
+      }
+      toast.success('Reporte Excel generado y tarea completada');
     } catch (error) {
       console.error('Excel export error:', error);
       toast.error('Error al generar el reporte Excel');
