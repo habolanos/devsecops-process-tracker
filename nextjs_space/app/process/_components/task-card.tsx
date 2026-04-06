@@ -192,18 +192,34 @@ export default function TaskCard({ task, phaseId, activityId, onViewEvidence }: 
             </div>
           </div>
 
-          <button
-            onClick={onViewEvidence}
-            disabled={isBlocked}
-            data-testid="view-evidence-btn"
-            className={`px-3 py-1.5 rounded-lg transition-colors text-sm font-medium ${
-              isBlocked 
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-            }`}
-          >
-            {t('task.view')}
-          </button>
+          {isExportExcelType ? (
+            <button
+              onClick={handleExportExcel}
+              disabled={isBlocked}
+              data-testid="export-excel-btn"
+              className={`px-3 py-1.5 rounded-lg transition-colors text-sm font-medium flex items-center gap-1.5 ${
+                isBlocked 
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-emerald-500 text-white hover:bg-emerald-600'
+              }`}
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              Generar Excel
+            </button>
+          ) : (
+            <button
+              onClick={onViewEvidence}
+              disabled={isBlocked}
+              data-testid="view-evidence-btn"
+              className={`px-3 py-1.5 rounded-lg transition-colors text-sm font-medium ${
+                isBlocked 
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+              }`}
+            >
+              {t('task.view')}
+            </button>
+          )}
         </div>
 
         {/* CheckItems for check/multicheck tasks */}
