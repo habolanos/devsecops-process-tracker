@@ -4,13 +4,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { parseYAMLToProcess } from '@/lib/yaml-parser';
 import { importProcessFromJSON, exportProcessToJSON, downloadJSON } from '@/lib/json-utils';
+import { ProcessState, ProcessExportJSON } from '@/lib/types';
 import { useProcessStore } from '@/lib/store';
 import { useSessionStore } from '@/lib/session-store';
 import { useI18n } from '@/lib/i18n-context';
 import { Upload, FileText, Globe, Shield, Rocket, AlertTriangle, FolderOpen, GitPullRequest, Play, Pause, CheckCircle2, XCircle, Layers, Trash2, Download } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useLoadingStore } from '@/lib/loading-store';
-import { ProcessState } from '@/lib/types';
 import { ProcessTabs } from '@/components/process-tabs';
 import { toast } from 'sonner';
 
@@ -128,7 +128,8 @@ export default function HomePage() {
       if (type === 'yaml') {
         process = parseYAMLToProcess(text);
       } else {
-        process = await importProcessFromJSON(text);
+        const jsonData = JSON.parse(text) as ProcessExportJSON;
+        process = importProcessFromJSON(jsonData);
       }
 
       loadProcess?.(process);
