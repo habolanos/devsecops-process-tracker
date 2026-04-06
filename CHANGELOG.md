@@ -5,6 +5,57 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.24.0](https://github.com/habolanos/devsecops-process-tracker/compare/1.23.0...1.24.0) (2026-04-06)
+
+
+### 🚀 Features
+
+* add estimated time with semaphore colors to process timer ([b7d6074](https://github.com/habolanos/devsecops-process-tracker/commit/b7d6074ddb9c29fdb3a0f81dd1218bab3a5664aa))
+* add github-style global progress indicator for loading operations ([bffe72a](https://github.com/habolanos/devsecops-process-tracker/commit/bffe72a1118af6c4078bf2612d79375559c601f3))
+* auto-start process timer on first user interaction ([9b8f243](https://github.com/habolanos/devsecops-process-tracker/commit/9b8f243085c424bf5447b27a3bccf9e70d0f9268))
+
+
+### 🐛 Bug Fixes
+
+* add clearstorage helper and temporary button to fix progress calculation issue ([b1bb992](https://github.com/habolanos/devsecops-process-tracker/commit/b1bb992bb86c5c8e6b2a3dcae658758dab4a84b2))
+* add load: true to docker build for trivy image scan ([53ce2be](https://github.com/habolanos/devsecops-process-tracker/commit/53ce2be48ffcba214df8ceea00024ffe1b92cee1))
+* add missing translation for process.completed ([3da9474](https://github.com/habolanos/devsecops-process-tracker/commit/3da9474895be95f465d0102e49476bc19ea0ce86))
+* auto-resume timer when user interacts with paused process ([de38830](https://github.com/habolanos/devsecops-process-tracker/commit/de38830e50a71346c819c24b5978703be1279b13))
+* change nested button to div in processtabs to fix html validation error ([7a6c575](https://github.com/habolanos/devsecops-process-tracker/commit/7a6c575e7e378e5f574ef3ebf1dee43a48964c6a))
+* correct progress display - multiply decimal by 100 to show percentage ([1a4e31b](https://github.com/habolanos/devsecops-process-tracker/commit/1a4e31b8830ecca86554c612b6d0a24796e7a17b))
+* disable view button on blocked tasks and complete button when process is finished ([445fa9b](https://github.com/habolanos/devsecops-process-tracker/commit/445fa9b81704c2fc2fd9fd4423597dc885192950))
+* downgrade npm to v9.9.0 to avoid picomatch/brace-expansion vulnerabilities in global npm ([877c038](https://github.com/habolanos/devsecops-process-tracker/commit/877c038d99d7f7be015dd7e452e44aa03d4daaaf))
+* make progress bar thinner (h-0.5) and add debug logs for timer and progress indicator ([7b25a05](https://github.com/habolanos/devsecops-process-tracker/commit/7b25a05ad20b8167d013bfed11559610108063b4))
+* move process name above progress bar, restore timer buttons with text ([5ca3bb7](https://github.com/habolanos/devsecops-process-tracker/commit/5ca3bb7eb01c76cd17efded05a3a97ac30e57f29))
+* parse json string before passing to importprocessfromjson ([626b2b4](https://github.com/habolanos/devsecops-process-tracker/commit/626b2b4328ae8327c91fc588f9c9cbda61b31f61))
+* pause button, process name spacing, and variables.button translation ([868356c](https://github.com/habolanos/devsecops-process-tracker/commit/868356c364f62619a1f6045685d1170853bf492c))
+* remove -mb-px from active tab that might hide tabs visually ([c6bd6d4](https://github.com/habolanos/devsecops-process-tracker/commit/c6bd6d45e861fb83839504412b4bfdad3d88c8e1))
+* remove progress * 100 multiplication since process.progress is already in percentage ([ac19eec](https://github.com/habolanos/devsecops-process-tracker/commit/ac19eeca1f43bb1a1aa8e47cc3a5f54e60dcb7fb))
+* remove unused imports and fix typescript errors in tests ([4890204](https://github.com/habolanos/devsecops-process-tracker/commit/4890204c0f840b7cba0a7c5b95c4df891b8aee1c))
+* timer auto-start, back button pause, progress bar animation, and performance optimization ([3f892f7](https://github.com/habolanos/devsecops-process-tracker/commit/3f892f7c7781827f2b2016bc53525e1d9b9e2f31))
+* update globalprogressindicator component and tests to pass ([b4b04d3](https://github.com/habolanos/devsecops-process-tracker/commit/b4b04d39397877e0c4246e636155d386b7090e49))
+
+
+### 🔃 Refactoring
+
+* compact header layout, simplify export buttons, improve timer design ([0156287](https://github.com/habolanos/devsecops-process-tracker/commit/015628773d38d438ee3db7d6c1c78eb285da1316))
+* process page layout - fixed header, inline tabs, single-line progress bar ([ae11b5e](https://github.com/habolanos/devsecops-process-tracker/commit/ae11b5e72c9879badda8c90b78376048679a1fff))
+* remove temporary clearstorage button from homepage ([d8afd87](https://github.com/habolanos/devsecops-process-tracker/commit/d8afd87932f64ba0eb448a7dedef112d72efb8e7))
+
+
+### 📖 Documentation
+
+* add v1.21.0 security fix to changelog (0 vulnerabilities in Trivy scan) ([6878070](https://github.com/habolanos/devsecops-process-tracker/commit/68780702cc12684dbf66b1fac2dd46240b0cc25d))
+* add version 1.23.0 to changelog with fixes and performance improvements ([a0ea9f7](https://github.com/habolanos/devsecops-process-tracker/commit/a0ea9f7fa720b06623636fe9fd6c77f8c2d5178f))
+* add version 1.24.0 to changelog with estimated time and semaphore colors ([452573f](https://github.com/habolanos/devsecops-process-tracker/commit/452573f8e771da916acfbadb2339945761919e91))
+* update changelog with .trivyignore explanation ([b4d5072](https://github.com/habolanos/devsecops-process-tracker/commit/b4d5072d7478e79d237104d16ad805dd435450fc))
+* update changelog with global progress indicator and auto-start timer (v1.22.0) ([bf9614d](https://github.com/habolanos/devsecops-process-tracker/commit/bf9614df1e4a4530902043b8af62ac2c64f5ee0a))
+
+
+### 🧪 Tests
+
+* add and update tests for auto-start timer on first interaction ([4491001](https://github.com/habolanos/devsecops-process-tracker/commit/4491001ea15cbd7fd253ed206209438222954881))
+
 ## [1.23.0](https://github.com/habolanos/devsecops-process-tracker/compare/1.22.1...1.23.0) (2026-04-06)
 
 
