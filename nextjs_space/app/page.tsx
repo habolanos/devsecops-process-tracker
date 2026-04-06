@@ -9,6 +9,7 @@ import { useSessionStore } from '@/lib/session-store';
 import { useI18n } from '@/lib/i18n-context';
 import { Upload, FileText, Globe, Shield, Rocket, AlertTriangle, FolderOpen, GitPullRequest, Play, Pause, CheckCircle2, XCircle, Layers, Trash2, Download } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { useLoadingStore } from '@/lib/loading-store';
 import { ProcessState } from '@/lib/types';
 import { ProcessTabs } from '@/components/process-tabs';
 import { toast } from 'sonner';
@@ -28,6 +29,7 @@ export default function HomePage() {
   const { t, language, setLanguage } = useI18n();
   const loadProcess = useProcessStore((state) => state?.loadProcess);
   const { addProcess, initSession, pauseCurrentProcess, activeTrayId, processes } = useSessionStore();
+  const { startOperation, endOperation } = useLoadingStore();
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,8 +74,10 @@ export default function HomePage() {
   }, []);
 
   const handleSelectTemplate = async (templateId: string) => {
+    const operationId = `load-template-${templateId}`;
     setIsLoading(true);
     setError(null);
+    startOperation(operationId);
 
     try {
       const response = await fetch(`/api/processes/${templateId}`);
@@ -89,6 +93,7 @@ export default function HomePage() {
       setError(errorMsg);
     } finally {
       setIsLoading(false);
+      endOperation(operationId);
     }
   };
 
@@ -111,27 +116,32 @@ export default function HomePage() {
   };
 
   const handleFileUpload = async (file: File, type: 'yaml' | 'json') => {
+    const operationId = `upload-${type}`;
     setIsLoading(true);
     setError(null);
+    startOperation(operationId);
 
     try {
-      const content = await file.text();
+      const text = await file.text();
       let process: ProcessState;
-      
+
       if (type === 'yaml') {
-        process = parseYAMLToProcess(content);
+        process = parseYAMLToProcess(text);
       } else {
-        const jsonData = JSON.parse(content);
-        process = importProcessFromJSON(jsonData);
+        process = await importProcessFromJSON(text);
       }
-      
-      loadAndTrackProcess(process);
+
+      loadProcess?.(process);
+      addProcess(process);
+      toast.success(language === 'es' ? 'Archivo cargado' : 'File loaded');
       router.push('/process');
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Error desconocido';
       setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setIsLoading(false);
+      endOperation(operationId);
     }
   };
 

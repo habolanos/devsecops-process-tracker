@@ -17,6 +17,7 @@ import ActivityCard from './_components/activity-card';
 import ProgressBar from './_components/progress-bar';
 import { ProcessTabs } from '@/components/process-tabs';
 import { ModalSkeleton } from '@/components/skeletons/modal-skeleton';
+import { useLoadingStore } from '@/lib/loading-store';
 
 // Lazy load modals for better performance
 const EvidenceModal = lazy(() => import('./_components/evidence-modal'));
@@ -45,6 +46,8 @@ export default function ProcessPage() {
       stopProcessTimer: state?.stopProcessTimer,
     }))
   );
+  
+  const { startOperation, endOperation } = useLoadingStore();
   
   const [isExporting, setIsExporting] = useState(false);
   const [showEvidenceModal, setShowEvidenceModal] = useState(false);
@@ -82,7 +85,10 @@ export default function ProcessPage() {
   const currentTask = currentPhase?.tasks?.find((t) => t?.id === currentTaskId);
 
   const handleExportJSON = async () => {
+    const operationId = 'export-json';
     setIsExporting(true);
+    startOperation(operationId);
+    
     try {
       const dataToExport = useProcessStore.getState().process;
       if (!dataToExport) return;
@@ -93,21 +99,26 @@ export default function ProcessPage() {
       console.error('Export error:', error);
     } finally {
       setIsExporting(false);
+      endOperation(operationId);
     }
   };
 
   const handleExportWord = async () => {
+    const operationId = 'export-word';
     setIsExporting(true);
+    startOperation(operationId);
+    
     try {
       const dataToExport = useProcessStore.getState().process;
       if (!dataToExport) return;
-      const blob = await generateWordDocument(dataToExport);
+      const doc = await generateWordDocument(dataToExport);
       const filename = `${dataToExport.name?.replace(/\s+/g, '-') || 'process'}-${new Date().toISOString().split('T')[0]}.docx`;
-      downloadWordDocument(blob, filename);
+      downloadWordDocument(doc, filename);
     } catch (error) {
       console.error('Word export error:', error);
     } finally {
       setIsExporting(false);
+      endOperation(operationId);
     }
   };
 
