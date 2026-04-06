@@ -3,6 +3,7 @@ process:
   name: "Respuesta a Incidentes de Seguridad"
   description: "Procedimiento estructurado de respuesta ante incidentes de seguridad informática"
   version: "1.0.0"
+  estimatedTime: "3h"
   phases:
     - id: "phase-1-detection"
       name: "Fase 1: Detección e Identificación"

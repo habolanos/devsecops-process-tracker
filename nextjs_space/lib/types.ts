@@ -153,6 +153,7 @@ export interface ProcessState {
   exportedAt?: string;
   completedAt?: string;
   progress: number;
+  estimatedTime?: number;                        // Estimated time in milliseconds
   phases: PhaseState[];
   subprocesses: SubprocessState[];             // External process references
   variableDefinitions: ProcessVariableYAML[];  // Variable definitions from YAML

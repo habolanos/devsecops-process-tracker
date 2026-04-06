@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useProcessStore } from '@/lib/store';
-import { formatDuration } from '@/lib/helpers';
+import { formatDuration, formatDurationLong, getTimeStatus } from '@/lib/helpers';
 import { useI18n } from '@/lib/i18n-context';
-import { Play, Pause, RotateCcw, Clock, Timer } from 'lucide-react';
+import { Play, Pause, Timer, AlertTriangle } from 'lucide-react';
 
 export default function ProcessTimer() {
   const { t } = useI18n();
@@ -18,11 +18,63 @@ export default function ProcessTimer() {
   const [isClient, setIsClient] = useState(false);
 
   const timeTracking = process?.timeTracking;
+  const estimatedTime = process?.estimatedTime;
   const status = timeTracking?.status || 'idle';
   const isRunning = status === 'running';
   const isPaused = status === 'paused';
   const isIdle = status === 'idle';
   const sessionsCount = timeTracking?.sessions?.length || 0;
+
+  // Calculate time status for semaphore colors
+  const timeStatus = getTimeStatus(displayTime, estimatedTime || 0);
+  const hasEstimate = !!estimatedTime && estimatedTime > 0;
+
+  // Color configurations based on time status
+  const getStatusColors = () => {
+    if (!hasEstimate) {
+      // No estimate: use default colors based on running state
+      if (isRunning) return { bg: 'bg-green-100', text: 'text-green-600', icon: 'text-green-600' };
+      if (isPaused) return { bg: 'bg-yellow-100', text: 'text-yellow-600', icon: 'text-yellow-600' };
+      return { bg: 'bg-gray-100', text: 'text-gray-600', icon: 'text-gray-500' };
+    }
+    
+    // With estimate: use semaphore colors
+    switch (timeStatus) {
+      case 'on-time':
+        return { bg: 'bg-green-100', text: 'text-green-600', icon: 'text-green-600' };
+      case 'warning':
+        return { bg: 'bg-yellow-100', text: 'text-yellow-600', icon: 'text-yellow-600' };
+      case 'exceeded':
+        return { bg: 'bg-red-100', text: 'text-red-600', icon: 'text-red-600' };
+      default:
+        return { bg: 'bg-gray-100', text: 'text-gray-600', icon: 'text-gray-500' };
+    }
+  };
+
+  const colors = getStatusColors();
+
+  // Get status message
+  const getStatusMessage = () => {
+    if (!hasEstimate) {
+      if (isRunning) return t('timer.running');
+      if (isPaused) return t('timer.paused');
+      return t('timer.idle');
+    }
+
+    const percentage = Math.round((displayTime / estimatedTime!) * 100);
+    
+    switch (timeStatus) {
+      case 'on-time':
+        return `${t('timer.onTime')} (${percentage}%)`;
+      case 'warning':
+        return `${t('timer.warning')} (${percentage}%)`;
+      case 'exceeded':
+        const exceededMs = displayTime - estimatedTime!;
+        return `${t('timer.exceeded')} +${formatDurationLong(exceededMs)}`;
+      default:
+        return t('timer.idle');
+    }
+  };
 
   // Hydration fix
   useEffect(() => {
@@ -64,35 +116,44 @@ export default function ProcessTimer() {
   if (!isClient || !process) return null;
 
   return (
-    <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200">
+    <div className={`flex items-center gap-3 px-4 py-2 rounded-lg border ${
+      timeStatus === 'exceeded' && hasEstimate
+        ? 'bg-red-50 border-red-200'
+        : timeStatus === 'warning' && hasEstimate
+          ? 'bg-yellow-50 border-yellow-200'
+          : 'bg-gray-50 border-gray-200'
+    }`}>
       {/* Timer Icon and Display */}
       <div className="flex items-center gap-2">
-        <div className={`p-1.5 rounded-full ${
-          isRunning 
-            ? 'bg-green-100 text-green-600 animate-pulse' 
-            : isPaused 
-              ? 'bg-yellow-100 text-yellow-600'
-              : 'bg-gray-100 text-gray-500'
+        <div className={`p-1.5 rounded-full ${colors.bg} ${
+          isRunning ? 'animate-pulse' : ''
         }`}>
-          <Timer className="w-4 h-4" />
+          {timeStatus === 'exceeded' && hasEstimate ? (
+            <AlertTriangle className={`w-4 h-4 ${colors.icon}`} />
+          ) : (
+            <Timer className={`w-4 h-4 ${colors.icon}`} />
+          )}
         </div>
         
         <div className="flex flex-col">
-          <span className={`font-mono text-lg font-bold ${
-            isRunning 
-              ? 'text-green-600' 
-              : isPaused 
-                ? 'text-yellow-600'
-                : 'text-gray-600'
-          }`}>
+          <span className={`font-mono text-lg font-bold ${colors.text}`}>
             {formatDuration(displayTime)}
           </span>
-          <span className="text-xs text-gray-500">
-            {isRunning && t('timer.running')}
-            {isPaused && t('timer.paused')}
-            {isIdle && t('timer.idle')}
-            {sessionsCount > 0 && ` (${sessionsCount} ${sessionsCount === 1 ? 'sesión' : 'sesiones'})`}
+          <span className={`text-xs ${
+            timeStatus === 'exceeded' && hasEstimate 
+              ? 'text-red-600 font-medium' 
+              : timeStatus === 'warning' && hasEstimate
+                ? 'text-yellow-600'
+                : 'text-gray-500'
+          }`}>
+            {getStatusMessage()}
+            {sessionsCount > 0 && !hasEstimate && ` (${sessionsCount} ${sessionsCount === 1 ? 'sesión' : 'sesiones'})`}
           </span>
+          {hasEstimate && (
+            <span className="text-xs text-gray-400">
+              {t('timer.estimated')}: {formatDurationLong(estimatedTime!)}
+            </span>
+          )}
         </div>
       </div>
 

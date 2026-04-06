@@ -3,6 +3,7 @@ process:
   name: "Pipeline DevOps con Links Dinámicos"
   description: "Proceso de release con variables parametrizables y links dinámicos a herramientas DevOps"
   version: "1.0.0"
+  estimatedTime: "1h30m"
   
   variables:
     - key: "organization"

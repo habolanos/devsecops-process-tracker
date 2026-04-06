@@ -3,6 +3,7 @@ process:
   name: "Release DevOps"
   description: "Proceso de liberación de software con validaciones de calidad y seguridad"
   version: "1.0.0"
+  estimatedTime: "2h"
   phases:
     - id: "phase-1-preparation"
       name: "Fase 1: Preparación del Release"

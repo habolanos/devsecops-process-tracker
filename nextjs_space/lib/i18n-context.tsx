@@ -81,6 +81,10 @@ const translations: Translations = {
   'timer.totalTime': { es: 'Tiempo total', en: 'Total time' },
   'timer.activeTime': { es: 'Tiempo activo', en: 'Active time' },
   'timer.sessions': { es: 'Sesiones', en: 'Sessions' },
+  'timer.onTime': { es: 'En tiempo', en: 'On time' },
+  'timer.warning': { es: 'Atención', en: 'Attention' },
+  'timer.exceeded': { es: 'Excedido', en: 'Exceeded' },
+  'timer.estimated': { es: 'Estimado', en: 'Estimated' },
   
   // Common
   'common.cancel': { es: 'Cancelar', en: 'Cancel' },
