@@ -1,5 +1,6 @@
 import yaml from 'js-yaml';
 import { ProcessYAML, ProcessState, PhaseState, TaskState, ActivityState, SubprocessState, CapturedVariables, CheckItemState } from './types';
+import { parseTimeString } from './helpers';
 
 export function parseYAMLToProcess(yamlContent: string): ProcessState {
   try {
@@ -9,7 +10,7 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
       throw new Error('Invalid YAML structure: missing "process" key');
     }
 
-    const { id, name, description, version, variables, phases, subprocesses } = parsed.process;
+    const { id, name, description, version, variables, phases, subprocesses, estimatedTime } = parsed.process as any;
 
     if (!id || !name || !phases || !Array.isArray(phases)) {
       throw new Error('Invalid YAML: process must have id, name, and phases array');
@@ -139,6 +140,7 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
       version: version || '1.0.0',
       loadedAt: new Date().toISOString(),
       progress: 0,
+      estimatedTime: estimatedTime ? parseTimeString(estimatedTime) : undefined,
       variableDefinitions: variables || [],
       capturedVariables: initialCapturedVariables,
       timeTracking: {

@@ -218,7 +218,7 @@ export function CommandPalette({ language = 'es' }: CommandPaletteProps) {
                           <div className="flex items-center gap-2 text-xs text-gray-500">
                             <span>{config.label[language]}</span>
                             <span>•</span>
-                            <span>{Math.round(process.snapshot.progress)}%</span>
+                            <span>{Math.round(process.snapshot.progress * 100)}%</span>
                           </div>
                         </div>
 
@@ -251,7 +251,7 @@ export function CommandPalette({ language = 'es' }: CommandPaletteProps) {
                             process.status === 'active' ? 'bg-green-500' :
                             process.status === 'cancelled' ? 'bg-red-500' : 'bg-amber-500'
                           }`}
-                          style={{ width: `${process.snapshot.progress}%` }}
+                          style={{ width: `${process.snapshot.progress * 100}%` }}
                         />
                       </div>
                     </div>

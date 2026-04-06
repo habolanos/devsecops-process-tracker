@@ -36,6 +36,7 @@ describe('useProcessStore - Timer Actions', () => {
       currentPhaseId: null,
       currentActivityId: null,
       currentTaskId: null,
+      hasStartedInteraction: false,
     });
     // Clear localStorage mock
     Object.keys(localStorageMock).forEach(key => delete localStorageMock[key]);
@@ -252,6 +253,126 @@ describe('useProcessStore - Timer Actions', () => {
       
       expect(timerState).toBeDefined();
       expect(timerState?.status).toBe('running');
+    });
+  });
+
+  describe('hasStartedInteraction flag', () => {
+    it('should initialize hasStartedInteraction as false', () => {
+      const state = useProcessStore.getState();
+      expect(state.hasStartedInteraction).toBe(false);
+    });
+
+    it('should reset hasStartedInteraction on loadProcess', () => {
+      const mockProcess = createMockProcess();
+      useProcessStore.setState({ hasStartedInteraction: true });
+      
+      useProcessStore.getState().loadProcess(mockProcess);
+      
+      const state = useProcessStore.getState();
+      expect(state.hasStartedInteraction).toBe(false);
+    });
+
+    it('should reset hasStartedInteraction on clearProcess', () => {
+      const mockProcess = createMockProcess();
+      useProcessStore.getState().loadProcess(mockProcess);
+      useProcessStore.setState({ hasStartedInteraction: true });
+      
+      useProcessStore.getState().clearProcess();
+      
+      const state = useProcessStore.getState();
+      expect(state.hasStartedInteraction).toBe(false);
+    });
+
+    it('should mark hasStartedInteraction as true on setCurrentPhase', () => {
+      const mockProcess = createMockProcess();
+      useProcessStore.getState().loadProcess(mockProcess);
+      
+      useProcessStore.getState().setCurrentPhase('phase-2');
+      
+      const state = useProcessStore.getState();
+      expect(state.hasStartedInteraction).toBe(true);
+    });
+
+    it('should mark hasStartedInteraction as true on setCurrentActivity', () => {
+      const mockProcess = createMockProcess();
+      useProcessStore.getState().loadProcess(mockProcess);
+      
+      useProcessStore.getState().setCurrentActivity('activity-1');
+      
+      const state = useProcessStore.getState();
+      expect(state.hasStartedInteraction).toBe(true);
+    });
+
+    it('should mark hasStartedInteraction as true on setCurrentTask', () => {
+      const mockProcess = createMockProcess();
+      useProcessStore.getState().loadProcess(mockProcess);
+      
+      useProcessStore.getState().setCurrentTask('task-1');
+      
+      const state = useProcessStore.getState();
+      expect(state.hasStartedInteraction).toBe(true);
+    });
+
+    it('should mark hasStartedInteraction as true on markInteractionStarted', () => {
+      const mockProcess = createMockProcess();
+      useProcessStore.getState().loadProcess(mockProcess);
+      
+      useProcessStore.getState().markInteractionStarted();
+      
+      const state = useProcessStore.getState();
+      expect(state.hasStartedInteraction).toBe(true);
+    });
+
+    it('should keep hasStartedInteraction as true after multiple interactions', () => {
+      const mockProcess = createMockProcess();
+      useProcessStore.getState().loadProcess(mockProcess);
+      
+      useProcessStore.getState().setCurrentPhase('phase-2');
+      useProcessStore.getState().setCurrentTask('task-1');
+      useProcessStore.getState().setCurrentActivity('activity-1');
+      
+      const state = useProcessStore.getState();
+      expect(state.hasStartedInteraction).toBe(true);
+    });
+  });
+
+  describe('auto-start timer on first interaction', () => {
+    it('should not auto-start timer when process is loaded without interaction', () => {
+      const mockProcess = createMockProcess();
+      useProcessStore.getState().loadProcess(mockProcess);
+      
+      const state = useProcessStore.getState();
+      expect(state.process?.timeTracking.status).toBe('idle');
+      expect(state.hasStartedInteraction).toBe(false);
+    });
+
+    it('should not auto-start timer if timer already has sessions', () => {
+      const mockProcess = createMockProcess();
+      mockProcess.timeTracking = {
+        status: 'paused',
+        sessions: [{ id: 's1', startedAt: '2024-01-01', duration: 5000, endedAt: '2024-01-02' }],
+        totalActiveTime: 5000,
+      };
+      useProcessStore.getState().loadProcess(mockProcess);
+      
+      // Mark interaction
+      useProcessStore.getState().markInteractionStarted();
+      
+      const state = useProcessStore.getState();
+      expect(state.process?.timeTracking.status).toBe('paused'); // Should remain paused
+    });
+
+    it('should not auto-start timer if timer is already running', () => {
+      const mockProcess = createMockProcess();
+      useProcessStore.getState().loadProcess(mockProcess);
+      useProcessStore.getState().startProcessTimer();
+      
+      // Mark interaction
+      useProcessStore.getState().markInteractionStarted();
+      
+      const state = useProcessStore.getState();
+      expect(state.process?.timeTracking.status).toBe('running');
+      expect(state.process?.timeTracking.sessions).toHaveLength(1); // Should not create new session
     });
   });
 });

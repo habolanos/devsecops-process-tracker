@@ -17,6 +17,7 @@ import ActivityCard from './_components/activity-card';
 import ProgressBar from './_components/progress-bar';
 import { ProcessTabs } from '@/components/process-tabs';
 import { ModalSkeleton } from '@/components/skeletons/modal-skeleton';
+import { useLoadingStore } from '@/lib/loading-store';
 
 // Lazy load modals for better performance
 const EvidenceModal = lazy(() => import('./_components/evidence-modal'));
@@ -38,13 +39,16 @@ export default function ProcessPage() {
     }))
   );
   
-  const { setCurrentTask, markProcessComplete, stopProcessTimer } = useProcessStore(
+  const { setCurrentTask, markProcessComplete, stopProcessTimer, pauseProcessTimer } = useProcessStore(
     useShallow((state) => ({
       setCurrentTask: state?.setCurrentTask,
       markProcessComplete: state?.markProcessComplete,
       stopProcessTimer: state?.stopProcessTimer,
+      pauseProcessTimer: state?.pauseProcessTimer,
     }))
   );
+  
+  const { startOperation, endOperation } = useLoadingStore();
   
   const [isExporting, setIsExporting] = useState(false);
   const [showEvidenceModal, setShowEvidenceModal] = useState(false);
@@ -80,9 +84,13 @@ export default function ProcessPage() {
 
   const currentPhase = process.phases?.find((p) => p?.id === currentPhaseId);
   const currentTask = currentPhase?.tasks?.find((t) => t?.id === currentTaskId);
+  const isProcessCompleted = !!process.completedAt || process.timeTracking?.status === 'completed';
 
   const handleExportJSON = async () => {
+    const operationId = 'export-json';
     setIsExporting(true);
+    startOperation(operationId);
+    
     try {
       const dataToExport = useProcessStore.getState().process;
       if (!dataToExport) return;
@@ -93,21 +101,26 @@ export default function ProcessPage() {
       console.error('Export error:', error);
     } finally {
       setIsExporting(false);
+      endOperation(operationId);
     }
   };
 
   const handleExportWord = async () => {
+    const operationId = 'export-word';
     setIsExporting(true);
+    startOperation(operationId);
+    
     try {
       const dataToExport = useProcessStore.getState().process;
       if (!dataToExport) return;
-      const blob = await generateWordDocument(dataToExport);
+      const doc = await generateWordDocument(dataToExport);
       const filename = `${dataToExport.name?.replace(/\s+/g, '-') || 'process'}-${new Date().toISOString().split('T')[0]}.docx`;
-      downloadWordDocument(blob, filename);
+      downloadWordDocument(doc, filename);
     } catch (error) {
       console.error('Word export error:', error);
     } finally {
       setIsExporting(false);
+      endOperation(operationId);
     }
   };
 
@@ -133,41 +146,41 @@ export default function ProcessPage() {
 
   const handleBackToHome = () => {
     if (confirm('¿Seguro que deseas salir? Se guardará tu progreso.')) {
+      // Pause timer before leaving
+      const currentProcess = useProcessStore.getState().process;
+      if (currentProcess?.timeTracking?.status === 'running') {
+        pauseProcessTimer();
+      }
       router.push('/');
     }
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-background border-b border-border shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
+    <div className="h-screen flex flex-col bg-background overflow-hidden">
+      {/* Header - Fixed at top */}
+      <header className="flex-shrink-0 bg-background border-b border-border shadow-sm z-50">
+        <div className="max-w-7xl mx-auto px-6 py-3">
+          <div className="flex items-center justify-between gap-4">
+            {/* Left side: Back button + Timer */}
+            <div className="flex items-center gap-3">
               <button
                 onClick={handleBackToHome}
-                className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-accent rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
               >
                 <ArrowLeft className="w-4 h-4" />
-                <span className="font-medium">{t('process.back')}</span>
+                <span>{t('process.back')}</span>
               </button>
-              
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">{process.name}</h1>
-                <p className="text-sm text-muted-foreground">
-                  {t('process.version')}: {process.version}
-                </p>
-              </div>
               
               {/* Process Timer */}
               <ProcessTimer />
             </div>
 
-            <div className="flex items-center gap-3">
+            {/* Right side: Action buttons */}
+            <div className="flex items-center gap-2">
               {/* Config Upload Button */}
               <button
                 onClick={() => setShowConfigUpload(true)}
-                className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors ${
+                className={`flex items-center gap-2 px-3 py-2 border rounded-lg transition-colors ${
                   configIsLoaded 
                     ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' 
                     : 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100'
@@ -175,17 +188,17 @@ export default function ProcessPage() {
                 title={configIsLoaded ? `Config: ${configFileName}` : 'Cargar configuración DevOps'}
               >
                 <FileJson className="w-4 h-4" />
-                <span className="font-medium">{configIsLoaded ? 'Config ✓' : 'Config'}</span>
+                <span className="font-medium text-sm">{configIsLoaded ? 'Config ✓' : 'Config'}</span>
               </button>
 
               {/* Variables Button - only show if process has variables */}
               {process?.variableDefinitions && process.variableDefinitions.length > 0 && (
                 <button
                   onClick={() => setShowVariablesForm(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
+                  className="flex items-center gap-2 px-3 py-2 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
                 >
                   <Settings className="w-4 h-4" />
-                  <span className="font-medium">{t('variables.button') || 'Variables'}</span>
+                  <span className="font-medium text-sm">{t('variables.button') || 'Variables'}</span>
                 </button>
               )}
 
@@ -195,52 +208,70 @@ export default function ProcessPage() {
                 className="flex items-center gap-2 px-3 py-2 bg-secondary border border-border rounded-lg hover:bg-accent transition-colors"
               >
                 <Globe className="w-4 h-4 text-foreground" />
-                <span className="font-medium text-foreground">{language === 'es' ? 'ES' : 'EN'}</span>
+                <span className="font-medium text-sm text-foreground">{language === 'es' ? 'ES' : 'EN'}</span>
               </button>
               
               <button
                 onClick={handleExportJSON}
                 disabled={isExporting}
                 data-testid="export-json-btn"
-                className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors disabled:opacity-50"
               >
                 <Download className="w-4 h-4" />
-                <span className="font-medium">{t('export.json')}</span>
+                <span className="font-medium text-sm">{t('export.json')}</span>
               </button>
               
               <button
                 onClick={handleExportWord}
                 disabled={isExporting}
                 data-testid="export-word-btn"
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-3 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors disabled:opacity-50"
               >
                 <FileText className="w-4 h-4" />
-                <span className="font-medium">{t('export.word')}</span>
+                <span className="font-medium text-sm">{t('export.word')}</span>
               </button>
               
               <button
                 onClick={handleCompleteProcess}
-                disabled={isExporting}
+                disabled={isExporting || isProcessCompleted}
                 data-testid="complete-process-btn"
-                className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                  isProcessCompleted
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-green-600 text-white hover:bg-green-700 disabled:opacity-50'
+                }`}
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span className="font-medium">{t('process.complete')}</span>
+                <span className="font-medium">
+                  {isProcessCompleted ? (t('process.completed') || 'Completado') : t('process.complete')}
+                </span>
               </button>
 
-            </div>
+          </div>
           </div>
 
-          {/* Progress Bar */}
-          <ProgressBar progress={process.progress ?? 0} label={t('process.progress')} />
-
-          {/* Process Tabs */}
-          <ProcessTabs language={language} />
+          {/* Process Name and Tabs Row */}
+          <div className="mt-3">
+            <div className="flex items-center justify-between gap-4 mb-2">
+              <div className="flex-shrink-0">
+                <h1 className="text-xl font-bold text-foreground">{process.name}</h1>
+                <p className="text-xs text-muted-foreground">
+                  {t('process.version')}: {process.version}
+                </p>
+              </div>
+              {/* Process Tabs - moved inline */}
+              <div className="flex-1 overflow-x-auto">
+                <ProcessTabs language={language} />
+              </div>
+            </div>
+            <ProgressBar progress={process.progress ?? 0} label={t('process.progress')} />
+          </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="flex max-w-7xl mx-auto">
+      {/* Main Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="flex max-w-7xl mx-auto">
         {/* Sidebar */}
         <ProcessSidebar />
 
@@ -249,7 +280,7 @@ export default function ProcessPage() {
           {currentPhase && (
             <div>
               <div className="mb-6">
-                <h2 className="text-3xl font-bold text-foreground mb-2">
+                <h2 className="text-xl font-bold text-foreground mb-2">
                   {currentPhase.name}
                 </h2>
                 {currentPhase.description && (
@@ -301,6 +332,7 @@ export default function ProcessPage() {
             </div>
           )}
         </main>
+        </div>
       </div>
 
       {/* Evidence Modal - Lazy loaded */}
