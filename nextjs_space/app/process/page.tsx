@@ -84,6 +84,7 @@ export default function ProcessPage() {
 
   const currentPhase = process.phases?.find((p) => p?.id === currentPhaseId);
   const currentTask = currentPhase?.tasks?.find((t) => t?.id === currentTaskId);
+  const isProcessCompleted = !!process.completedAt || process.timeTracking?.status === 'completed';
 
   const handleExportJSON = async () => {
     const operationId = 'export-json';
@@ -237,12 +238,18 @@ export default function ProcessPage() {
               
               <button
                 onClick={handleCompleteProcess}
-                disabled={isExporting}
+                disabled={isExporting || isProcessCompleted}
                 data-testid="complete-process-btn"
-                className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50"
+                className={`flex items-center gap-2 px-6 py-2 rounded-lg transition-colors ${
+                  isProcessCompleted
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-green-600 text-white hover:bg-green-700 disabled:opacity-50'
+                }`}
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span className="font-medium">{t('process.complete')}</span>
+                <span className="font-medium">
+                  {isProcessCompleted ? (t('process.completed') || 'Completado') : t('process.complete')}
+                </span>
               </button>
 
             </div>
