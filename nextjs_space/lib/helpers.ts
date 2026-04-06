@@ -235,6 +235,43 @@ export function formatDurationLong(ms: number): string {
   return parts.join(' ');
 }
 
+export function parseTimeString(timeStr: string): number {
+  if (!timeStr || typeof timeStr !== 'string') return 0;
+  
+  const normalized = timeStr.toLowerCase().trim();
+  let totalMs = 0;
+  
+  // Match hours (e.g., "2h", "1.5h")
+  const hoursMatch = normalized.match(/(\d+(?:\.\d+)?)\s*h/);
+  if (hoursMatch) {
+    totalMs += parseFloat(hoursMatch[1]) * 60 * 60 * 1000;
+  }
+  
+  // Match minutes (e.g., "30m", "45m")
+  const minutesMatch = normalized.match(/(\d+(?:\.\d+)?)\s*m(?!s)/);
+  if (minutesMatch) {
+    totalMs += parseFloat(minutesMatch[1]) * 60 * 1000;
+  }
+  
+  // Match seconds (e.g., "30s")
+  const secondsMatch = normalized.match(/(\d+(?:\.\d+)?)\s*s/);
+  if (secondsMatch) {
+    totalMs += parseFloat(secondsMatch[1]) * 1000;
+  }
+  
+  return totalMs;
+}
+
+export function getTimeStatus(elapsedMs: number, estimatedMs: number): 'on-time' | 'warning' | 'exceeded' {
+  if (!estimatedMs || estimatedMs <= 0) return 'on-time';
+  
+  const percentage = (elapsedMs / estimatedMs) * 100;
+  
+  if (percentage <= 60) return 'on-time';
+  if (percentage <= 100) return 'warning';
+  return 'exceeded';
+}
+
 export function calculateTaskDuration(
   task: TaskState,
   previousCompletedAt: string | null,

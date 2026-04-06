@@ -151,8 +151,13 @@ export default function TaskCard({ task, phaseId, activityId, onViewEvidence }: 
 
           <button
             onClick={onViewEvidence}
+            disabled={isBlocked}
             data-testid="view-evidence-btn"
-            className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors text-sm font-medium"
+            className={`px-3 py-1.5 rounded-lg transition-colors text-sm font-medium ${
+              isBlocked 
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+            }`}
           >
             {t('task.view')}
           </button>

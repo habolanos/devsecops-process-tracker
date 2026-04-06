@@ -4,12 +4,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { parseYAMLToProcess } from '@/lib/yaml-parser';
 import { importProcessFromJSON, exportProcessToJSON, downloadJSON } from '@/lib/json-utils';
+import { ProcessState, ProcessExportJSON } from '@/lib/types';
 import { useProcessStore } from '@/lib/store';
 import { useSessionStore } from '@/lib/session-store';
 import { useI18n } from '@/lib/i18n-context';
 import { Upload, FileText, Globe, Shield, Rocket, AlertTriangle, FolderOpen, GitPullRequest, Play, Pause, CheckCircle2, XCircle, Layers, Trash2, Download } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { ProcessState } from '@/lib/types';
+import { useLoadingStore } from '@/lib/loading-store';
 import { ProcessTabs } from '@/components/process-tabs';
 import { toast } from 'sonner';
 
@@ -28,6 +29,7 @@ export default function HomePage() {
   const { t, language, setLanguage } = useI18n();
   const loadProcess = useProcessStore((state) => state?.loadProcess);
   const { addProcess, initSession, pauseCurrentProcess, activeTrayId, processes } = useSessionStore();
+  const { startOperation, endOperation } = useLoadingStore();
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,8 +74,10 @@ export default function HomePage() {
   }, []);
 
   const handleSelectTemplate = async (templateId: string) => {
+    const operationId = `load-template-${templateId}`;
     setIsLoading(true);
     setError(null);
+    startOperation(operationId);
 
     try {
       const response = await fetch(`/api/processes/${templateId}`);
@@ -89,6 +93,7 @@ export default function HomePage() {
       setError(errorMsg);
     } finally {
       setIsLoading(false);
+      endOperation(operationId);
     }
   };
 
@@ -111,27 +116,33 @@ export default function HomePage() {
   };
 
   const handleFileUpload = async (file: File, type: 'yaml' | 'json') => {
+    const operationId = `upload-${type}`;
     setIsLoading(true);
     setError(null);
+    startOperation(operationId);
 
     try {
-      const content = await file.text();
+      const text = await file.text();
       let process: ProcessState;
-      
+
       if (type === 'yaml') {
-        process = parseYAMLToProcess(content);
+        process = parseYAMLToProcess(text);
       } else {
-        const jsonData = JSON.parse(content);
+        const jsonData = JSON.parse(text) as ProcessExportJSON;
         process = importProcessFromJSON(jsonData);
       }
-      
-      loadAndTrackProcess(process);
+
+      loadProcess?.(process);
+      addProcess(process);
+      toast.success(language === 'es' ? 'Archivo cargado' : 'File loaded');
       router.push('/process');
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Error desconocido';
       setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setIsLoading(false);
+      endOperation(operationId);
     }
   };
 
@@ -469,7 +480,7 @@ export default function HomePage() {
                     <div className="mt-4">
                       <div className="flex justify-between text-xs text-muted-foreground mb-1">
                         <span>{language === 'es' ? 'Progreso' : 'Progress'}</span>
-                        <span>{Math.round(item.snapshot.progress)}%</span>
+                        <span>{Math.round(item.snapshot.progress * 100)}%</span>
                       </div>
                       <div className="h-2 bg-secondary rounded-full overflow-hidden">
                         <div 
@@ -478,7 +489,7 @@ export default function HomePage() {
                             item.status === 'active' ? 'bg-green-500' :
                             item.status === 'cancelled' ? 'bg-red-500' : 'bg-amber-500'
                           }`}
-                          style={{ width: `${item.snapshot.progress}%` }}
+                          style={{ width: `${item.snapshot.progress * 100}%` }}
                         />
                       </div>
                     </div>

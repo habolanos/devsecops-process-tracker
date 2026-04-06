@@ -26,6 +26,7 @@ const translations: Translations = {
   'process.version': { es: 'Versión', en: 'Version' },
   'process.progress': { es: 'Progreso Global', en: 'Overall Progress' },
   'process.complete': { es: 'Finalizar Proceso', en: 'Complete Process' },
+  'process.completed': { es: 'Completado', en: 'Completed' },
   'process.export': { es: 'Exportar Progreso', en: 'Export Progress' },
   'process.back': { es: 'Volver al Inicio', en: 'Back to Home' },
   
@@ -62,8 +63,8 @@ const translations: Translations = {
   'evidence.delete': { es: 'Eliminar', en: 'Delete' },
   
   // Export
-  'export.json': { es: 'Exportar JSON', en: 'Export JSON' },
-  'export.word': { es: 'Exportar Word', en: 'Export Word' },
+  'export.json': { es: 'JSON', en: 'JSON' },
+  'export.word': { es: 'Word', en: 'Word' },
   'export.success': { es: 'Exportado exitosamente', en: 'Exported successfully' },
   'export.generating': { es: 'Generando documento...', en: 'Generating document...' },
   
@@ -80,6 +81,10 @@ const translations: Translations = {
   'timer.totalTime': { es: 'Tiempo total', en: 'Total time' },
   'timer.activeTime': { es: 'Tiempo activo', en: 'Active time' },
   'timer.sessions': { es: 'Sesiones', en: 'Sessions' },
+  'timer.onTime': { es: 'En tiempo', en: 'On time' },
+  'timer.warning': { es: 'Atención', en: 'Attention' },
+  'timer.exceeded': { es: 'Excedido', en: 'Exceeded' },
+  'timer.estimated': { es: 'Estimado', en: 'Estimated' },
   
   // Common
   'common.cancel': { es: 'Cancelar', en: 'Cancel' },
@@ -119,6 +124,10 @@ const translations: Translations = {
   'theme.light': { es: 'Modo Claro', en: 'Light Mode' },
   'theme.dark': { es: 'Modo Oscuro', en: 'Dark Mode' },
   'theme.system': { es: 'Sistema', en: 'System' },
+  
+  // Variables
+  'variables.button': { es: 'Variables', en: 'Variables' },
+  'variables.title': { es: 'Variables del Proceso', en: 'Process Variables' },
   
   // Activities
   'activity.title': { es: 'Actividad', en: 'Activity' },

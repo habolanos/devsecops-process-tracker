@@ -28,7 +28,13 @@ const STATUS_CONFIG: Record<ProcessTrayStatus, { icon: React.ElementType; color:
 export function ProcessTabs({ language = 'es', maxVisibleTabs = 4 }: ProcessTabsProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { processes, activeTrayId, switchToProcess, removeFromTray, updateSnapshot } = useSessionStore();
+  
+  // Optimized selectors to prevent unnecessary re-renders
+  const processes = useSessionStore((state) => state.processes);
+  const activeTrayId = useSessionStore((state) => state.activeTrayId);
+  const switchToProcess = useSessionStore((state) => state.switchToProcess);
+  const removeFromTray = useSessionStore((state) => state.removeFromTray);
+  const updateSnapshot = useSessionStore((state) => state.updateSnapshot);
   const loadProcess = useProcessStore((state) => state.loadProcess);
 
   if (processes.length === 0) return null;
@@ -74,7 +80,7 @@ export function ProcessTabs({ language = 'es', maxVisibleTabs = 4 }: ProcessTabs
             <StatusIcon className={`w-3 h-3 ${config.color}`} />
           </div>
           <span className="truncate max-w-[150px]">{process.processName}</span>
-          <span className="text-xs text-muted-foreground ml-auto">{Math.round(process.snapshot.progress)}%</span>
+          <span className="text-xs text-muted-foreground ml-auto">{Math.round(process.snapshot.progress * 100)}%</span>
         </DropdownMenuItem>
       );
     }
@@ -87,7 +93,7 @@ export function ProcessTabs({ language = 'es', maxVisibleTabs = 4 }: ProcessTabs
           group relative flex items-center gap-2 px-3 py-1.5 rounded-t-lg border-x border-t
           transition-all duration-150 max-w-[180px] min-w-[100px]
           ${isActive 
-            ? 'bg-background border-border shadow-sm -mb-px z-10' 
+            ? 'bg-background border-border shadow-sm z-10' 
             : 'bg-secondary border-border hover:bg-accent'
           }
         `}
@@ -100,13 +106,13 @@ export function ProcessTabs({ language = 'es', maxVisibleTabs = 4 }: ProcessTabs
           {process.processName}
         </span>
 
-        <button
+        <div
           onClick={(e) => handleCloseTab(e, process.trayId)}
-          className="opacity-0 group-hover:opacity-100 ml-auto p-0.5 rounded hover:bg-accent transition-opacity"
+          className="opacity-0 group-hover:opacity-100 ml-auto p-0.5 rounded hover:bg-accent transition-opacity cursor-pointer"
           title={language === 'es' ? 'Cerrar' : 'Close'}
         >
           <X className="w-3 h-3 text-muted-foreground" />
-        </button>
+        </div>
 
         {/* Progress indicator */}
         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-secondary rounded-full overflow-hidden">
@@ -116,7 +122,7 @@ export function ProcessTabs({ language = 'es', maxVisibleTabs = 4 }: ProcessTabs
               process.status === 'active' ? 'bg-green-500' :
               process.status === 'cancelled' ? 'bg-red-500' : 'bg-amber-500'
             }`}
-            style={{ width: `${process.snapshot.progress}%` }}
+            style={{ width: `${process.snapshot.progress * 100}%` }}
           />
         </div>
       </button>

@@ -6,6 +6,7 @@ import { ToastProvider } from '@/components/toast-provider';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { GlobalCommandPalette } from '@/components/global-command-palette';
 import { ThemeProvider } from '@/components/theme-provider';
+import GlobalProgressIndicator from '@/components/global-progress-indicator';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -30,6 +31,7 @@ export default function RootLayout({
         >
           <ErrorBoundary>
             <I18nProvider>
+              <GlobalProgressIndicator />
               {children}
               <ToastProvider />
               <GlobalCommandPalette />
