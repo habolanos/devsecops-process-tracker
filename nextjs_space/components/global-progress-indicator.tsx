@@ -8,10 +8,8 @@ export default function GlobalProgressIndicator() {
   if (!isLoading) return null;
   
   return (
-    <div className="fixed top-0 left-0 right-0 z-[9999] pointer-events-none">
-      {/* GitHub-style progress bar */}
-      <div className="h-1 bg-blue-500 animate-progress" />
-      
+    <div className="fixed top-0 left-0 right-0 h-1 bg-blue-500 z-[9999] pointer-events-none">
+      <div className="h-full bg-blue-400 animate-[progress_1.5s_ease-in-out_infinite]" />
       <style jsx global>{`
         @keyframes progress {
           0% {
@@ -26,10 +24,6 @@ export default function GlobalProgressIndicator() {
             width: 100%;
             left: 100%;
           }
-        }
-        
-        .animate-progress {
-          animation: progress 1.5s ease-in-out infinite;
         }
       `}</style>
     </div>

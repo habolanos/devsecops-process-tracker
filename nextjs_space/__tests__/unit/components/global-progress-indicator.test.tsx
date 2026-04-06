@@ -25,6 +25,7 @@ describe('GlobalProgressIndicator', () => {
     
     expect(container.firstChild).not.toBeNull();
     expect(container.querySelector('.bg-blue-500')).toBeInTheDocument();
+    expect(container.querySelector('.bg-blue-400')).toBeInTheDocument();
   });
 
   it('should have correct CSS classes for GitHub-style progress', () => {
@@ -32,14 +33,14 @@ describe('GlobalProgressIndicator', () => {
     
     const { container } = render(<GlobalProgressIndicator />);
     
-    const progressBar = container.querySelector('.bg-blue-500');
+    const containerDiv = container.querySelector('.fixed');
     
-    expect(progressBar).toHaveClass('h-1');
-    expect(progressBar).toHaveClass('fixed');
-    expect(progressBar).toHaveClass('top-0');
-    expect(progressBar).toHaveClass('left-0');
-    expect(progressBar).toHaveClass('right-0');
-    expect(progressBar).toHaveClass('z-[9999]');
+    expect(containerDiv).toHaveClass('h-1');
+    expect(containerDiv).toHaveClass('fixed');
+    expect(containerDiv).toHaveClass('top-0');
+    expect(containerDiv).toHaveClass('left-0');
+    expect(containerDiv).toHaveClass('right-0');
+    expect(containerDiv).toHaveClass('z-[9999]');
   });
 
   it('should have pointer-events-none to not block interactions', () => {
@@ -47,7 +48,7 @@ describe('GlobalProgressIndicator', () => {
     
     const { container } = render(<GlobalProgressIndicator />);
     
-    const progressBar = container.querySelector('.bg-blue-500');
-    expect(progressBar).toHaveClass('pointer-events-none');
+    const containerDiv = container.querySelector('.fixed');
+    expect(containerDiv).toHaveClass('pointer-events-none');
   });
 });
