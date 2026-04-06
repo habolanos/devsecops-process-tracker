@@ -65,7 +65,7 @@ const createMockProcess = (): ProcessState => ({
 describe('useProcessStore - Check Items', () => {
   beforeEach(() => {
     // Reset the store before each test
-    useProcessStore.setState({ process: null });
+    useProcessStore.setState({ process: null, hasStartedInteraction: false });
   });
 
   describe('toggleCheckItem', () => {
@@ -288,7 +288,7 @@ describe('useProcessStore - Check Items', () => {
 
 describe('useProcessStore - Toggle Check Item in Activities', () => {
   beforeEach(() => {
-    useProcessStore.setState({ process: null });
+    useProcessStore.setState({ process: null, hasStartedInteraction: false });
   });
 
   it('should toggle check item in task within an activity', () => {
