@@ -74,6 +74,16 @@ export default function ProcessPage() {
     }
   }, [process, activeTrayId, updateSnapshot]);
 
+  // Pause timer when leaving the process page (component unmount)
+  useEffect(() => {
+    return () => {
+      const currentProcess = useProcessStore.getState().process;
+      if (currentProcess?.timeTracking?.status === 'running') {
+        useProcessStore.getState().pauseProcessTimer();
+      }
+    };
+  }, []);
+
   useEffect(() => {
     if (!process) {
       router.push('/');
