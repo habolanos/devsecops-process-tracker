@@ -20,6 +20,9 @@ FROM ${BASE_IMAGE} AS deps
 RUN apk update && apk upgrade --no-cache && \
     apk add --no-cache libc6-compat
 
+# Security: Update npm to fix tar vulnerabilities
+RUN npm install -g npm@latest
+
 WORKDIR /app
 
 # Copy package files (with lock file for reproducible builds)
@@ -37,6 +40,9 @@ FROM ${BASE_IMAGE} AS builder
 
 # Security: Update Alpine packages
 RUN apk update && apk upgrade --no-cache
+
+# Security: Update npm to fix tar vulnerabilities
+RUN npm install -g npm@latest
 
 WORKDIR /app
 
@@ -60,6 +66,9 @@ FROM ${BASE_IMAGE} AS runner
 
 # Security: Update Alpine packages
 RUN apk update && apk upgrade --no-cache
+
+# Security: Update npm to fix tar vulnerabilities
+RUN npm install -g npm@latest
 
 # Re-declare build args for this stage (required for LABEL to access them)
 ARG BUILD_DATE
