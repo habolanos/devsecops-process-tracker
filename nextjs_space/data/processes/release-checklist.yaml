@@ -3,7 +3,7 @@ process:
   name: "Checklist de Liberación"
   description: "Proceso de validación y checklist para liberaciones a producción con generación automática de reporte Excel"
   version: "1.0.0"
-  estimatedTime: "2h"
+  estimatedTime: "45m"
   
   variables:
     - key: "torre"
