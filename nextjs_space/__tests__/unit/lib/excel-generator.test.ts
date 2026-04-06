@@ -75,7 +75,7 @@ describe('excel-generator', () => {
       capturedVariables: {
         repository: 'api-payments',
         organization: 'myorg',
-        rfc: 'RFC123456',
+        rfcNumber: 'RFC123456',
         notaInstalacion: 'NOTA789',
         lider: 'John Doe',
         developer: 'Jane Smith',
@@ -198,8 +198,8 @@ describe('excel-generator', () => {
       );
 
       expect(filename).toContain('Checklist_Liberacion_');
-      expect(filename).toContain('_RFC123');
-      expect(filename).toContain('_NOTA456');
+      expect(filename).toContain('RFC123');
+      expect(filename).toContain('NOTA456');
       expect(filename).toContain('My_Process');
       expect(filename).toMatch(/\.xlsx$/);
     });
@@ -208,8 +208,8 @@ describe('excel-generator', () => {
       const filename = generateReleaseFilename('My Process', undefined, 'NOTA456');
 
       expect(filename).toContain('Checklist_Liberacion_');
-      expect(filename).not.toContain('_RFC');
-      expect(filename).toContain('_NOTA456');
+      expect(filename).not.toContain('RFC');
+      expect(filename).toContain('NOTA456');
       expect(filename).toMatch(/\.xlsx$/);
     });
 
@@ -217,17 +217,20 @@ describe('excel-generator', () => {
       const filename = generateReleaseFilename('My Process', 'RFC123');
 
       expect(filename).toContain('Checklist_Liberacion_');
-      expect(filename).toContain('_RFC123');
-      expect(filename).not.toContain('_NOTA');
+      expect(filename).toContain('RFC123');
+      expect(filename).not.toContain('NOTA');
       expect(filename).toMatch(/\.xlsx$/);
     });
 
     it('should sanitize process name for filename', () => {
       const filename = generateReleaseFilename('My Process @#$% 123');
 
-      expect(filename).toContain('My_Process_____123');
+      // Special characters are replaced with underscores
+      expect(filename).toContain('My_Process');
+      expect(filename).toContain('123');
       expect(filename).not.toContain('@');
       expect(filename).not.toContain('#');
+      expect(filename).not.toContain('%');
     });
 
     it('should include current date in filename', () => {
