@@ -117,10 +117,10 @@ export default function ProcessTimer() {
 
   if (!isClient || !process) return null;
 
-  // Build tooltip text for estimated time
+  // Build tooltip text with full status info
   const tooltipText = hasEstimate 
-    ? `${t('timer.estimated')}: ${formatDurationLong(estimatedTime!)}` 
-    : '';
+    ? `${t('timer.estimated')}: ${formatDurationLong(estimatedTime!)}\n${getStatusMessage()}` 
+    : `${isRunning ? t('timer.running') : isPaused ? t('timer.paused') : t('timer.idle')}`;
 
   return (
     <div 
@@ -148,7 +148,7 @@ export default function ProcessTimer() {
         <span className={`font-mono text-base font-bold ${colors.text}`}>
           {formatDuration(displayTime)}
         </span>
-        <span className={`text-xs ${
+        <span className={`text-[10px] ${
           timeStatus === 'exceeded' && hasEstimate 
             ? 'text-red-600 font-medium' 
             : timeStatus === 'warning' && hasEstimate
