@@ -49,6 +49,7 @@ interface SessionStore {
   getProcessCount: () => number;
   getProcessesByStatus: (status: ProcessTrayStatus) => ProcessTrayItem[];
   clearSession: () => void;
+  clearStorage: () => void;
 }
 
 // ============================================
@@ -201,6 +202,7 @@ export const useSessionStore = create<SessionStore>()(
       },
 
       updateSnapshot: (trayId, snapshot) => {
+        console.log('SessionStore - updateSnapshot - snapshot.progress:', snapshot.progress);
         set((state) => ({
           processes: state.processes.map((p) =>
             p.trayId === trayId
@@ -229,11 +231,18 @@ export const useSessionStore = create<SessionStore>()(
 
       clearSession: () => {
         set({
-          sessionId: `session-${Date.now()}`,
-          sessionStartedAt: new Date().toISOString(),
+          sessionId: '',
+          sessionStartedAt: '',
           processes: [],
           activeTrayId: null,
         });
+      },
+      
+      // Helper to clear localStorage for session store (useful when schema changes)
+      clearStorage: () => {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('session-storage');
+        }
       },
     }),
     {

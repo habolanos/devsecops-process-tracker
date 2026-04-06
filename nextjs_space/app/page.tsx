@@ -28,7 +28,7 @@ export default function HomePage() {
   const router = useRouter();
   const { t, language, setLanguage } = useI18n();
   const loadProcess = useProcessStore((state) => state?.loadProcess);
-  const { addProcess, initSession, pauseCurrentProcess, activeTrayId, processes } = useSessionStore();
+  const { addProcess, initSession, pauseCurrentProcess, activeTrayId, processes, clearStorage } = useSessionStore();
   const { startOperation, endOperation } = useLoadingStore();
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,6 +40,14 @@ export default function HomePage() {
   useEffect(() => {
     initSession();
   }, [initSession]);
+
+  // Temporary fix: clear localStorage if progress values are incorrect
+  const handleClearStorage = () => {
+    if (confirm('¿Limpiar localStorage? Esto eliminará todos los procesos guardados.')) {
+      clearStorage();
+      window.location.reload();
+    }
+  };
 
   // Helper to load process and add to tray
   const loadAndTrackProcess = (process: ProcessState) => {
@@ -187,6 +195,13 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle language={language} />
+            <button
+              onClick={handleClearStorage}
+              className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition-colors text-sm"
+              title="Limpiar localStorage (temporal)"
+            >
+              Limpiar Storage
+            </button>
             <button
               onClick={() => setLanguage?.(language === 'es' ? 'en' : 'es')}
               className="flex items-center gap-2 px-3 py-2 bg-secondary border border-border rounded-lg hover:bg-accent transition-colors"
