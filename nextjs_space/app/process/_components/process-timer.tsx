@@ -29,12 +29,12 @@ export default function ProcessTimer() {
     setIsClient(true);
   }, []);
 
-  // Auto-start timer on first interaction
+  // Auto-start/resume timer on first interaction
   useEffect(() => {
-    if (isClient && hasStartedInteraction && isIdle) {
+    if (isClient && hasStartedInteraction && (isIdle || isPaused)) {
       startProcessTimer();
     }
-  }, [isClient, hasStartedInteraction, isIdle, startProcessTimer]);
+  }, [isClient, hasStartedInteraction, isIdle, isPaused, startProcessTimer]);
 
   // Update display time
   const updateDisplayTime = useCallback(() => {
