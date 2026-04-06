@@ -63,17 +63,23 @@ ARG BUILD_DATE
 ARG VCS_REF
 ARG VERSION
 
+# Copy labels configuration file
+COPY .docker.labels .docker.labels
+
+# Load label variables from file
+RUN set -a && . .docker.labels && set +a
+
 # OCI Image Labels (https://github.com/opencontainers/image-spec/blob/main/annotations.md)
-LABEL org.opencontainers.image.title="DevSecOps Process Tracker" \
-      org.opencontainers.image.description="Web application for DevSecOps process management with evidence tracking, dependencies, and exports" \
+LABEL org.opencontainers.image.title="${LABEL_TITLE}" \
+      org.opencontainers.image.description="${LABEL_DESCRIPTION}" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.revision="${VCS_REF}" \
-      org.opencontainers.image.vendor="Harold Adrian" \
-      org.opencontainers.image.licenses="GPL-3.0" \
-      org.opencontainers.image.source="https://github.com/habolanos/devsecops-process-tracker" \
-      org.opencontainers.image.documentation="https://github.com/habolanos/devsecops-process-tracker/blob/main/README.md" \
-      org.opencontainers.image.base.name="node:24-alpine"
+      org.opencontainers.image.vendor="${LABEL_VENDOR}" \
+      org.opencontainers.image.licenses="${LABEL_LICENSES}" \
+      org.opencontainers.image.source="${LABEL_SOURCE}" \
+      org.opencontainers.image.documentation="${LABEL_DOCUMENTATION}" \
+      org.opencontainers.image.base.name="${LABEL_BASE_NAME}"
 
 WORKDIR /app
 
