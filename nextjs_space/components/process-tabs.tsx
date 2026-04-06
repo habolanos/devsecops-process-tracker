@@ -31,6 +31,9 @@ export function ProcessTabs({ language = 'es', maxVisibleTabs = 4 }: ProcessTabs
   const { processes, activeTrayId, switchToProcess, removeFromTray, updateSnapshot } = useSessionStore();
   const loadProcess = useProcessStore((state) => state.loadProcess);
 
+  console.log('ProcessTabs - processes:', processes);
+  console.log('ProcessTabs - processes.length:', processes.length);
+
   if (processes.length === 0) return null;
 
   const visibleProcesses = processes.slice(0, maxVisibleTabs);
