@@ -100,13 +100,13 @@ export function ProcessTabs({ language = 'es', maxVisibleTabs = 4 }: ProcessTabs
           {process.processName}
         </span>
 
-        <button
+        <div
           onClick={(e) => handleCloseTab(e, process.trayId)}
-          className="opacity-0 group-hover:opacity-100 ml-auto p-0.5 rounded hover:bg-accent transition-opacity"
+          className="opacity-0 group-hover:opacity-100 ml-auto p-0.5 rounded hover:bg-accent transition-opacity cursor-pointer"
           title={language === 'es' ? 'Cerrar' : 'Close'}
         >
           <X className="w-3 h-3 text-muted-foreground" />
-        </button>
+        </div>
 
         {/* Progress indicator */}
         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-secondary rounded-full overflow-hidden">
