@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useProcessStore } from '@/lib/store';
 import { formatDuration, formatDurationLong, getTimeStatus } from '@/lib/helpers';
 import { useI18n } from '@/lib/i18n-context';
@@ -16,6 +16,7 @@ export default function ProcessTimer() {
   
   const [displayTime, setDisplayTime] = useState(0);
   const [isClient, setIsClient] = useState(false);
+  const hasAutoStarted = useRef(false);
 
   const timeTracking = process?.timeTracking;
   const estimatedTime = process?.estimatedTime;
@@ -81,9 +82,10 @@ export default function ProcessTimer() {
     setIsClient(true);
   }, []);
 
-  // Auto-start/resume timer on first interaction
+  // Auto-start timer on first interaction (only once)
   useEffect(() => {
-    if (isClient && hasStartedInteraction && (isIdle || isPaused)) {
+    if (isClient && hasStartedInteraction && !hasAutoStarted.current && (isIdle || isPaused)) {
+      hasAutoStarted.current = true;
       startProcessTimer();
     }
   }, [isClient, hasStartedInteraction, isIdle, isPaused, startProcessTimer]);

@@ -125,6 +125,10 @@ const translations: Translations = {
   'theme.dark': { es: 'Modo Oscuro', en: 'Dark Mode' },
   'theme.system': { es: 'Sistema', en: 'System' },
   
+  // Variables
+  'variables.button': { es: 'Variables', en: 'Variables' },
+  'variables.title': { es: 'Variables del Proceso', en: 'Process Variables' },
+  
   // Activities
   'activity.title': { es: 'Actividad', en: 'Activity' },
   'activity.progress': { es: 'Progreso de Actividad', en: 'Activity Progress' },

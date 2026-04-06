@@ -170,7 +170,7 @@ export default function ProcessPage() {
                 <span>{t('process.back')}</span>
               </button>
               
-              <div>
+              <div className="min-w-[200px]">
                 <h1 className="text-2xl font-bold text-foreground">{process.name}</h1>
                 <p className="text-sm text-muted-foreground">
                   {t('process.version')}: {process.version}
