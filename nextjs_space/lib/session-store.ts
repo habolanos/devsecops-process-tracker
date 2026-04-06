@@ -202,7 +202,6 @@ export const useSessionStore = create<SessionStore>()(
       },
 
       updateSnapshot: (trayId, snapshot) => {
-        console.log('SessionStore - updateSnapshot - snapshot.progress:', snapshot.progress);
         set((state) => ({
           processes: state.processes.map((p) =>
             p.trayId === trayId

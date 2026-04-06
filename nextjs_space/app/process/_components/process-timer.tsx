@@ -31,12 +31,10 @@ export default function ProcessTimer() {
 
   // Auto-start timer on first interaction
   useEffect(() => {
-    console.log('ProcessTimer - Auto-start check:', { isClient, hasStartedInteraction, isIdle, sessionsCount });
-    if (isClient && hasStartedInteraction && isIdle && sessionsCount === 0) {
-      console.log('ProcessTimer - Auto-starting timer');
+    if (isClient && hasStartedInteraction && isIdle) {
       startProcessTimer();
     }
-  }, [isClient, hasStartedInteraction, isIdle, sessionsCount, startProcessTimer]);
+  }, [isClient, hasStartedInteraction, isIdle, startProcessTimer]);
 
   // Update display time
   const updateDisplayTime = useCallback(() => {

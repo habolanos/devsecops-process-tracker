@@ -28,7 +28,13 @@ const STATUS_CONFIG: Record<ProcessTrayStatus, { icon: React.ElementType; color:
 export function ProcessTabs({ language = 'es', maxVisibleTabs = 4 }: ProcessTabsProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { processes, activeTrayId, switchToProcess, removeFromTray, updateSnapshot } = useSessionStore();
+  
+  // Optimized selectors to prevent unnecessary re-renders
+  const processes = useSessionStore((state) => state.processes);
+  const activeTrayId = useSessionStore((state) => state.activeTrayId);
+  const switchToProcess = useSessionStore((state) => state.switchToProcess);
+  const removeFromTray = useSessionStore((state) => state.removeFromTray);
+  const updateSnapshot = useSessionStore((state) => state.updateSnapshot);
   const loadProcess = useProcessStore((state) => state.loadProcess);
 
   if (processes.length === 0) return null;

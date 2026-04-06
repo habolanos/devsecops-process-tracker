@@ -39,11 +39,12 @@ export default function ProcessPage() {
     }))
   );
   
-  const { setCurrentTask, markProcessComplete, stopProcessTimer } = useProcessStore(
+  const { setCurrentTask, markProcessComplete, stopProcessTimer, pauseProcessTimer } = useProcessStore(
     useShallow((state) => ({
       setCurrentTask: state?.setCurrentTask,
       markProcessComplete: state?.markProcessComplete,
       stopProcessTimer: state?.stopProcessTimer,
+      pauseProcessTimer: state?.pauseProcessTimer,
     }))
   );
   
@@ -144,6 +145,11 @@ export default function ProcessPage() {
 
   const handleBackToHome = () => {
     if (confirm('¿Seguro que deseas salir? Se guardará tu progreso.')) {
+      // Pause timer before leaving
+      const currentProcess = useProcessStore.getState().process;
+      if (currentProcess?.timeTracking?.status === 'running') {
+        pauseProcessTimer();
+      }
       router.push('/');
     }
   };

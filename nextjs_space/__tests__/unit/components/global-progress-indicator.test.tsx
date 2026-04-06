@@ -13,6 +13,8 @@ describe('GlobalProgressIndicator', () => {
   });
 
   it('should not render when isLoading is false', () => {
+    useLoadingStore.setState({ isLoading: false });
+    
     const { container } = render(<GlobalProgressIndicator />);
     
     expect(container.firstChild).toBeNull();
@@ -24,8 +26,8 @@ describe('GlobalProgressIndicator', () => {
     const { container } = render(<GlobalProgressIndicator />);
     
     expect(container.firstChild).not.toBeNull();
+    expect(container.querySelector('.bg-blue-200')).toBeInTheDocument();
     expect(container.querySelector('.bg-blue-500')).toBeInTheDocument();
-    expect(container.querySelector('.bg-blue-400')).toBeInTheDocument();
   });
 
   it('should have correct CSS classes for GitHub-style progress', () => {
@@ -41,6 +43,7 @@ describe('GlobalProgressIndicator', () => {
     expect(containerDiv).toHaveClass('left-0');
     expect(containerDiv).toHaveClass('right-0');
     expect(containerDiv).toHaveClass('z-[9999]');
+    expect(containerDiv).toHaveClass('overflow-hidden');
   });
 
   it('should have pointer-events-none to not block interactions', () => {

@@ -5,13 +5,16 @@ import { useLoadingStore } from '@/lib/loading-store';
 export default function GlobalProgressIndicator() {
   const isLoading = useLoadingStore((state) => state.isLoading);
   
-  console.log('GlobalProgressIndicator - isLoading:', isLoading);
-  
   if (!isLoading) return null;
   
   return (
-    <div className="fixed top-0 left-0 right-0 h-0.5 bg-blue-500 z-[9999] pointer-events-none">
-      <div className="h-full bg-blue-400 animate-[progress_1.5s_ease-in-out_infinite]" />
+    <div className="fixed top-0 left-0 right-0 h-0.5 bg-blue-200 z-[9999] pointer-events-none overflow-hidden">
+      <div 
+        className="h-full bg-blue-500 absolute"
+        style={{
+          animation: 'progress 1.5s ease-in-out infinite',
+        }}
+      />
       <style jsx global>{`
         @keyframes progress {
           0% {
@@ -19,11 +22,11 @@ export default function GlobalProgressIndicator() {
             left: 0%;
           }
           50% {
-            width: 70%;
-            left: 30%;
+            width: 60%;
+            left: 20%;
           }
           100% {
-            width: 100%;
+            width: 0%;
             left: 100%;
           }
         }
