@@ -118,9 +118,15 @@ export default function ProcessTimer() {
   if (!isClient || !process) return null;
 
   // Build tooltip text with full status info
-  const tooltipText = hasEstimate 
-    ? `${t('timer.estimated')}: ${formatDurationLong(estimatedTime!)}\n${getStatusMessage()}` 
-    : `${isRunning ? t('timer.running') : isPaused ? t('timer.paused') : t('timer.idle')}`;
+  const buildTooltip = () => {
+    const parts: string[] = [];
+    if (hasEstimate) {
+      parts.push(`${t('timer.estimated')}: ${formatDurationLong(estimatedTime!)}`);
+    }
+    parts.push(getStatusMessage());
+    return parts.join(' | ');
+  };
+  const tooltipText = buildTooltip();
 
   return (
     <div 
