@@ -8,10 +8,13 @@ ARG BUILD_DATE
 ARG VCS_REF
 ARG VERSION=latest
 
+# Base image used across all stages
+ARG BASE_IMAGE=node:24-alpine
+
 # ==========================================================================
 # Stage 1: Dependencies
 # ==========================================================================
-FROM node:24-alpine AS deps
+FROM ${BASE_IMAGE} AS deps
 
 # Security: Update Alpine packages to fix vulnerabilities (zlib, etc.)
 RUN apk update && apk upgrade --no-cache && \
@@ -30,7 +33,7 @@ RUN --mount=type=cache,target=/root/.npm \
 # ==========================================================================
 # Stage 2: Builder
 # ==========================================================================
-FROM node:24-alpine AS builder
+FROM ${BASE_IMAGE} AS builder
 
 # Security: Update Alpine packages
 RUN apk update && apk upgrade --no-cache
@@ -53,7 +56,6 @@ RUN --mount=type=cache,target=/root/.npm \
 # ==========================================================================
 # Stage 3: Production Runner
 # ==========================================================================
-ARG BASE_IMAGE=node:24-alpine
 FROM ${BASE_IMAGE} AS runner
 
 # Security: Update Alpine packages
