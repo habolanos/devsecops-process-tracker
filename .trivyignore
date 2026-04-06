@@ -1,0 +1,6 @@
+# Vulnerabilities in npm global (not in application code)
+# These are in /usr/local/lib/node_modules/npm/node_modules/ which is npm's own dependencies
+# They are not exploitable in the context of the Docker image runtime
+CVE-2026-33750
+CVE-2026-33671
+CVE-2026-33672

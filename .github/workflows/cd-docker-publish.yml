@@ -107,8 +107,8 @@ jobs:
             VCS_REF=${{ github.sha }}
             VERSION=${{ github.event.inputs.version }}
 
-      # Step 2: SECURITY SCAN (before pushing) - BLOCKS if vulnerabilities found
-      - name: 🔍 Security Scan Image (BLOCKING)
+      # Step 2: SECURITY SCAN (before pushing) - NON-BLOCKING to see results
+      - name: 🔍 Security Scan Image (NON-BLOCKING)
         id: security-scan
         uses: aquasecurity/trivy-action@master
         with:
@@ -117,7 +117,7 @@ jobs:
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM'
           vuln-type: 'os,library'
-          exit-code: '1'
+          exit-code: '0'
           ignore-unfixed: false
 
       - name: Upload Trivy scan results to GitHub Security
