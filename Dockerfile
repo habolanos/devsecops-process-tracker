@@ -9,7 +9,7 @@ ARG VCS_REF
 ARG VERSION=latest
 
 # Base image used across all stages
-ARG BASE_IMAGE=node:24-alpine
+ARG BASE_IMAGE=node:24-alpine3.21
 
 # ==========================================================================
 # Stage 1: Dependencies
