@@ -70,11 +70,11 @@ LABEL org.opencontainers.image.title="DevSecOps Process Tracker" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.revision="${VCS_REF}" \
-      org.opencontainers.image.vendor="DevSecOps Team" \
-      org.opencontainers.image.licenses="MIT" \
-      org.opencontainers.image.source="https://github.com/your-org/devsecops-process-tracker" \
-      org.opencontainers.image.documentation="https://github.com/your-org/devsecops-process-tracker/blob/main/README.md" \
-      org.opencontainers.image.base.name="node:20-alpine"
+      org.opencontainers.image.vendor="Harold Adrian" \
+      org.opencontainers.image.licenses="GPL-3.0" \
+      org.opencontainers.image.source="https://github.com/habolanos/devsecops-process-tracker" \
+      org.opencontainers.image.documentation="https://github.com/habolanos/devsecops-process-tracker/blob/main/README.md" \
+      org.opencontainers.image.base.name="node:24-alpine"
 
 WORKDIR /app
 
