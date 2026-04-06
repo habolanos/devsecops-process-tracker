@@ -26,6 +26,7 @@ const translations: Translations = {
   'process.version': { es: 'Versión', en: 'Version' },
   'process.progress': { es: 'Progreso Global', en: 'Overall Progress' },
   'process.complete': { es: 'Finalizar Proceso', en: 'Complete Process' },
+  'process.completed': { es: 'Completado', en: 'Completed' },
   'process.export': { es: 'Exportar Progreso', en: 'Export Progress' },
   'process.back': { es: 'Volver al Inicio', en: 'Back to Home' },
   
