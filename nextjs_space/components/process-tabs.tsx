@@ -31,19 +31,10 @@ export function ProcessTabs({ language = 'es', maxVisibleTabs = 4 }: ProcessTabs
   const { processes, activeTrayId, switchToProcess, removeFromTray, updateSnapshot } = useSessionStore();
   const loadProcess = useProcessStore((state) => state.loadProcess);
 
-  console.log('ProcessTabs - processes:', processes);
-  console.log('ProcessTabs - processes.length:', processes.length);
-
-  if (processes.length === 0) {
-    console.log('ProcessTabs - No processes, returning null');
-    return null;
-  }
+  if (processes.length === 0) return null;
 
   const visibleProcesses = processes.slice(0, maxVisibleTabs);
   const overflowProcesses = processes.slice(maxVisibleTabs);
-
-  console.log('ProcessTabs - visibleProcesses:', visibleProcesses);
-  console.log('ProcessTabs - overflowProcesses:', overflowProcesses);
 
   const handleSwitchProcess = (trayId: string) => {
     const currentProcess = useProcessStore.getState().process;
@@ -68,7 +59,6 @@ export function ProcessTabs({ language = 'es', maxVisibleTabs = 4 }: ProcessTabs
   };
 
   const renderTab = (process: typeof processes[0], isOverflow = false) => {
-    console.log('ProcessTabs - renderTab called for:', process.processName, 'isOverflow:', isOverflow);
     const config = STATUS_CONFIG[process.status];
     const StatusIcon = config.icon;
     const isActive = process.trayId === activeTrayId;
@@ -97,7 +87,7 @@ export function ProcessTabs({ language = 'es', maxVisibleTabs = 4 }: ProcessTabs
           group relative flex items-center gap-2 px-3 py-1.5 rounded-t-lg border-x border-t
           transition-all duration-150 max-w-[180px] min-w-[100px]
           ${isActive 
-            ? 'bg-background border-border shadow-sm -mb-px z-10' 
+            ? 'bg-background border-border shadow-sm z-10' 
             : 'bg-secondary border-border hover:bg-accent'
           }
         `}
@@ -132,8 +122,6 @@ export function ProcessTabs({ language = 'es', maxVisibleTabs = 4 }: ProcessTabs
       </button>
     );
   };
-
-  console.log('ProcessTabs - About to render tabs container');
 
   return (
     <div className="max-w-7xl mx-auto px-6">
