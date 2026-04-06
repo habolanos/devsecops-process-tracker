@@ -53,7 +53,8 @@ RUN --mount=type=cache,target=/root/.npm \
 # ==========================================================================
 # Stage 3: Production Runner
 # ==========================================================================
-FROM node:24-alpine AS runner
+ARG BASE_IMAGE=node:24-alpine
+FROM ${BASE_IMAGE} AS runner
 
 # Security: Update Alpine packages
 RUN apk update && apk upgrade --no-cache
@@ -62,6 +63,7 @@ RUN apk update && apk upgrade --no-cache
 ARG BUILD_DATE
 ARG VCS_REF
 ARG VERSION
+ARG BASE_IMAGE
 
 # Copy labels configuration file
 COPY .docker.labels .docker.labels
@@ -79,7 +81,7 @@ LABEL org.opencontainers.image.title="${LABEL_TITLE}" \
       org.opencontainers.image.licenses="${LABEL_LICENSES}" \
       org.opencontainers.image.source="${LABEL_SOURCE}" \
       org.opencontainers.image.documentation="${LABEL_DOCUMENTATION}" \
-      org.opencontainers.image.base.name="${LABEL_BASE_NAME}"
+      org.opencontainers.image.base.name="${BASE_IMAGE}"
 
 WORKDIR /app
 

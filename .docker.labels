@@ -4,4 +4,3 @@ LABEL_VENDOR=Harold Adrian
 LABEL_LICENSES=GPL-3.0
 LABEL_SOURCE=https://github.com/habolanos/devsecops-process-tracker
 LABEL_DOCUMENTATION=https://github.com/habolanos/devsecops-process-tracker/blob/main/README.md
-LABEL_BASE_NAME=node:24-alpine
