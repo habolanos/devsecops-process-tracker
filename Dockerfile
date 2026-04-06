@@ -20,8 +20,8 @@ FROM ${BASE_IMAGE} AS deps
 RUN apk update && apk upgrade --no-cache && \
     apk add --no-cache libc6-compat
 
-# Security: Update npm to fix tar vulnerabilities
-RUN npm install -g npm@latest
+# Security: Update npm to fix tar vulnerabilities (v9.9.0 has no picomatch/brace-expansion vulnerabilities)
+RUN npm install -g npm@9.9.0
 
 WORKDIR /app
 
@@ -41,8 +41,8 @@ FROM ${BASE_IMAGE} AS builder
 # Security: Update Alpine packages
 RUN apk update && apk upgrade --no-cache
 
-# Security: Update npm to fix tar vulnerabilities
-RUN npm install -g npm@latest
+# Security: Update npm to fix tar vulnerabilities (v9.9.0 has no picomatch/brace-expansion vulnerabilities)
+RUN npm install -g npm@9.9.0
 
 WORKDIR /app
 
@@ -67,8 +67,8 @@ FROM ${BASE_IMAGE} AS runner
 # Security: Update Alpine packages
 RUN apk update && apk upgrade --no-cache
 
-# Security: Update npm to fix tar vulnerabilities
-RUN npm install -g npm@latest
+# Security: Update npm to fix tar vulnerabilities (v9.9.0 has no picomatch/brace-expansion vulnerabilities)
+RUN npm install -g npm@9.9.0
 
 # Re-declare build args for this stage (required for LABEL to access them)
 ARG BUILD_DATE
