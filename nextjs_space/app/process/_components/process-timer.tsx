@@ -148,12 +148,14 @@ export default function ProcessTimer() {
         <span className={`font-mono text-base font-bold ${colors.text}`}>
           {formatDuration(displayTime)}
         </span>
-        <span className={`text-[10px] ${
+        <span className={`text-xs ${
           timeStatus === 'exceeded' && hasEstimate 
             ? 'text-red-600 font-medium' 
             : timeStatus === 'warning' && hasEstimate
-              ? 'text-yellow-600'
-              : 'text-gray-400'
+              ? 'text-yellow-600 font-medium'
+              : timeStatus === 'on-time' && hasEstimate
+                ? 'text-green-600 font-medium'
+                : 'text-muted-foreground'
         }`}>
           {getStatusMessage()}
         </span>
