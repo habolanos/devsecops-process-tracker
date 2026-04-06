@@ -11,6 +11,7 @@ interface ProcessStore {
   currentPhaseId: string | null;
   currentActivityId: string | null;
   currentTaskId: string | null;
+  hasStartedInteraction: boolean; // Track if user has interacted with the process
   
   // Actions
   loadProcess: (process: ProcessState) => void;
@@ -18,6 +19,7 @@ interface ProcessStore {
   setCurrentPhase: (phaseId: string) => void;
   setCurrentActivity: (activityId: string | null) => void;
   setCurrentTask: (taskId: string | null) => void;
+  markInteractionStarted: () => void; // Mark that user has started interacting
   
   updateTaskEvidence: (phaseId: string, taskId: string, evidence: Partial<TaskEvidence>, activityId?: string) => void;
   completeTask: (phaseId: string, taskId: string, activityId?: string) => void;
@@ -48,6 +50,7 @@ export const useProcessStore = create<ProcessStore>()(persist(
     currentPhaseId: null,
     currentActivityId: null,
     currentTaskId: null,
+    hasStartedInteraction: false,
 
     loadProcess: (process) => {
       const updated = updateTaskBlockedStatus(updateProgress(process));
@@ -55,7 +58,8 @@ export const useProcessStore = create<ProcessStore>()(persist(
         process: updated,
         currentPhaseId: updated.phases?.[0]?.id ?? null,
         currentActivityId: null,
-        currentTaskId: null
+        currentTaskId: null,
+        hasStartedInteraction: false // Reset interaction flag on new process load
       });
     },
 
@@ -64,20 +68,37 @@ export const useProcessStore = create<ProcessStore>()(persist(
         process: null,
         currentPhaseId: null,
         currentActivityId: null,
-        currentTaskId: null
+        currentTaskId: null,
+        hasStartedInteraction: false
       });
     },
 
     setCurrentPhase: (phaseId) => {
-      set({ currentPhaseId: phaseId, currentActivityId: null, currentTaskId: null });
+      set((state) => ({
+        currentPhaseId: phaseId,
+        currentActivityId: null,
+        currentTaskId: null,
+        hasStartedInteraction: true // Mark interaction on phase change
+      }));
     },
 
     setCurrentActivity: (activityId) => {
-      set({ currentActivityId: activityId, currentTaskId: null });
+      set((state) => ({
+        currentActivityId: activityId,
+        currentTaskId: null,
+        hasStartedInteraction: true // Mark interaction on activity change
+      }));
     },
 
     setCurrentTask: (taskId) => {
-      set({ currentTaskId: taskId });
+      set((state) => ({
+        currentTaskId: taskId,
+        hasStartedInteraction: true // Mark interaction on task selection
+      }));
+    },
+
+    markInteractionStarted: () => {
+      set({ hasStartedInteraction: true });
     },
 
     updateTaskEvidence: (phaseId, taskId, evidence, activityId) => {

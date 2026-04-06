@@ -12,6 +12,7 @@ export default function ProcessTimer() {
   const startProcessTimer = useProcessStore((state) => state.startProcessTimer);
   const pauseProcessTimer = useProcessStore((state) => state.pauseProcessTimer);
   const getElapsedTime = useProcessStore((state) => state.getElapsedTime);
+  const hasStartedInteraction = useProcessStore((state) => state.hasStartedInteraction);
   
   const [displayTime, setDisplayTime] = useState(0);
   const [isClient, setIsClient] = useState(false);
@@ -27,6 +28,13 @@ export default function ProcessTimer() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Auto-start timer on first interaction
+  useEffect(() => {
+    if (isClient && hasStartedInteraction && isIdle && sessionsCount === 0) {
+      startProcessTimer();
+    }
+  }, [isClient, hasStartedInteraction, isIdle, sessionsCount, startProcessTimer]);
 
   // Update display time
   const updateDisplayTime = useCallback(() => {
