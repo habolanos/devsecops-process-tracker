@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.22.0](https://github.com/habolanos/devsecops-process-tracker/compare/1.21.4...1.22.0) (2026-04-06)
+
+
+### 🚀 Features
+
+* externalize Docker image labels to .docker.labels file ([c2d199d](https://github.com/habolanos/devsecops-process-tracker/commit/c2d199d89034f17c625568ea1ca3f3c03541fd1e))
+* use BASE_IMAGE ARG for dynamic base.name label ([a9782ff](https://github.com/habolanos/devsecops-process-tracker/commit/a9782ff29906cef8ab0422bac6403088f7ecafbd))
+* use BASE_IMAGE ARG globally across all Dockerfile stages ([56d023e](https://github.com/habolanos/devsecops-process-tracker/commit/56d023e655bd7aded822e1f8c2e2ad2d0e2e44fd))
+
+
+### 🐛 Bug Fixes
+
+* add npm audit fix --force to resolve remaining vulnerabilities ([81d6a60](https://github.com/habolanos/devsecops-process-tracker/commit/81d6a60bbb3ea8f2926cdbeca6486432658344be))
+* add npm overrides to force secure versions of minimatch, picomatch, tar, brace-expansion ([68fea2c](https://github.com/habolanos/devsecops-process-tracker/commit/68fea2c2a08762a39f4b30f869b5fafe5d9c7113))
+* add secure versions of minimatch, picomatch, tar, brace-expansion as direct dependencies ([1423d51](https://github.com/habolanos/devsecops-process-tracker/commit/1423d51babb0ba849c9e7422f698c5278e5a82ed))
+* explicitly install secure versions of vulnerable packages ([d99f54f](https://github.com/habolanos/devsecops-process-tracker/commit/d99f54f440123be8402d9a076a5054a569781db2))
+* remove package-lock.json copy to allow overrides to work correctly ([70e864e](https://github.com/habolanos/devsecops-process-tracker/commit/70e864edbd61a448ab32038b2da3fb44b13f14a9))
+* update @eslint/eslintrc and adjust overrides for compatibility ([9db1fc9](https://github.com/habolanos/devsecops-process-tracker/commit/9db1fc9553c4092a6572dba1a242f4251b421cfb))
+* update OCI labels with correct vendor and license information ([d54cbc2](https://github.com/habolanos/devsecops-process-tracker/commit/d54cbc249c4e38235d860ab19771e3c5013eaa3e))
+* update package-lock.json with lodash security fixes ([e929d1a](https://github.com/habolanos/devsecops-process-tracker/commit/e929d1ad91a287302fc95cc3600fd99e5330e5c8))
+* use npm ci with package-lock.json for reproducible builds with security fixes ([3d673e8](https://github.com/habolanos/devsecops-process-tracker/commit/3d673e88d0f054d98648b28176675369dc451d6b))
+* use npm install instead of npm ci to apply overrides ([2a4743e](https://github.com/habolanos/devsecops-process-tracker/commit/2a4743edcb013b9b5254b081e7503a6e27071c67))
+* use npm overrides to force secure versions of vulnerable transitive dependencies ([862c729](https://github.com/habolanos/devsecops-process-tracker/commit/862c72935fb71a743aca142e4c51783d46161c54))
+
 ## [1.21.4](https://github.com/habolanos/devsecops-process-tracker/compare/1.21.3...1.21.4) (2026-04-05)
 
 
