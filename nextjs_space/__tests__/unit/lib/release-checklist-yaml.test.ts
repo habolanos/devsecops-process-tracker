@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
@@ -198,7 +198,7 @@ describe('release-checklist.yaml Process Definition', () => {
       
       allTasks.forEach((task: any) => {
         expect(task.evidence).toBeDefined();
-        expect(['text', 'image', 'both']).toContain(task.evidence.type);
+        expect(['text', 'image', 'both', 'form']).toContain(task.evidence.type);
         expect(typeof task.evidence.required).toBe('boolean');
       });
     });

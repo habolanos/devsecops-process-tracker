@@ -55,7 +55,8 @@ export async function replaceCellTokens(
  * @returns The offset cell reference or null if invalid
  */
 export function getOffsetCell(cellRef: string, offset: number): string | null {
-  if (!cellRef || offset === 0) return cellRef;
+  if (!cellRef) return null;
+  if (offset === 0) return cellRef;
   
   // Parse column letters and row number
   const match = cellRef.match(/^([A-Z]+)([0-9]+)$/);

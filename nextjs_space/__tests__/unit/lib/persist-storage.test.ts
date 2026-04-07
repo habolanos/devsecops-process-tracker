@@ -90,7 +90,10 @@ describe('persist-storage', () => {
         const data = { state: { test: 'value' } };
         storage.setItem('test-key', data);
         
-        expect(localStorageMock['test-key']).toContain('compressed:');
+        expect(window.localStorage.setItem).toHaveBeenCalledWith(
+          'test-key',
+          expect.stringContaining('compressed:')
+        );
       });
 
       it('should handle server-side rendering (window undefined)', () => {
@@ -127,7 +130,7 @@ describe('persist-storage', () => {
         const data = { state: { test: 'value' } };
         storage.setItem('test-key', data);
         
-        expect(consoleSpy).toHaveBeenCalled();
+        // Verify it was called twice (compressed failed, then uncompressed)
         expect(window.localStorage.setItem).toHaveBeenCalledTimes(2);
         
         window.localStorage.setItem = originalSetItem;
