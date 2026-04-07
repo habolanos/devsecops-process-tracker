@@ -132,9 +132,31 @@ process:
             description: "Comentarios adicionales sobre los datos del proyecto"
 
         - id: "task-1-2"
+          name: "Registrar Repositorios a Liberar"
+          description: "Ingrese los nombres de los repositorios o componentes que serán liberados"
+          order: 2
+          type: "dynamic-list"
+          listConfig:
+            label: "Repositorio/Componente"
+            placeholder: "Ingrese nombres separados por coma, punto y coma, o salto de línea"
+            minItems: 1
+            maxItems: 20
+            allowDuplicates: false
+            separators:
+              - ","
+              - ";"
+              - "\n"
+            trimItems: true
+          evidence:
+            type: "text"
+            required: false
+            description: "Notas adicionales sobre los repositorios"
+          dependencies: ["task-1-1"]
+
+        - id: "task-1-3"
           name: "Confirmar Equipo de Trabajo"
           description: "Verificar que el equipo de trabajo está completo"
-          order: 2
+          order: 3
           type: "multicheck"
           checkItems:
             - id: "check-scm"
@@ -153,7 +175,7 @@ process:
             type: "text"
             required: false
             description: "Notas sobre disponibilidad del equipo"
-          dependencies: ["task-1-1"]
+          dependencies: ["task-1-2"]
 
     # ========================================
     # FASE 2: VALIDACIONES PRE-LIBERACIÓN

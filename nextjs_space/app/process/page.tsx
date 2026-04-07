@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, lazy, Suspense } from 'react';
+import { useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { useProcessStore } from '@/lib/store';
 import { useSessionStore } from '@/lib/session-store';
@@ -54,6 +54,12 @@ export default function ProcessPage() {
   const [showEvidenceModal, setShowEvidenceModal] = useState(false);
   const [showVariablesForm, setShowVariablesForm] = useState(false);
   const [showConfigUpload, setShowConfigUpload] = useState(false);
+  
+  // Stable callback for viewing evidence to prevent memo breaking
+  const handleViewEvidence = useCallback((taskId: string) => {
+    setCurrentTask?.(taskId);
+    setShowEvidenceModal(true);
+  }, [setCurrentTask]);
   
   // Config store
   const configIsLoaded = useConfigStore((state) => state.isLoaded);
@@ -318,10 +324,7 @@ export default function ProcessPage() {
                       key={activity.id}
                       activity={activity}
                       phaseId={currentPhaseId ?? ''}
-                      onViewEvidence={(task) => {
-                        setCurrentTask?.(task?.id ?? null);
-                        setShowEvidenceModal(true);
-                      }}
+                      onViewEvidence={(task) => handleViewEvidence(task?.id ?? '')}
                     />
                   ))
                 ) : (
@@ -331,10 +334,7 @@ export default function ProcessPage() {
                       key={task?.id}
                       task={task}
                       phaseId={currentPhaseId ?? ''}
-                      onViewEvidence={() => {
-                        setCurrentTask?.(task?.id ?? null);
-                        setShowEvidenceModal(true);
-                      }}
+                      onViewEvidence={() => handleViewEvidence(task?.id ?? '')}
                     />
                   )) ?? null
                 )}

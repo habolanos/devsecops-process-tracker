@@ -2,7 +2,8 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { ProcessState, TaskEvidence, CapturedVariables, WorkSession } from './types';
+import { produce } from 'immer';
+import { ProcessState, TaskEvidence, CapturedVariables, WorkSession, ListItem } from './types';
 import { updateProgress, updateTaskBlockedStatus, getAllDependentTasks } from './helpers';
 import { createCompressedStorage } from './persist-storage';
 
@@ -28,6 +29,9 @@ interface ProcessStore {
   // CheckItem Actions (for check/multicheck tasks)
   toggleCheckItem: (phaseId: string, taskId: string, checkItemId: string, activityId?: string) => void;
   canCompleteCheckTask: (phaseId: string, taskId: string, activityId?: string) => boolean;
+  
+  // Dynamic List Actions (for dynamic-list tasks)
+  updateListData: (phaseId: string, taskId: string, items: ListItem[], activityId?: string) => void;
   
   markProcessComplete: () => void;
   
@@ -300,50 +304,28 @@ export const useProcessStore = create<ProcessStore>()(persist(
     toggleCheckItem: (phaseId, taskId, checkItemId, activityId) => {
       set((state) => {
         if (!state.process) return state;
-
-        const updateCheckItems = (task: any) => {
-          if (task?.id !== taskId) return task;
-          return {
-            ...task,
-            checkItems: task.checkItems.map((item: any) => {
-              if (item.id !== checkItemId) return item;
-              return {
-                ...item,
-                checked: !item.checked,
-                checkedAt: !item.checked ? new Date().toISOString() : undefined
-              };
-            })
-          };
-        };
-
-        const updatedPhases = state.process.phases.map((phase) => {
-          if (phase?.id !== phaseId) return phase;
-
+        
+        const newProcess = produce(state.process, (draft) => {
+          const phase = draft.phases.find(p => p?.id === phaseId);
+          if (!phase) return;
+          
+          let task;
           if (activityId) {
-            return {
-              ...phase,
-              activities: (phase.activities ?? []).map((activity) => {
-                if (activity?.id !== activityId) return activity;
-                return {
-                  ...activity,
-                  tasks: activity.tasks.map(updateCheckItems)
-                };
-              })
-            };
+            const activity = phase.activities?.find(a => a?.id === activityId);
+            task = activity?.tasks?.find(t => t?.id === taskId);
+          } else {
+            task = phase.tasks?.find(t => t?.id === taskId);
           }
-
-          return {
-            ...phase,
-            tasks: (phase.tasks ?? []).map(updateCheckItems)
-          };
+          if (!task) return;
+          
+          const checkItem = task.checkItems?.find(i => i?.id === checkItemId);
+          if (!checkItem) return;
+          
+          checkItem.checked = !checkItem.checked;
+          checkItem.checkedAt = checkItem.checked ? new Date().toISOString() : undefined;
         });
-
-        return {
-          process: {
-            ...state.process,
-            phases: updatedPhases
-          }
-        };
+        
+        return { process: newProcess };
       });
     },
 
@@ -370,6 +352,49 @@ export const useProcessStore = create<ProcessStore>()(persist(
       // For check/multicheck tasks, all required checkItems must be checked
       const requiredItems = task.checkItems.filter((item) => item.required);
       return requiredItems.every((item) => item.checked);
+    },
+
+    updateListData: (phaseId, taskId, items, activityId) => {
+      set((state) => {
+        if (!state.process) return state;
+
+        const updateTaskListData = (task: any) => {
+          if (task?.id !== taskId) return task;
+          return {
+            ...task,
+            listData: items
+          };
+        };
+
+        const updatedPhases = state.process.phases.map((phase) => {
+          if (phase?.id !== phaseId) return phase;
+
+          if (activityId) {
+            return {
+              ...phase,
+              activities: (phase.activities ?? []).map((activity) => {
+                if (activity?.id !== activityId) return activity;
+                return {
+                  ...activity,
+                  tasks: activity.tasks.map(updateTaskListData)
+                };
+              })
+            };
+          }
+
+          return {
+            ...phase,
+            tasks: (phase.tasks ?? []).map(updateTaskListData)
+          };
+        });
+
+        return {
+          process: {
+            ...state.process,
+            phases: updatedPhases
+          }
+        };
+      });
     },
 
     markProcessComplete: () => {
