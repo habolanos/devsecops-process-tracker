@@ -53,8 +53,8 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
         });
       }
       
-      if (taskType !== 'export-excel' && taskType !== 'dynamic-list') {
-        throw new Error(`Invalid task type '${taskType}' in ${contextId}. Must be 'standard', 'check', 'multicheck', 'export-excel', or 'dynamic-list'`);
+      if (taskType !== 'export-excel' && taskType !== 'dynamic-list' && taskType !== 'detail-list') {
+        throw new Error(`Invalid task type '${taskType}' in ${contextId}. Must be 'standard', 'check', 'multicheck', 'export-excel', 'dynamic-list', or 'detail-list'`);
       }
       return [];
     };
