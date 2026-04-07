@@ -7,7 +7,9 @@ let mockProcess: { capturedVariables: Record<string, string> } | null = null;
 vi.mock('@/lib/store', () => ({
   useProcessStore: vi.fn((selector) => {
     const state = { process: mockProcess };
-    return selector ? selector(state) : state;
+    if (!selector) return state;
+    const result = selector(state);
+    return result;
   }),
 }));
 

@@ -7,7 +7,13 @@ import {
   checkTaskDependencies,
   updateTaskBlockedStatus,
   validateTaskEvidence,
-  canCompleteTask
+  canCompleteTask,
+  formatDurationLong,
+  parseTimeString,
+  getTimeStatus,
+  calculateTaskDuration,
+  findTaskInProcess,
+  getAllDependentTasks
 } from '@/lib/helpers';
 import { ProcessState, PhaseState, TaskState } from '@/lib/types';
 
@@ -398,5 +404,298 @@ describe('canCompleteTask', () => {
     } as TaskState;
 
     expect(canCompleteTask(task)).toBe(true);
+  });
+});
+
+describe('formatDurationLong', () => {
+  it('formats zero milliseconds', () => {
+    expect(formatDurationLong(0)).toBe('0s');
+  });
+
+  it('formats seconds only', () => {
+    expect(formatDurationLong(5000)).toBe('5s');
+  });
+
+  it('formats minutes and seconds', () => {
+    expect(formatDurationLong(125000)).toBe('2m 5s');
+  });
+
+  it('formats hours, minutes, and seconds', () => {
+    expect(formatDurationLong(3665000)).toBe('1h 1m 5s');
+  });
+
+  it('handles negative values by treating as zero', () => {
+    expect(formatDurationLong(-1000)).toBe('0s');
+  });
+
+  it('formats large duration', () => {
+    expect(formatDurationLong(86465000)).toBe('24h 1m 5s');
+  });
+});
+
+describe('parseTimeString', () => {
+  it('parses hours string', () => {
+    expect(parseTimeString('2h')).toBe(7200000);
+  });
+
+  it('parses minutes string', () => {
+    expect(parseTimeString('30m')).toBe(1800000);
+  });
+
+  it('parses seconds string', () => {
+    expect(parseTimeString('45s')).toBe(45000);
+  });
+
+  it('parses combined time string', () => {
+    expect(parseTimeString('1h 30m 45s')).toBe(5445000);
+  });
+
+  it('handles decimal hours', () => {
+    expect(parseTimeString('1.5h')).toBe(5400000);
+  });
+
+  it('handles case insensitive input', () => {
+    expect(parseTimeString('2H')).toBe(7200000);
+  });
+
+  it('handles whitespace', () => {
+    expect(parseTimeString(' 2h 30m ')).toBe(9000000);
+  });
+
+  it('returns 0 for invalid input', () => {
+    expect(parseTimeString('invalid')).toBe(0);
+  });
+
+  it('returns 0 for null or undefined', () => {
+    expect(parseTimeString(null as unknown as string)).toBe(0);
+    expect(parseTimeString(undefined as unknown as string)).toBe(0);
+  });
+});
+
+describe('getTimeStatus', () => {
+  it('returns on-time when no estimated time', () => {
+    expect(getTimeStatus(1000, 0)).toBe('on-time');
+  });
+
+  it('returns on-time when within 60% of estimated', () => {
+    expect(getTimeStatus(3000, 10000)).toBe('on-time');
+  });
+
+  it('returns warning when between 60% and 100% of estimated', () => {
+    expect(getTimeStatus(8000, 10000)).toBe('warning');
+  });
+
+  it('returns exceeded when over 100% of estimated', () => {
+    expect(getTimeStatus(12000, 10000)).toBe('exceeded');
+  });
+
+  it('handles exact 60% boundary', () => {
+    expect(getTimeStatus(6000, 10000)).toBe('on-time');
+  });
+
+  it('handles exact 100% boundary', () => {
+    expect(getTimeStatus(10000, 10000)).toBe('warning');
+  });
+});
+
+describe('calculateTaskDuration', () => {
+  it('returns 0 when task is not completed', () => {
+    const task = { completedAt: null } as TaskState;
+    expect(calculateTaskDuration(task, null, null)).toBe(0);
+  });
+
+  it('calculates duration from process start time', () => {
+    const task = { completedAt: '2024-01-01T01:00:00Z' } as TaskState;
+    const processStartedAt = '2024-01-01T00:00:00Z';
+    expect(calculateTaskDuration(task, null, processStartedAt)).toBe(3600000);
+  });
+
+  it('calculates duration from previous completed task', () => {
+    const task = { completedAt: '2024-01-01T02:00:00Z' } as TaskState;
+    const previousCompletedAt = '2024-01-01T01:00:00Z';
+    expect(calculateTaskDuration(task, previousCompletedAt, null)).toBe(3600000);
+  });
+
+  it('prefers previous completed time over process start time', () => {
+    const task = { completedAt: '2024-01-01T02:00:00Z' } as TaskState;
+    const previousCompletedAt = '2024-01-01T01:00:00Z';
+    const processStartedAt = '2024-01-01T00:00:00Z';
+    expect(calculateTaskDuration(task, previousCompletedAt, processStartedAt)).toBe(3600000);
+  });
+
+  it('uses task completion time when no reference available', () => {
+    const task = { completedAt: '2024-01-01T01:00:00Z' } as TaskState;
+    expect(calculateTaskDuration(task, null, null)).toBe(0);
+  });
+
+  it('handles negative durations by returning 0', () => {
+    const task = { completedAt: '2024-01-01T00:00:00Z' } as TaskState;
+    const previousCompletedAt = '2024-01-01T01:00:00Z';
+    expect(calculateTaskDuration(task, previousCompletedAt, null)).toBe(0);
+  });
+});
+
+describe('findTaskInProcess', () => {
+  it('finds task in direct tasks', () => {
+    const task1 = { id: 'task-1', completed: true } as TaskState;
+    const task2 = { id: 'task-2', completed: false } as TaskState;
+    const process = {
+      phases: [
+        { id: 'phase-1', tasks: [task1, task2], activities: [] }
+      ]
+    } as ProcessState;
+
+    expect(findTaskInProcess('task-1', process)).toBe(task1);
+    expect(findTaskInProcess('task-2', process)).toBe(task2);
+  });
+
+  it('finds task in activities', () => {
+    const task1 = { id: 'task-1', completed: true } as TaskState;
+    const process = {
+      phases: [
+        {
+          id: 'phase-1',
+          tasks: [],
+          activities: [
+            { id: 'activity-1', tasks: [task1] }
+          ]
+        }
+      ]
+    } as ProcessState;
+
+    expect(findTaskInProcess('task-1', process)).toBe(task1);
+  });
+
+  it('returns undefined for non-existent task', () => {
+    const process = {
+      phases: [
+        { id: 'phase-1', tasks: [], activities: [] }
+      ]
+    } as ProcessState;
+
+    expect(findTaskInProcess('non-existent', process)).toBeUndefined();
+  });
+});
+
+describe('getAllDependentTasks', () => {
+  it('returns empty array when task has no dependents', () => {
+    const task1 = { id: 'task-1', dependencies: [], completed: true } as TaskState;
+    const task2 = { id: 'task-2', dependencies: ['task-3'], completed: false } as TaskState;
+    const process = {
+      phases: [
+        { id: 'phase-1', tasks: [task1, task2], activities: [] }
+      ]
+    } as ProcessState;
+
+    expect(getAllDependentTasks('task-1', process)).toEqual([]);
+  });
+
+  it('finds direct dependents', () => {
+    const task1 = { id: 'task-1', dependencies: [], completed: true } as TaskState;
+    const task2 = { id: 'task-2', dependencies: ['task-1'], completed: false } as TaskState;
+    const process = {
+      phases: [
+        { id: 'phase-1', tasks: [task1, task2], activities: [] }
+      ]
+    } as ProcessState;
+
+    expect(getAllDependentTasks('task-1', process)).toEqual(['task-2']);
+  });
+
+  it('finds transitive dependents', () => {
+    const task1 = { id: 'task-1', dependencies: [], completed: true } as TaskState;
+    const task2 = { id: 'task-2', dependencies: ['task-1'], completed: false } as TaskState;
+    const task3 = { id: 'task-3', dependencies: ['task-2'], completed: false } as TaskState;
+    const process = {
+      phases: [
+        { id: 'phase-1', tasks: [task1, task2, task3], activities: [] }
+      ]
+    } as ProcessState;
+
+    const dependents = getAllDependentTasks('task-1', process);
+    expect(dependents).toContain('task-2');
+    expect(dependents).toContain('task-3');
+  });
+
+  it('handles dependents in activities', () => {
+    const task1 = { id: 'task-1', dependencies: [], completed: true } as TaskState;
+    const task2 = { id: 'task-2', dependencies: ['task-1'], completed: false } as TaskState;
+    const process = {
+      phases: [
+        {
+          id: 'phase-1',
+          tasks: [task1],
+          activities: [
+            { id: 'activity-1', tasks: [task2] }
+          ]
+        }
+      ]
+    } as ProcessState;
+
+    expect(getAllDependentTasks('task-1', process)).toEqual(['task-2']);
+  });
+});
+
+describe('checkTaskDependencies', () => {
+  it('returns false when task has no dependencies', () => {
+    const task1 = { id: 'task-1', dependencies: [], completed: true } as TaskState;
+    const process = {
+      phases: [
+        { id: 'phase-1', tasks: [task1], activities: [] }
+      ]
+    } as ProcessState;
+
+    expect(checkTaskDependencies('task-1', 'phase-1', process)).toBe(false);
+  });
+
+  it('returns false when phase does not exist', () => {
+    const process = {
+      phases: [
+        { id: 'phase-1', tasks: [], activities: [] }
+      ]
+    } as ProcessState;
+
+    expect(checkTaskDependencies('task-1', 'non-existent', process)).toBe(false);
+  });
+
+  it('returns false when task in activity has no dependencies', () => {
+    const task1 = { id: 'task-1', dependencies: [], completed: true } as TaskState;
+    const process = {
+      phases: [
+        {
+          id: 'phase-1',
+          tasks: [],
+          activities: [
+            { id: 'activity-1', tasks: [task1] }
+          ]
+        }
+      ]
+    } as ProcessState;
+
+    expect(checkTaskDependencies('task-1', 'phase-1', process, 'activity-1')).toBe(false);
+  });
+
+  it('returns false when task has completed dependency', () => {
+    const task1 = { id: 'task-1', dependencies: [], completed: true } as TaskState;
+    const task2 = { id: 'task-2', dependencies: ['task-1'], completed: false } as TaskState;
+    const process = {
+      phases: [
+        { id: 'phase-1', tasks: [task1, task2], activities: [] }
+      ]
+    } as ProcessState;
+
+    expect(checkTaskDependencies('task-2', 'phase-1', process)).toBe(false);
+  });
+
+  it('returns true when task has uncompleted dependency', () => {
+    const task1 = { id: 'task-1', dependencies: [], completed: false } as TaskState;
+    const task2 = { id: 'task-2', dependencies: ['task-1'], completed: false } as TaskState;
+    const process = {
+      phases: [
+        { id: 'phase-1', tasks: [task1, task2], activities: [] }
+      ]
+    } as ProcessState;
+
+    expect(checkTaskDependencies('task-2', 'phase-1', process)).toBe(true);
   });
 });

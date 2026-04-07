@@ -322,3 +322,928 @@ describe('useProcessStore - Toggle Check Item in Activities', () => {
     expect(task?.checkItems[1].checked).toBe(false);
   });
 });
+
+describe('useProcessStore - Interaction Tracking', () => {
+  beforeEach(() => {
+    useProcessStore.setState({ process: null, hasStartedInteraction: false });
+  });
+
+  it('should mark interaction as started', () => {
+    useProcessStore.setState({ hasStartedInteraction: false });
+    useProcessStore.getState().markInteractionStarted();
+
+    expect(useProcessStore.getState().hasStartedInteraction).toBe(true);
+  });
+
+  it('should mark interaction when setting phase', () => {
+    const mockProcess = createMockProcess();
+    useProcessStore.setState({ process: mockProcess, hasStartedInteraction: false });
+
+    useProcessStore.getState().setCurrentPhase('phase-1');
+
+    expect(useProcessStore.getState().hasStartedInteraction).toBe(true);
+    expect(useProcessStore.getState().currentPhaseId).toBe('phase-1');
+  });
+
+  it('should mark interaction when setting activity', () => {
+    const mockProcess = createMockProcess();
+    useProcessStore.setState({ process: mockProcess, hasStartedInteraction: false });
+
+    useProcessStore.getState().setCurrentActivity('activity-1');
+
+    expect(useProcessStore.getState().hasStartedInteraction).toBe(true);
+    expect(useProcessStore.getState().currentActivityId).toBe('activity-1');
+  });
+
+  it('should mark interaction when setting task', () => {
+    const mockProcess = createMockProcess();
+    useProcessStore.setState({ process: mockProcess, hasStartedInteraction: false });
+
+    useProcessStore.getState().setCurrentTask('task-1');
+
+    expect(useProcessStore.getState().hasStartedInteraction).toBe(true);
+    expect(useProcessStore.getState().currentTaskId).toBe('task-1');
+  });
+});
+
+describe('useProcessStore - Variable Management', () => {
+  beforeEach(() => {
+    useProcessStore.setState({ process: null, hasStartedInteraction: false });
+  });
+
+  it('should update captured variables', () => {
+    const mockProcess = createMockProcess();
+    useProcessStore.setState({ process: mockProcess });
+
+    const variables = { rfc: 'RFC123', app: 'tracker' };
+    useProcessStore.getState().updateCapturedVariables(variables);
+
+    expect(useProcessStore.getState().process?.capturedVariables).toEqual(variables);
+  });
+
+  it('should update single variable', () => {
+    const mockProcess = createMockProcess();
+    mockProcess.capturedVariables = { rfc: 'RFC123' };
+    useProcessStore.setState({ process: mockProcess });
+
+    useProcessStore.getState().updateSingleVariable('app', 'tracker');
+
+    expect(useProcessStore.getState().process?.capturedVariables).toEqual({
+      rfc: 'RFC123',
+      app: 'tracker'
+    });
+  });
+
+  it('should check if required variables are filled', () => {
+    const mockProcess = createMockProcess();
+    mockProcess.variableDefinitions = [
+      { key: 'rfc', label: 'RFC', required: true, type: 'text' },
+      { key: 'app', label: 'App', required: true, type: 'text' }
+    ];
+    mockProcess.capturedVariables = { rfc: 'RFC123', app: 'tracker' };
+    useProcessStore.setState({ process: mockProcess });
+
+    expect(useProcessStore.getState().areRequiredVariablesFilled()).toBe(true);
+  });
+
+  it('should return false when required variables are missing', () => {
+    const mockProcess = createMockProcess();
+    mockProcess.variableDefinitions = [
+      { key: 'rfc', label: 'RFC', required: true, type: 'text' },
+      { key: 'app', label: 'App', required: true, type: 'text' }
+    ];
+    mockProcess.capturedVariables = { rfc: 'RFC123' };
+    useProcessStore.setState({ process: mockProcess });
+
+    expect(useProcessStore.getState().areRequiredVariablesFilled()).toBe(false);
+  });
+
+  it('should return true when no variable definitions exist', () => {
+    const mockProcess = createMockProcess();
+    mockProcess.variableDefinitions = [];
+    useProcessStore.setState({ process: mockProcess });
+
+    expect(useProcessStore.getState().areRequiredVariablesFilled()).toBe(true);
+  });
+});
+
+describe('useProcessStore - Process Management', () => {
+  beforeEach(() => {
+    useProcessStore.setState({ process: null, hasStartedInteraction: false });
+  });
+
+  it('should clear process', () => {
+    const mockProcess = createMockProcess();
+    useProcessStore.setState({ process: mockProcess, currentPhaseId: 'phase-1' });
+
+    useProcessStore.getState().clearProcess();
+
+    expect(useProcessStore.getState().process).toBeNull();
+    expect(useProcessStore.getState().currentPhaseId).toBeNull();
+    expect(useProcessStore.getState().currentActivityId).toBeNull();
+    expect(useProcessStore.getState().currentTaskId).toBeNull();
+    expect(useProcessStore.getState().hasStartedInteraction).toBe(false);
+  });
+
+  it('should load process and set initial phase', () => {
+    const mockProcess = createMockProcess();
+    useProcessStore.setState({ process: null });
+
+    useProcessStore.getState().loadProcess(mockProcess);
+
+    expect(useProcessStore.getState().process).not.toBeNull();
+    expect(useProcessStore.getState().currentPhaseId).toBe('phase-1');
+    expect(useProcessStore.getState().hasStartedInteraction).toBe(false);
+  });
+});
+
+describe('useProcessStore - Data Updates', () => {
+  beforeEach(() => {
+    useProcessStore.setState({ process: null });
+  });
+
+  it('should update list data for dynamic-list task', () => {
+    const mockProcess = {
+      id: 'test-process',
+      name: 'Test Process',
+      version: '1.0.0',
+      description: 'Test',
+      subprocesses: [],
+      variableDefinitions: [],
+      capturedVariables: {},
+      phases: [
+        {
+          id: 'phase-1',
+          name: 'Phase 1',
+          description: '',
+          order: 1,
+          progress: 0,
+          tasks: [
+            {
+              id: 'task-1',
+              name: 'Dynamic List Task',
+              description: '',
+              order: 1,
+              type: 'dynamic-list' as const,
+              completed: false,
+              isBlocked: false,
+              evidenceConfig: { type: 'text' as const, required: false },
+              evidence: { text: '', images: [] },
+              dependencies: [],
+              checkItems: [],
+              dynamicLinks: [],
+              references: [],
+              listData: [],
+              listConfig: { label: 'Item' }
+            }
+          ],
+          activities: [],
+          dynamicLinks: []
+        }
+      ],
+      loadedAt: '2024-01-01T00:00:00Z',
+      progress: 0,
+      timeTracking: {
+        status: 'idle' as const,
+        sessions: [],
+        totalActiveTime: 0
+      }
+    };
+    useProcessStore.setState({ process: mockProcess });
+
+    const items = [{ id: 'item-1', value: 'test', addedAt: '2024-01-01T00:00:00Z' }];
+    useProcessStore.getState().updateListData('phase-1', 'task-1', items);
+
+    const state = useProcessStore.getState();
+    const task = state.process?.phases[0].tasks[0];
+
+    expect(task?.listData).toEqual(items);
+  });
+
+  it('should update list data for task in activity', () => {
+    const mockProcess = {
+      id: 'test-process',
+      name: 'Test Process',
+      version: '1.0.0',
+      description: 'Test',
+      subprocesses: [],
+      variableDefinitions: [],
+      capturedVariables: {},
+      phases: [
+        {
+          id: 'phase-1',
+          name: 'Phase 1',
+          description: '',
+          order: 1,
+          progress: 0,
+          tasks: [],
+          activities: [
+            {
+              id: 'activity-1',
+              name: 'Activity 1',
+              description: '',
+              order: 1,
+              progress: 0,
+              tasks: [
+                {
+                  id: 'task-1',
+                  name: 'Dynamic List Task',
+                  description: '',
+                  order: 1,
+                  type: 'dynamic-list' as const,
+                  completed: false,
+                  isBlocked: false,
+                  evidenceConfig: { type: 'text' as const, required: false },
+                  evidence: { text: '', images: [] },
+                  dependencies: [],
+                  checkItems: [],
+                  dynamicLinks: [],
+                  references: [],
+                  listData: [],
+                  listConfig: { label: 'Item' }
+                }
+              ],
+              dynamicLinks: [],
+              images: []
+            }
+          ],
+          dynamicLinks: []
+        }
+      ],
+      loadedAt: '2024-01-01T00:00:00Z',
+      progress: 0,
+      timeTracking: {
+        status: 'idle' as const,
+        sessions: [],
+        totalActiveTime: 0
+      }
+    };
+    useProcessStore.setState({ process: mockProcess });
+
+    const items = [{ id: 'item-1', value: 'test', addedAt: '2024-01-01T00:00:00Z' }];
+    useProcessStore.getState().updateListData('phase-1', 'task-1', items, 'activity-1');
+
+    const state = useProcessStore.getState();
+    const activity = state.process?.phases[0].activities?.[0];
+    const task = activity?.tasks[0];
+
+    expect(task?.listData).toEqual(items);
+  });
+
+  it('should update detail data for detail-list task', () => {
+    const mockProcess = {
+      id: 'test-process',
+      name: 'Test Process',
+      version: '1.0.0',
+      description: 'Test',
+      subprocesses: [],
+      variableDefinitions: [],
+      capturedVariables: {},
+      phases: [
+        {
+          id: 'phase-1',
+          name: 'Phase 1',
+          description: '',
+          order: 1,
+          progress: 0,
+          tasks: [
+            {
+              id: 'task-1',
+              name: 'Detail List Task',
+              description: '',
+              order: 1,
+              type: 'detail-list' as const,
+              completed: false,
+              isBlocked: false,
+              evidenceConfig: { type: 'text' as const, required: false },
+              evidence: { text: '', images: [] },
+              dependencies: [],
+              checkItems: [],
+              dynamicLinks: [],
+              references: [],
+              detailData: [],
+              detailConfig: { sourceTaskId: 'source-task' }
+            }
+          ],
+          activities: [],
+          dynamicLinks: []
+        }
+      ],
+      loadedAt: '2024-01-01T00:00:00Z',
+      progress: 0,
+      timeTracking: {
+        status: 'idle' as const,
+        sessions: [],
+        totalActiveTime: 0
+      }
+    };
+    useProcessStore.setState({ process: mockProcess });
+
+    const detailData = [{ itemId: 'item-1', detail: 'test detail', sourceItem: '', capturedText: '', addedAt: '2024-01-01T00:00:00Z' }];
+    useProcessStore.getState().updateDetailData('phase-1', 'task-1', detailData);
+
+    const state = useProcessStore.getState();
+    const task = state.process?.phases[0].tasks[0];
+
+    expect(task?.detailData).toEqual(detailData);
+  });
+
+  it('should update detail data for task in activity', () => {
+    const mockProcess = {
+      id: 'test-process',
+      name: 'Test Process',
+      version: '1.0.0',
+      description: 'Test',
+      subprocesses: [],
+      variableDefinitions: [],
+      capturedVariables: {},
+      phases: [
+        {
+          id: 'phase-1',
+          name: 'Phase 1',
+          description: '',
+          order: 1,
+          progress: 0,
+          tasks: [],
+          activities: [
+            {
+              id: 'activity-1',
+              name: 'Activity 1',
+              description: '',
+              order: 1,
+              progress: 0,
+              tasks: [
+                {
+                  id: 'task-1',
+                  name: 'Detail List Task',
+                  description: '',
+                  order: 1,
+                  type: 'detail-list' as const,
+                  completed: false,
+                  isBlocked: false,
+                  evidenceConfig: { type: 'text' as const, required: false },
+                  evidence: { text: '', images: [] },
+                  dependencies: [],
+                  checkItems: [],
+                  dynamicLinks: [],
+                  references: [],
+                  detailData: [],
+                  detailConfig: { sourceTaskId: 'source-task' }
+                }
+              ],
+              dynamicLinks: [],
+              images: []
+            }
+          ],
+          dynamicLinks: []
+        }
+      ],
+      loadedAt: '2024-01-01T00:00:00Z',
+      progress: 0,
+      timeTracking: {
+        status: 'idle' as const,
+        sessions: [],
+        totalActiveTime: 0
+      }
+    };
+    useProcessStore.setState({ process: mockProcess });
+
+    const detailData = [{ itemId: 'item-1', detail: 'test detail', sourceItem: '', capturedText: '', addedAt: '2024-01-01T00:00:00Z' }];
+    useProcessStore.getState().updateDetailData('phase-1', 'task-1', detailData, 'activity-1');
+
+    const state = useProcessStore.getState();
+    const activity = state.process?.phases[0].activities?.[0];
+    const task = activity?.tasks[0];
+
+    expect(task?.detailData).toEqual(detailData);
+  });
+
+  it('should update form data for form task', () => {
+    const mockProcess = {
+      id: 'test-process',
+      name: 'Test Process',
+      version: '1.0.0',
+      description: 'Test',
+      subprocesses: [],
+      variableDefinitions: [],
+      capturedVariables: {},
+      phases: [
+        {
+          id: 'phase-1',
+          name: 'Phase 1',
+          description: '',
+          order: 1,
+          progress: 0,
+          tasks: [
+            {
+              id: 'task-1',
+              name: 'Form Task',
+              description: '',
+              order: 1,
+              type: 'form' as const,
+              completed: false,
+              isBlocked: false,
+              evidenceConfig: { type: 'form' as const, required: false },
+              evidence: { text: '', images: [] },
+              dependencies: [],
+              checkItems: [],
+              dynamicLinks: [],
+              references: [],
+              formData: [],
+              formConfig: {
+                layout: { type: 'vertical' as const },
+                fields: []
+              }
+            }
+          ],
+          activities: [],
+          dynamicLinks: []
+        }
+      ],
+      loadedAt: '2024-01-01T00:00:00Z',
+      progress: 0,
+      timeTracking: {
+        status: 'idle' as const,
+        sessions: [],
+        totalActiveTime: 0
+      }
+    };
+    useProcessStore.setState({ process: mockProcess });
+
+    const formData = [{ fieldId: 'field-1', value: 'test value', filledAt: '2024-01-01T00:00:00Z' }];
+    useProcessStore.getState().updateFormData('phase-1', 'task-1', formData);
+
+    const state = useProcessStore.getState();
+    const task = state.process?.phases[0].tasks[0];
+
+    expect(task?.formData).toEqual(formData);
+  });
+
+  it('should update form data for task in activity', () => {
+    const mockProcess = {
+      id: 'test-process',
+      name: 'Test Process',
+      version: '1.0.0',
+      description: 'Test',
+      subprocesses: [],
+      variableDefinitions: [],
+      capturedVariables: {},
+      phases: [
+        {
+          id: 'phase-1',
+          name: 'Phase 1',
+          description: '',
+          order: 1,
+          progress: 0,
+          tasks: [],
+          activities: [
+            {
+              id: 'activity-1',
+              name: 'Activity 1',
+              description: '',
+              order: 1,
+              progress: 0,
+              tasks: [
+                {
+                  id: 'task-1',
+                  name: 'Form Task',
+                  description: '',
+                  order: 1,
+                  type: 'form' as const,
+                  completed: false,
+                  isBlocked: false,
+                  evidenceConfig: { type: 'form' as const, required: false },
+                  evidence: { text: '', images: [] },
+                  dependencies: [],
+                  checkItems: [],
+                  dynamicLinks: [],
+                  references: [],
+                  formData: [],
+                  formConfig: {
+                    layout: { type: 'vertical' as const },
+                    fields: []
+                  }
+                }
+              ],
+              dynamicLinks: [],
+              images: []
+            }
+          ],
+          dynamicLinks: []
+        }
+      ],
+      loadedAt: '2024-01-01T00:00:00Z',
+      progress: 0,
+      timeTracking: {
+        status: 'idle' as const,
+        sessions: [],
+        totalActiveTime: 0
+      }
+    };
+    useProcessStore.setState({ process: mockProcess });
+
+    const formData = [{ fieldId: 'field-1', value: 'test value', filledAt: '2024-01-01T00:00:00Z' }];
+    useProcessStore.getState().updateFormData('phase-1', 'task-1', formData, 'activity-1');
+
+    const state = useProcessStore.getState();
+    const activity = state.process?.phases[0].activities?.[0];
+    const task = activity?.tasks[0];
+
+    expect(task?.formData).toEqual(formData);
+  });
+});
+
+describe('useProcessStore - Activity Operations', () => {
+  beforeEach(() => {
+    useProcessStore.setState({ process: null, hasStartedInteraction: false });
+  });
+
+  it('should update task evidence in activity', () => {
+    const mockProcess = {
+      id: 'test-process',
+      name: 'Test Process',
+      version: '1.0.0',
+      description: 'Test',
+      subprocesses: [],
+      variableDefinitions: [],
+      capturedVariables: {},
+      phases: [
+        {
+          id: 'phase-1',
+          name: 'Phase 1',
+          description: '',
+          order: 1,
+          progress: 0,
+          tasks: [],
+          activities: [
+            {
+              id: 'activity-1',
+              name: 'Activity 1',
+              description: '',
+              order: 1,
+              progress: 0,
+              tasks: [
+                {
+                  id: 'task-1',
+                  name: 'Task 1',
+                  description: '',
+                  order: 1,
+                  type: 'standard' as const,
+                  completed: false,
+                  isBlocked: false,
+                  evidenceConfig: { type: 'text' as const, required: false },
+                  evidence: { text: '', images: [] },
+                  dependencies: [],
+                  checkItems: [],
+                  dynamicLinks: [],
+                  references: []
+                }
+              ],
+              dynamicLinks: [],
+              images: []
+            }
+          ],
+          dynamicLinks: []
+        }
+      ],
+      loadedAt: '2024-01-01T00:00:00Z',
+      progress: 0,
+      timeTracking: {
+        status: 'idle' as const,
+        sessions: [],
+        totalActiveTime: 0
+      }
+    };
+    useProcessStore.setState({ process: mockProcess });
+
+    const newEvidence = { text: 'New evidence', images: [] };
+    useProcessStore.getState().updateTaskEvidence('phase-1', 'task-1', newEvidence, 'activity-1');
+
+    const state = useProcessStore.getState();
+    const activity = state.process?.phases[0].activities?.[0];
+    const task = activity?.tasks[0];
+
+    expect(task?.evidence).toEqual(newEvidence);
+  });
+
+  it('should complete task in activity', () => {
+    const mockProcess = {
+      id: 'test-process',
+      name: 'Test Process',
+      version: '1.0.0',
+      description: 'Test',
+      subprocesses: [],
+      variableDefinitions: [],
+      capturedVariables: {},
+      phases: [
+        {
+          id: 'phase-1',
+          name: 'Phase 1',
+          description: '',
+          order: 1,
+          progress: 0,
+          tasks: [],
+          activities: [
+            {
+              id: 'activity-1',
+              name: 'Activity 1',
+              description: '',
+              order: 1,
+              progress: 0,
+              tasks: [
+                {
+                  id: 'task-1',
+                  name: 'Task 1',
+                  description: '',
+                  order: 1,
+                  type: 'standard' as const,
+                  completed: false,
+                  isBlocked: false,
+                  evidenceConfig: { type: 'text' as const, required: false },
+                  evidence: { text: '', images: [] },
+                  dependencies: [],
+                  checkItems: [],
+                  dynamicLinks: [],
+                  references: []
+                }
+              ],
+              dynamicLinks: [],
+              images: []
+            }
+          ],
+          dynamicLinks: []
+        }
+      ],
+      loadedAt: '2024-01-01T00:00:00Z',
+      progress: 0,
+      timeTracking: {
+        status: 'idle' as const,
+        sessions: [],
+        totalActiveTime: 0
+      }
+    };
+    useProcessStore.setState({ process: mockProcess });
+
+    useProcessStore.getState().completeTask('phase-1', 'task-1', 'activity-1');
+
+    const state = useProcessStore.getState();
+    const activity = state.process?.phases[0].activities?.[0];
+    const task = activity?.tasks[0];
+
+    expect(task?.completed).toBe(true);
+    expect(task?.completedAt).toBeDefined();
+  });
+
+  it('should uncomplete task in activity', () => {
+    const mockProcess = {
+      id: 'test-process',
+      name: 'Test Process',
+      version: '1.0.0',
+      description: 'Test',
+      subprocesses: [],
+      variableDefinitions: [],
+      capturedVariables: {},
+      phases: [
+        {
+          id: 'phase-1',
+          name: 'Phase 1',
+          description: '',
+          order: 1,
+          progress: 0,
+          tasks: [],
+          activities: [
+            {
+              id: 'activity-1',
+              name: 'Activity 1',
+              description: '',
+              order: 1,
+              progress: 0,
+              tasks: [
+                {
+                  id: 'task-1',
+                  name: 'Task 1',
+                  description: '',
+                  order: 1,
+                  type: 'standard' as const,
+                  completed: true,
+                  completedAt: '2024-01-01T00:00:00Z',
+                  isBlocked: false,
+                  evidenceConfig: { type: 'text' as const, required: false },
+                  evidence: { text: '', images: [] },
+                  dependencies: [],
+                  checkItems: [],
+                  dynamicLinks: [],
+                  references: []
+                }
+              ],
+              dynamicLinks: [],
+              images: []
+            }
+          ],
+          dynamicLinks: []
+        }
+      ],
+      loadedAt: '2024-01-01T00:00:00Z',
+      progress: 0,
+      timeTracking: {
+        status: 'idle' as const,
+        sessions: [],
+        totalActiveTime: 0
+      }
+    };
+    useProcessStore.setState({ process: mockProcess });
+
+    useProcessStore.getState().uncompleteTask('phase-1', 'task-1', 'activity-1');
+
+    const state = useProcessStore.getState();
+    const activity = state.process?.phases[0].activities?.[0];
+    const task = activity?.tasks[0];
+
+    expect(task?.completed).toBe(false);
+    expect(task?.completedAt).toBeUndefined();
+  });
+
+  it('should uncomplete dependent tasks in other activities', () => {
+    const mockProcess = {
+      id: 'test-process',
+      name: 'Test Process',
+      version: '1.0.0',
+      description: 'Test',
+      subprocesses: [],
+      variableDefinitions: [],
+      capturedVariables: {},
+      phases: [
+        {
+          id: 'phase-1',
+          name: 'Phase 1',
+          description: '',
+          order: 1,
+          progress: 0,
+          tasks: [],
+          activities: [
+            {
+              id: 'activity-1',
+              name: 'Activity 1',
+              description: '',
+              order: 1,
+              progress: 0,
+              tasks: [
+                {
+                  id: 'task-1',
+                  name: 'Task 1',
+                  description: '',
+                  order: 1,
+                  type: 'standard' as const,
+                  completed: true,
+                  completedAt: '2024-01-01T00:00:00Z',
+                  isBlocked: false,
+                  evidenceConfig: { type: 'text' as const, required: false },
+                  evidence: { text: '', images: [] },
+                  dependencies: [],
+                  checkItems: [],
+                  dynamicLinks: [],
+                  references: []
+                },
+                {
+                  id: 'task-2',
+                  name: 'Task 2',
+                  description: '',
+                  order: 2,
+                  type: 'standard' as const,
+                  completed: true,
+                  completedAt: '2024-01-01T00:00:00Z',
+                  isBlocked: false,
+                  evidenceConfig: { type: 'text' as const, required: false },
+                  evidence: { text: '', images: [] },
+                  dependencies: ['task-1'],
+                  checkItems: [],
+                  dynamicLinks: [],
+                  references: []
+                }
+              ],
+              dynamicLinks: [],
+              images: []
+            }
+          ],
+          dynamicLinks: []
+        }
+      ],
+      loadedAt: '2024-01-01T00:00:00Z',
+      progress: 0,
+      timeTracking: {
+        status: 'idle' as const,
+        sessions: [],
+        totalActiveTime: 0
+      }
+    };
+    useProcessStore.setState({ process: mockProcess });
+
+    useProcessStore.getState().uncompleteTask('phase-1', 'task-1', 'activity-1');
+
+    const state = useProcessStore.getState();
+    const activity = state.process?.phases[0].activities?.[0];
+    const task1 = activity?.tasks[0];
+    const task2 = activity?.tasks[1];
+
+    expect(task1?.completed).toBe(false);
+    expect(task1?.completedAt).toBeUndefined();
+    expect(task2?.completed).toBe(false);
+    expect(task2?.completedAt).toBeUndefined();
+  });
+});
+
+describe('useProcessStore - Timer Operations', () => {
+  beforeEach(() => {
+    useProcessStore.setState({ process: null, hasStartedInteraction: false });
+  });
+
+  it('should pause process timer', () => {
+    const mockProcess = {
+      id: 'test-process',
+      name: 'Test Process',
+      version: '1.0.0',
+      description: 'Test',
+      subprocesses: [],
+      variableDefinitions: [],
+      capturedVariables: {},
+      phases: [],
+      loadedAt: '2024-01-01T00:00:00Z',
+      progress: 0,
+      timeTracking: {
+        status: 'running' as const,
+        currentSessionStart: '2024-01-01T10:00:00Z',
+        sessions: [{ id: 'session-1', startedAt: '2024-01-01T10:00:00Z', duration: 0 }],
+        totalActiveTime: 0
+      }
+    };
+    useProcessStore.setState({ process: mockProcess });
+
+    useProcessStore.getState().pauseProcessTimer();
+
+    const state = useProcessStore.getState();
+    const timeTracking = state.process?.timeTracking;
+
+    expect(timeTracking?.status).toBe('paused');
+    expect(timeTracking?.sessions[0]?.endedAt).toBeDefined();
+    expect(timeTracking?.sessions[0]?.duration).toBeDefined();
+  });
+
+  it('should resume process timer', () => {
+    const mockProcess = {
+      id: 'test-process',
+      name: 'Test Process',
+      version: '1.0.0',
+      description: 'Test',
+      subprocesses: [],
+      variableDefinitions: [],
+      capturedVariables: {},
+      phases: [],
+      loadedAt: '2024-01-01T00:00:00Z',
+      progress: 0,
+      timeTracking: {
+        status: 'paused' as const,
+        sessions: [{ id: 'session-1', startedAt: '2024-01-01T10:00:00Z', endedAt: '2024-01-01T11:00:00Z', duration: 3600000 }],
+        totalActiveTime: 3600000
+      }
+    };
+    useProcessStore.setState({ process: mockProcess });
+
+    useProcessStore.getState().resumeProcessTimer();
+
+    const state = useProcessStore.getState();
+    const timeTracking = state.process?.timeTracking;
+
+    expect(timeTracking?.status).toBe('running');
+    expect(timeTracking?.currentSessionStart).toBeDefined();
+  });
+
+  it('should stop process timer', () => {
+    const mockProcess = {
+      id: 'test-process',
+      name: 'Test Process',
+      version: '1.0.0',
+      description: 'Test',
+      subprocesses: [],
+      variableDefinitions: [],
+      capturedVariables: {},
+      phases: [],
+      loadedAt: '2024-01-01T00:00:00Z',
+      progress: 0,
+      timeTracking: {
+        status: 'running' as const,
+        currentSessionStart: '2024-01-01T10:00:00Z',
+        sessions: [{ id: 'session-1', startedAt: '2024-01-01T10:00:00Z', duration: 0 }],
+        totalActiveTime: 0
+      }
+    };
+    useProcessStore.setState({ process: mockProcess });
+
+    useProcessStore.getState().stopProcessTimer();
+
+    const state = useProcessStore.getState();
+    const timeTracking = state.process?.timeTracking;
+
+    expect(timeTracking?.status).toBe('completed');
+    expect(timeTracking?.sessions[0]?.endedAt).toBeDefined();
+  });
+});
