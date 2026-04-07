@@ -1,33 +1,29 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   EXCEL_CELL_MAP,
   processToReleaseReport,
   generateReleaseFilename,
+  generateReleaseExcel,
   ReleaseReportData
 } from '@/lib/excel-generator';
 import { ProcessState } from '@/lib/types';
 
-// Mock ExcelJS
+const {
+  mockGetCell, mockWorksheet,
+  mockGetWorksheet, mockWriteBuffer, mockLoad, WorkbookMock
+} = vi.hoisted(() => {
+  const mockGetCell = vi.fn().mockReturnValue({ value: null });
+  const mockWorksheet = { getCell: mockGetCell };
+  const mockGetWorksheet = vi.fn().mockReturnValue(mockWorksheet);
+  const mockWriteBuffer = vi.fn().mockResolvedValue(new ArrayBuffer(8));
+  const mockLoad = vi.fn().mockResolvedValue(undefined);
+  const WorkbookMock = vi.fn();
+  return { mockGetCell, mockWorksheet, mockGetWorksheet, mockWriteBuffer, mockLoad, WorkbookMock };
+});
+
 vi.mock('exceljs', () => ({
-  default: {
-    Workbook: vi.fn().mockImplementation(() => ({
-      xlsx: {
-        load: vi.fn(),
-        writeBuffer: vi.fn().mockResolvedValue(new ArrayBuffer(8))
-      },
-      worksheets: [
-        {
-          getCell: vi.fn().mockReturnValue({ value: null }),
-          getRow: vi.fn().mockReturnValue({
-            getCell: vi.fn().mockReturnValue({ value: null })
-          })
-        }
-      ],
-      getWorksheet: vi.fn().mockReturnValue({
-        getCell: vi.fn().mockReturnValue({ value: null })
-      })
-    }))
-  }
+  Workbook: WorkbookMock,
+  default: { Workbook: WorkbookMock }
 }));
 
 describe('excel-generator', () => {
@@ -277,6 +273,415 @@ describe('excel-generator', () => {
       expect(reportData.torre).toBe('Tienda');
       expect(reportData.validaciones).toHaveLength(1);
       expect(reportData.prDeudaTecnica![0].integracionArq).toBe(true);
+    });
+  });
+
+  describe('processToReleaseReport with activities', () => {
+    it('should collect tasks from activities (lines 290-291)', () => {
+      const processWithActivities = {
+        id: 'test-process',
+        name: 'Test Process',
+        version: '1.0.0',
+        description: 'Test',
+        loadedAt: '2026-01-01T00:00:00Z',
+        progress: 100,
+        subprocesses: [],
+        variableDefinitions: [],
+        capturedVariables: { repository: 'my-repo', organization: 'myorg' },
+        phases: [
+          {
+            id: 'phase-1',
+            name: 'Phase 1',
+            description: '',
+            order: 1,
+            progress: 100,
+            tasks: [],
+            dynamicLinks: [],
+            activities: [
+              {
+                id: 'activity-1',
+                name: 'Activity 1',
+                description: '',
+                order: 1,
+                progress: 100,
+                dynamicLinks: [],
+                images: [],
+                tasks: [
+                  {
+                    id: 'act-task-1',
+                    name: 'Activity Task 1',
+                    description: '',
+                    order: 1,
+                    type: 'standard',
+                    completed: true,
+                    completedAt: '2026-01-01T10:00:00Z',
+                    isBlocked: false,
+                    evidenceConfig: { type: 'text', required: false },
+                    evidence: { text: 'Activity evidence', images: [] },
+                    dependencies: [],
+                    checkItems: [],
+                    dynamicLinks: [],
+                    references: []
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        timeTracking: { status: 'completed' as const, sessions: [], totalActiveTime: 0 }
+      };
+
+      const report = processToReleaseReport(processWithActivities as unknown as ProcessState);
+
+      expect(report.evidencias).toBeDefined();
+      expect(report.evidencias!.length).toBeGreaterThan(0);
+      expect(report.evidencias![0].actividad).toBe('Activity Task 1');
+    });
+
+    it('should extract formData from form tasks (lines 309-312)', () => {
+      const processWithFormTask = {
+        id: 'test-process',
+        name: 'Test Process',
+        version: '1.0.0',
+        description: 'Test',
+        loadedAt: '2026-01-01T00:00:00Z',
+        progress: 100,
+        subprocesses: [],
+        variableDefinitions: [],
+        capturedVariables: {},
+        phases: [
+          {
+            id: 'phase-1',
+            name: 'Phase 1',
+            description: '',
+            order: 1,
+            progress: 100,
+            dynamicLinks: [],
+            activities: [],
+            tasks: [
+              {
+                id: 'form-task',
+                name: 'Form Task',
+                description: '',
+                order: 1,
+                type: 'form',
+                completed: true,
+                completedAt: '2026-01-01T10:00:00Z',
+                isBlocked: false,
+                evidenceConfig: { type: 'form', required: false },
+                evidence: { text: '', images: [] },
+                dependencies: [],
+                checkItems: [],
+                dynamicLinks: [],
+                references: [],
+                formData: [
+                  { fieldId: 'campo1', value: 'Valor 1', filledAt: '2026-01-01T00:00:00Z' },
+                  { fieldId: 'campo2', value: 'Valor 2', filledAt: '2026-01-01T00:00:00Z' }
+                ],
+                formConfig: { layout: { type: 'vertical' as const }, fields: [] }
+              }
+            ]
+          }
+        ],
+        timeTracking: { status: 'completed' as const, sessions: [], totalActiveTime: 0 }
+      };
+
+      const report = processToReleaseReport(processWithFormTask as unknown as ProcessState);
+
+      expect(report.formData).toBeDefined();
+      expect(report.formData!['campo1']).toBe('Valor 1');
+      expect(report.formData!['campo2']).toBe('Valor 2');
+    });
+
+    it('should extract listaItems from dynamic-list tasks', () => {
+      const processWithListTask = {
+        id: 'test-process',
+        name: 'Test Process',
+        version: '1.0.0',
+        description: 'Test',
+        loadedAt: '2026-01-01T00:00:00Z',
+        progress: 100,
+        subprocesses: [],
+        variableDefinitions: [],
+        capturedVariables: {},
+        phases: [
+          {
+            id: 'phase-1',
+            name: 'Phase 1',
+            description: '',
+            order: 1,
+            progress: 100,
+            dynamicLinks: [],
+            activities: [],
+            tasks: [
+              {
+                id: 'list-task',
+                name: 'List Task',
+                description: '',
+                order: 1,
+                type: 'dynamic-list',
+                completed: true,
+                completedAt: '2026-01-01T10:00:00Z',
+                isBlocked: false,
+                evidenceConfig: { type: 'text', required: false },
+                evidence: { text: '', images: [] },
+                dependencies: [],
+                checkItems: [],
+                dynamicLinks: [],
+                references: [],
+                listData: [
+                  { id: 'item-1', value: 'Componente A', addedAt: '2026-01-01T00:00:00Z' },
+                  { id: 'item-2', value: 'Componente B', addedAt: '2026-01-01T00:00:00Z' }
+                ],
+                listConfig: { label: 'Componente' }
+              }
+            ]
+          }
+        ],
+        timeTracking: { status: 'completed' as const, sessions: [], totalActiveTime: 0 }
+      };
+
+      const report = processToReleaseReport(processWithListTask as unknown as ProcessState);
+
+      expect(report.listaItems).toBeDefined();
+      expect(report.listaItems).toContain('Componente A');
+      expect(report.listaItems).toContain('Componente B');
+    });
+  });
+
+  describe('generateReleaseExcel', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      mockGetCell.mockReturnValue({ value: null });
+      mockWriteBuffer.mockResolvedValue(new ArrayBuffer(8));
+      mockLoad.mockResolvedValue(undefined);
+      mockGetWorksheet.mockReturnValue(mockWorksheet);
+      WorkbookMock.mockImplementation(class {
+        xlsx = { load: mockLoad, writeBuffer: mockWriteBuffer };
+        worksheets = [mockWorksheet];
+        getWorksheet = mockGetWorksheet;
+      } as unknown as (...args: unknown[]) => unknown);
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        arrayBuffer: vi.fn().mockResolvedValue(new ArrayBuffer(8))
+      }));
+    });
+
+    it('should generate Excel blob from template URL (line 411)', async () => {
+      const data: ReleaseReportData = {
+        nombreProyecto: 'Test Project',
+        api: 'test-api',
+        rfc: 'RFC001',
+        lider: 'John Doe',
+        desarrollador: 'Jane Smith'
+      };
+
+      const result = await generateReleaseExcel('/templates/test.xlsx', data);
+
+      expect(result).toBeInstanceOf(Blob);
+      expect(global.fetch).toHaveBeenCalledWith('/templates/test.xlsx');
+    });
+
+    it('should fill INFO_GENERAL fields in worksheet (lines 423-437)', async () => {
+      const data: ReleaseReportData = {
+        nombreProyecto: 'My Project',
+        api: 'my-api',
+        rfc: 'RFC123',
+        notaInstalacion: 'NOTA456',
+        lider: 'Leader Name',
+        desarrollador: 'Dev Name',
+        torre: 'Torre A',
+        ventanaTiempo: '2h',
+        uriMeet: 'https://meet.google.com/abc',
+        scmDiurno: 'SCM User',
+        sreNocturno: 'SRE Night',
+        sreDiurno: 'SRE Day',
+        tester: 'Tester Name',
+        componentesLiberar: 'my-api',
+        fechaLiberacion: new Date('2026-01-01')
+      };
+
+      await generateReleaseExcel('/templates/test.xlsx', data);
+
+      expect(mockGetCell).toHaveBeenCalled();
+    });
+
+    it('should fill listaItems when provided (lines 440-448)', async () => {
+      const data: ReleaseReportData = {
+        nombreProyecto: 'Test',
+        listaItems: ['Item 1', 'Item 2', 'Item 3']
+      };
+
+      await generateReleaseExcel('/templates/test.xlsx', data);
+
+      expect(mockGetCell).toHaveBeenCalled();
+    });
+
+    it('should fill detalleItems across 3 sections (lines 451-477)', async () => {
+      const data: ReleaseReportData = {
+        nombreProyecto: 'Test',
+        detalleItems: ['Detalle 1', 'Detalle 2', 'Detalle 3']
+      };
+
+      await generateReleaseExcel('/templates/test.xlsx', data);
+
+      expect(mockGetCell).toHaveBeenCalled();
+    });
+
+    it('should fill formData fields (lines 480-488)', async () => {
+      const data: ReleaseReportData = {
+        nombreProyecto: 'Test',
+        formData: { campo1: 'Value 1', campo2: 'Value 2' }
+      };
+
+      await generateReleaseExcel('/templates/test.xlsx', data);
+
+      expect(mockGetCell).toHaveBeenCalled();
+    });
+
+    it('should fill validaciones (lines 491-503)', async () => {
+      const data: ReleaseReportData = {
+        nombreProyecto: 'Test',
+        validaciones: [
+          { aplica: true, validado: true, respuestaUrl: 'https://example.com' },
+          { aplica: false, validado: false }
+        ]
+      };
+
+      await generateReleaseExcel('/templates/test.xlsx', data);
+
+      expect(mockGetCell).toHaveBeenCalled();
+    });
+
+    it('should fill prDeudaTecnica (lines 506-518)', async () => {
+      const data: ReleaseReportData = {
+        nombreProyecto: 'Test',
+        prDeudaTecnica: [
+          {
+            componente: 'api-payments',
+            integracionArq: true,
+            deudaTecnica: false,
+            vulnerabilidades: 'None',
+            urlRepo: 'https://github.com/org/repo'
+          }
+        ]
+      };
+
+      await generateReleaseExcel('/templates/test.xlsx', data);
+
+      expect(mockGetCell).toHaveBeenCalled();
+    });
+
+    it('should fill pipelinesCD (lines 521-536)', async () => {
+      const data: ReleaseReportData = {
+        nombreProyecto: 'Test',
+        pipelinesCD: [
+          {
+            componente: 'api-payments',
+            ordenTareas: 'Task 1 > Task 2',
+            variables: true,
+            validacionPuertos: true,
+            healthCheck: true,
+            numPost: 3,
+            urlConfig: 'https://config.example.com',
+            comentarios: 'No issues'
+          }
+        ]
+      };
+
+      await generateReleaseExcel('/templates/test.xlsx', data);
+
+      expect(mockGetCell).toHaveBeenCalled();
+    });
+
+    it('should fill rollback data (lines 539-551)', async () => {
+      const data: ReleaseReportData = {
+        nombreProyecto: 'Test',
+        rollback: [
+          {
+            componente: 'api-payments',
+            numRelease: 'v1.0.0',
+            rama: 'main',
+            urlRollback: 'https://github.com/org/repo/releases/v0.9.0',
+            propertiesCommit: 'abc123'
+          }
+        ]
+      };
+
+      await generateReleaseExcel('/templates/test.xlsx', data);
+
+      expect(mockGetCell).toHaveBeenCalled();
+    });
+
+    it('should fill procesoRealizado with componentes (lines 554-578)', async () => {
+      const data: ReleaseReportData = {
+        nombreProyecto: 'Test',
+        procesoRealizado: {
+          idLiberacion: 'lib-001',
+          fechaHoraValidacion: new Date('2026-01-01T10:00:00Z'),
+          tipoLiberacion: 'Produccion',
+          fechaInicioGuardia: new Date('2026-01-01T08:00:00Z'),
+          tiempoGuardia: '2 Horas',
+          fechaFinGuardia: new Date('2026-01-01T10:00:00Z'),
+          componentes: [
+            {
+              componente: 'api-payments',
+              numRelease: 'v1.2.3',
+              rama: 'main',
+              urlRelease: 'https://github.com/org/repo/releases/v1.2.3',
+              ejecucionCD: true,
+              despliegueCorrecto: true,
+              revisionDespliegue: true,
+              aplicoRollback: false,
+              tiempoM: 30
+            }
+          ]
+        }
+      };
+
+      await generateReleaseExcel('/templates/test.xlsx', data);
+
+      expect(mockGetCell).toHaveBeenCalled();
+    });
+
+    it('should fill comentarios (lines 581-583)', async () => {
+      const data: ReleaseReportData = {
+        nombreProyecto: 'Test',
+        comentarios: 'Some comments here'
+      };
+
+      await generateReleaseExcel('/templates/test.xlsx', data);
+
+      expect(mockGetCell).toHaveBeenCalled();
+    });
+
+    it('should fill evidencias sheet when worksheet exists (lines 586-596)', async () => {
+      mockGetWorksheet.mockReturnValue(mockWorksheet);
+
+      const data: ReleaseReportData = {
+        nombreProyecto: 'Test',
+        evidencias: [
+          { fechaHora: new Date('2026-01-01T10:00:00Z'), actividad: 'Task 1' },
+          { fechaHora: new Date('2026-01-01T11:00:00Z'), actividad: 'Task 2' }
+        ]
+      };
+
+      await generateReleaseExcel('/templates/test.xlsx', data);
+
+      expect(mockGetWorksheet).toHaveBeenCalledWith('Evidencias');
+      expect(mockGetCell).toHaveBeenCalled();
+    });
+
+    it('should skip evidencias when worksheet not found', async () => {
+      mockGetWorksheet.mockReturnValue(null);
+
+      const data: ReleaseReportData = {
+        nombreProyecto: 'Test',
+        evidencias: [
+          { fechaHora: new Date(), actividad: 'Task 1' }
+        ]
+      };
+
+      await expect(generateReleaseExcel('/templates/test.xlsx', data)).resolves.toBeInstanceOf(Blob);
     });
   });
 });
