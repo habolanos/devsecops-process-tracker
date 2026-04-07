@@ -461,6 +461,14 @@ subprocesses:
 
 El proyecto tiene **77 tests unitarios** (100% pasando) y tests E2E con Playwright.
 
+### Última actualización de cobertura (v1.29.6)
+
+- Se agregaron tests dirigidos para mejorar cobertura en módulos de baja cobertura:
+  - `nextjs_space/__tests__/unit/lib/sanitize.test.ts`
+  - `nextjs_space/__tests__/unit/components/dynamic-link-button.test.tsx`
+  - `nextjs_space/__tests__/unit/components/detail-list-input.test.tsx`
+- Objetivo: cubrir rutas críticas de sanitización, links dinámicos y captura de detalles por item.
+
 ### Tests Unitarios (Vitest)
 
 ```bash

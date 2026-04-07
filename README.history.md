@@ -6,6 +6,7 @@ Historial completo de versiones y cambios del DevSecOps Process Tracker.
 
 | Fecha | Versión | Descripción |
 |-------|---------|-------------|
+| 2026-04-07 | 1.29.6 | **Targeted Coverage Boost for Low-Coverage Modules**: Nuevos tests unitarios para elevar cobertura en módulos críticos. `sanitize.test.ts` agrega cobertura de `escapeHtml`, `sanitizeText`, `sanitizeUrl`, `sanitizeFilename`, `sanitizeRichText` y `useSanitizedValue`. `dynamic-link-button.test.tsx` cubre estados deshabilitado por variables, comportamiento `click`, auto-open con delay, click manual en `auto` y renderizado de `DynamicLinksList`. `detail-list-input.test.tsx` cubre estado sin items fuente, placeholders dinámicos, actualización de `detailData`, validación `maxLength`, estado `disabled` y mensaje de completitud. |
 | 2026-04-06 | 1.29.5 | **Testing Coverage for New Features**: Cobertura de testing unitario para nuevas funcionalidades. excel-template-helper.test.ts: tests para getOffsetCell (offset de columnas, casos edge, nombres multi-letra). json-utils.test.ts: tests actualizados para importar/exportar dynamic-list (listData), detail-list (detailData), form (formData). Corrección de tests existentes para incluir campos requeridos de TaskExport (type, checkItems, references, dependencies, dynamicLinks, evidenceConfig). Exportación de getOffsetCell para testing |
 | 2026-04-06 | 1.29.4 | **JSON Export Complete Fidelity**: Exportación JSON con 100% de fidelidad para todos los tipos de tareas. TaskExport actualizado con: exportConfig, listConfig, listData, detailConfig, detailData, formConfig, formData, references, dependencies, dynamicLinks, evidenceConfig. exportTask() exporta todos los datos de nuevos tipos. importTask() restaura todos los datos al importar. Ahora JSON exportado contiene toda la información de dynamic-list, detail-list y form tasks |
 | 2026-04-06 | 1.29.3 | **Word Token Replacement Fix**: Reemplazo de tokens en labels de formularios para reporte Word. word-generator ahora usa replaceFormConfigTokens() para reemplazar #OFFSET-1# y #CELDA# con valores reales del Excel template antes de mostrar evidencia en Word. Obtiene templatePath de tarea export-excel en misma fase. Loop de tareas cambiado a for statement para soportar await. Ahora Word muestra valores de celdas en lugar de tokens literales |
@@ -48,7 +49,7 @@ Historial completo de versiones y cambios del DevSecOps Process Tracker.
 ## 📈 Estadísticas de Versiones
 
 - **Total de versiones**: 40+
-- **Última versión**: 1.29.5
+- **Última versión**: 1.29.6
 - **Primer lanzamiento**: 1.0.0 (2026-03-01)
 - **Periodo de desarrollo**: ~37 días
 - **Promedio de versiones por semana**: ~7-8
@@ -159,6 +160,7 @@ Historial completo de versiones y cambios del DevSecOps Process Tracker.
 - 1.29.3: Word Token Replacement Fix
 - 1.29.4: JSON Export Complete Fidelity
 - 1.29.5: Testing Coverage for New Features
+- 1.29.6: Targeted Coverage Boost for Low-Coverage Modules
 
 ---
 
