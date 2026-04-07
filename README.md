@@ -58,7 +58,38 @@ Diagrama de secuencia que ilustra las interacciones temporales entre componentes
 
 **[Ver diagrama completo →](docs/diagrams/flujo-datos.md)**
 
-## 🚀 Stack Tecnológico
+## � Documentación Adicional
+
+Documentación especializada para diferentes aspectos del proyecto:
+
+### 📝 [Guía de Procesos YAML](README.process.md)
+
+Guía completa para crear y configurar procesos YAML. Incluye:
+
+- **Estructura General**: Campos obligatorios y opcionales
+- **Variables de Proceso**: Tipos, configuración y uso
+- **Fases y Actividades**: Organización jerárquica
+- **Tipos de Tareas**: Standard, Check, Multicheck, Export-Excel, Dynamic-List, Detail-List, Form
+- **Subprocesos**: Carga de procesos externos desde GitHub, URL o local
+- **Configuraciones Avanzadas**: Referencias, dependencias, links dinámicos, evidencia
+- **Ejemplo Paso a Paso**: Guía completa para crear un proceso personalizado
+- **Buenas Prácticas**: Nomenclatura, estructura, validación, mantenimiento
+
+**[Ver guía completa →](README.process.md)**
+
+### 🐳 [Docker Hub](README.dockerhub.md)
+
+Documentación específica para la imagen Docker en Docker Hub. Incluye:
+
+- **Descripción del Proyecto**: Resumen para el repositorio Docker Hub
+- **Características**: Lista de funcionalidades principales
+- **Uso**: Comandos para ejecutar la imagen Docker
+- **Configuración**: Variables de entorno y volúmenes
+- **Autor y Licencia**: Información del autor y licencia GPL-3.0
+
+**[Ver documentación Docker →](README.dockerhub.md)**
+
+## �🚀 Stack Tecnológico
 
 | Tecnología | Versión | Descripción |
 |------------|---------|-------------|
