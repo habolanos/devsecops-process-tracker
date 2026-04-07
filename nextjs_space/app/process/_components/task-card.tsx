@@ -1,13 +1,20 @@
 'use client';
 
-import { TaskState, CheckItemState } from '@/lib/types';
+import { memo } from 'react';
+import { TaskState } from '@/lib/types';
 import { useProcessStore } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import { canCompleteTask } from '@/lib/helpers';
 import { useI18n } from '@/lib/i18n-context';
 import { sanitizeText, sanitizeUrl } from '@/lib/sanitize';
-import { CheckCircle2, Circle, Lock, ExternalLink, FileText, Image as ImageIcon, Square, CheckSquare, ListChecks } from 'lucide-react';
+import { CheckCircle2, Circle, Lock, ExternalLink, FileText, Image as ImageIcon, Square, CheckSquare, ListChecks, FileSpreadsheet, List } from 'lucide-react';
 import { toast } from 'sonner';
 import { DynamicLinksList } from './dynamic-link-button';
+import { DynamicListInput } from './dynamic-list-input';
+import { DetailListInput } from './detail-list-input';
+import { FormRenderer } from './form-renderer';
+import { generateReleaseExcel, processToReleaseReport, downloadExcel, generateReleaseFilename } from '@/lib/excel-generator';
+import { ListItem, DetailItem, FormFieldValue } from '@/lib/types';
 
 interface TaskCardProps {
   task: TaskState;
@@ -16,30 +23,202 @@ interface TaskCardProps {
   onViewEvidence: () => void;
 }
 
-export default function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) {
+function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) {
   const { t } = useI18n();
-  const completeTask = useProcessStore((state) => state?.completeTask);
-  const uncompleteTask = useProcessStore((state) => state?.uncompleteTask);
-  const toggleCheckItem = useProcessStore((state) => state?.toggleCheckItem);
-  const canCompleteCheckTask = useProcessStore((state) => state?.canCompleteCheckTask);
+  // Use store actions with stable references - only extract functions once
+  const storeActions = useProcessStore(useShallow((state) => ({
+    completeTask: state?.completeTask,
+    uncompleteTask: state?.uncompleteTask,
+    toggleCheckItem: state?.toggleCheckItem,
+    canCompleteCheckTask: state?.canCompleteCheckTask,
+    updateListData: state?.updateListData,
+    updateDetailData: state?.updateDetailData,
+    updateFormData: state?.updateFormData,
+  })));
 
   const taskType = task?.type || 'standard';
   const isCheckType = taskType === 'check' || taskType === 'multicheck';
+  const isExportExcelType = taskType === 'export-excel';
+  const isDynamicListType = taskType === 'dynamic-list';
+  const isDetailListType = taskType === 'detail-list';
+  const isFormType = taskType === 'form';
 
-  const handleToggleComplete = () => {
+  // Handle list data changes for dynamic-list tasks
+  const handleListDataChange = (items: ListItem[]) => {
+    storeActions.updateListData?.(phaseId, task.id, items, activityId);
+  };
+
+  // Handle detail data changes for detail-list tasks
+  const handleDetailDataChange = (detailData: DetailItem[]) => {
+    storeActions.updateDetailData?.(phaseId, task.id, detailData, activityId);
+  };
+
+  // Handle form data changes for form tasks
+  const handleFormDataChange = (formData: FormFieldValue[]) => {
+    storeActions.updateFormData?.(phaseId, task.id, formData, activityId);
+  };
+
+  // Check if dynamic-list task meets minimum items requirement
+  const listMinItems = task?.listConfig?.minItems ?? 1;
+  const currentListItems = task?.listData?.length ?? 0;
+  const isListMinMet = currentListItems >= listMinItems;
+
+  // For detail-list tasks, find the source task to get items
+  const process = useProcessStore.getState().process;
+  let sourceItems: string[] = [];
+  if (isDetailListType && task?.detailConfig?.sourceTaskId && process) {
+    // Find source task by ID
+    const findTaskById = (taskId: string): TaskState | null => {
+      for (const phase of process.phases || []) {
+        const found = phase.tasks?.find(t => t.id === taskId);
+        if (found) return found;
+        for (const activity of phase.activities || []) {
+          const foundInActivity = activity.tasks?.find(t => t.id === taskId);
+          if (foundInActivity) return foundInActivity;
+        }
+      }
+      return null;
+    };
+    
+    const sourceTask = findTaskById(task.detailConfig.sourceTaskId);
+    if (sourceTask?.listData) {
+      sourceItems = sourceTask.listData.map(item => item.value);
+    }
+  }
+
+  const detailMinItems = sourceItems.length;
+  const currentDetailItems = task?.detailData?.filter(d => d.capturedText.trim().length > 0).length ?? 0;
+  const isDetailMinMet = currentDetailItems >= detailMinItems;
+
+  // For form tasks, check if all required fields are filled
+  const isFormValid = () => {
+    if (!isFormType || !task?.formConfig) return true;
+    const requiredFields = task.formConfig.fields.filter(f => f.required);
+    const filledRequired = requiredFields.filter(f => {
+      const value = task.formData?.find(d => d.fieldId === f.id)?.value;
+      return value && (!Array.isArray(value) || value.length > 0);
+    });
+    return filledRequired.length === requiredFields.length;
+  };
+
+  // Get templatePath from export-excel task for token replacement in form labels
+  const getTemplatePath = (): string | undefined => {
+    if (!process) return undefined;
+    
+    // Find the export-excel task in the same phase/activity
+    const allTasks = activityId 
+      ? process.phases.find(p => p.id === phaseId)?.activities?.find(a => a.id === activityId)?.tasks || []
+      : process.phases.find(p => p.id === phaseId)?.tasks || [];
+      
+    const exportTask = allTasks.find(t => t.type === 'export-excel' && t.exportConfig);
+    return exportTask?.exportConfig?.templatePath;
+  };
+
+  const templatePath = getTemplatePath();
+
+  // Check if task requires evidence (text, image, or both) AND is required
+  const requiresEvidence = task?.evidenceConfig?.required && (
+    task?.evidenceConfig?.type === 'text' || 
+    task?.evidenceConfig?.type === 'image' || 
+    task?.evidenceConfig?.type === 'both'
+  );
+  // Check if task specifically requires image evidence AND is required
+  const requiresImageEvidence = task?.evidenceConfig?.required && (
+    task?.evidenceConfig?.type === 'image' || 
+    task?.evidenceConfig?.type === 'both'
+  );
+
+  // Handle save progress - open dialog for image evidence, just toast otherwise
+  const handleSaveProgress = () => {
+    if (requiresImageEvidence) {
+      onViewEvidence();
+    } else {
+      toast.success('Progreso guardado');
+    }
+  };
+
+  // Handle Excel export for export-excel task type
+  const handleExportExcel = async () => {
+    try {
+      const process = useProcessStore.getState().process;
+      if (!process) return;
+      
+      const reportData = processToReleaseReport(process);
+      const variables = process.capturedVariables || {};
+      const templatePath = task.exportConfig?.templatePath || '/templates/TEMPLATE_Checklist_Liberacion.xlsx';
+      
+      const blob = await generateReleaseExcel(templatePath, reportData);
+      const filename = generateReleaseFilename(
+        process.name || 'process',
+        variables.rfc,
+        variables.notaInstalacion
+      );
+      downloadExcel(blob, filename);
+      
+      // Auto-complete task after successful Excel generation
+      if (!task.completed) {
+        storeActions.completeTask?.(phaseId, task.id, activityId);
+      }
+      toast.success('Reporte Excel generado y tarea completada');
+    } catch (error) {
+      console.error('Excel export error:', error);
+      toast.error('Error al generar el reporte Excel');
+    }
+  };
+
+  const handleToggleComplete = async () => {
     if (task?.completed) {
-      uncompleteTask?.(phaseId, task.id, activityId);
+      storeActions.uncompleteTask?.(phaseId, task.id, activityId);
       toast.info(t('task.uncompleted'));
     } else {
       // For check/multicheck tasks, verify all required items are checked
-      if (isCheckType && !canCompleteCheckTask?.(phaseId, task.id, activityId)) {
+      if (isCheckType && !storeActions.canCompleteCheckTask?.(phaseId, task.id, activityId)) {
         toast.warning(t('task.checkItems.required'), {
           description: t('task.checkItems.required.description'),
         });
         return;
       }
+      
+      // For dynamic-list tasks, verify minimum items
+      if (isDynamicListType && !isListMinMet) {
+        toast.warning('Lista incompleta', {
+          description: `Se requieren al menos ${listMinItems} item(s). Actualmente hay ${currentListItems}.`,
+        });
+        return;
+      }
+      
+      // For detail-list tasks, verify minimum details
+      if (isDetailListType && !isDetailMinMet) {
+        toast.warning('Detalles incompletos', {
+          description: `Complete todos los detalles (${currentDetailItems}/${detailMinItems}).`,
+        });
+        return;
+      }
+      
+      // For form tasks, verify all required fields are filled
+      if (isFormType && !isFormValid()) {
+        toast.warning('Formulario incompleto', {
+          description: 'Complete todos los campos requeridos del formulario',
+        });
+        return;
+      }
+      
+      // For export-excel tasks, generate Excel on completion
+      if (isExportExcelType) {
+        await handleExportExcel();
+        storeActions.completeTask?.(phaseId, task.id, activityId);
+        toast.success(t('task.completed'));
+        return;
+      }
+      
+      // If task requires evidence (text, image, or both), open evidence modal
+      if (requiresEvidence) {
+        onViewEvidence();
+        return;
+      }
+      
       if (canCompleteTask(task)) {
-        completeTask?.(phaseId, task.id, activityId);
+        storeActions.completeTask?.(phaseId, task.id, activityId);
         toast.success(t('task.completed'));
       } else {
         toast.warning(t('evidence.required'), {
@@ -51,7 +230,7 @@ export default function TaskCard({ task, phaseId, activityId, onViewEvidence }: 
 
   const handleToggleCheckItem = (checkItemId: string) => {
     if (task?.completed || task?.isBlocked) return;
-    toggleCheckItem?.(phaseId, task.id, checkItemId, activityId);
+    storeActions.toggleCheckItem?.(phaseId, task.id, checkItemId, activityId);
   };
 
   const isBlocked = task?.isBlocked ?? false;
@@ -132,6 +311,24 @@ export default function TaskCard({ task, phaseId, activityId, onViewEvidence }: 
                     <span>{checkedCount}/{totalCheckItems}</span>
                   </span>
                 )}
+                
+                {/* Export Excel task badge */}
+                {isExportExcelType && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-600 rounded text-xs">
+                    <FileSpreadsheet className="w-3 h-3" />
+                    <span>Excel</span>
+                  </span>
+                )}
+                
+                {/* Dynamic List task badge */}
+                {isDynamicListType && (
+                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs ${
+                    isListMinMet ? 'bg-teal-50 text-teal-600' : 'bg-orange-50 text-orange-600'
+                  }`}>
+                    <List className="w-3 h-3" />
+                    <span>{currentListItems}{task?.listConfig?.maxItems ? `/${task.listConfig.maxItems}` : ''}</span>
+                  </span>
+                )}
 
                 {/* Evidence indicators */}
                 {hasTextEvidence && (
@@ -149,19 +346,160 @@ export default function TaskCard({ task, phaseId, activityId, onViewEvidence }: 
             </div>
           </div>
 
-          <button
-            onClick={onViewEvidence}
-            disabled={isBlocked}
-            data-testid="view-evidence-btn"
-            className={`px-3 py-1.5 rounded-lg transition-colors text-sm font-medium ${
-              isBlocked 
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-            }`}
-          >
-            {t('task.view')}
-          </button>
+          {isExportExcelType ? (
+            <button
+              onClick={handleExportExcel}
+              disabled={isBlocked}
+              data-testid="export-excel-btn"
+              className={`px-3 py-1.5 rounded-lg transition-colors text-sm font-medium flex items-center gap-1.5 ${
+                isBlocked 
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-emerald-500 text-white hover:bg-emerald-600'
+              }`}
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              Generar Excel
+            </button>
+          ) : !isDynamicListType && !isCheckType && (
+            <button
+              onClick={onViewEvidence}
+              disabled={isBlocked}
+              data-testid="view-evidence-btn"
+              className={`px-3 py-1.5 rounded-lg transition-colors text-sm font-medium ${
+                isBlocked 
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+              }`}
+            >
+              {t('task.view')}
+            </button>
+          )}
         </div>
+
+        {/* Dynamic List Input for dynamic-list tasks */}
+        {isDynamicListType && task?.listConfig && (
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <DynamicListInput
+              config={task.listConfig}
+              items={task.listData || []}
+              onItemsChange={handleListDataChange}
+              disabled={isCompleted || isBlocked}
+            />
+            
+            {/* Action buttons for dynamic-list tasks */}
+            <div className="mt-4 pt-3 border-t border-gray-200 flex justify-end gap-2">
+              <button
+                onClick={handleSaveProgress}
+                disabled={isBlocked || isCompleted}
+                className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
+                  isBlocked || isCompleted
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-blue-500 text-white hover:bg-blue-600'
+                }`}
+              >
+                Guardar
+              </button>
+              <button
+                onClick={handleToggleComplete}
+                disabled={isBlocked || !isListMinMet}
+                className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-1.5 ${
+                  isBlocked || !isListMinMet
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : isCompleted
+                      ? 'bg-orange-500 text-white hover:bg-orange-600'
+                      : 'bg-green-500 text-white hover:bg-green-600'
+                }`}
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                {isCompleted ? t('task.uncomplete') : t('task.complete')}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* DetailList for detail-list tasks */}
+        {isDetailListType && task?.detailConfig && (
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <DetailListInput
+              config={task.detailConfig}
+              sourceItems={sourceItems}
+              detailData={task.detailData || []}
+              onDetailDataChange={handleDetailDataChange}
+              disabled={isCompleted || isBlocked}
+            />
+            
+            {/* Action buttons for detail-list tasks */}
+            <div className="mt-4 pt-3 border-t border-gray-200 flex justify-end gap-2">
+              <button
+                onClick={handleSaveProgress}
+                disabled={isBlocked || isCompleted}
+                className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
+                  isBlocked || isCompleted
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-blue-500 text-white hover:bg-blue-600'
+                }`}
+              >
+                Guardar
+              </button>
+              <button
+                onClick={handleToggleComplete}
+                disabled={isBlocked || !isDetailMinMet}
+                className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-1.5 ${
+                  isBlocked || !isDetailMinMet
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : isCompleted
+                      ? 'bg-orange-500 text-white hover:bg-orange-600'
+                      : 'bg-green-500 text-white hover:bg-green-600'
+                }`}
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                {isCompleted ? t('task.uncomplete') : t('task.complete')}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* FormRenderer for form tasks */}
+        {isFormType && task?.formConfig && (
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <FormRenderer
+              config={task.formConfig}
+              data={task.formData || []}
+              onDataChange={handleFormDataChange}
+              disabled={isCompleted || isBlocked}
+              templatePath={templatePath}
+            />
+            
+            {/* Action buttons for form tasks */}
+            <div className="mt-4 pt-3 border-t border-gray-200 flex justify-end gap-2">
+              <button
+                onClick={handleSaveProgress}
+                disabled={isBlocked || isCompleted}
+                className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
+                  isBlocked || isCompleted
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-blue-500 text-white hover:bg-blue-600'
+                }`}
+              >
+                Guardar
+              </button>
+              <button
+                onClick={handleToggleComplete}
+                disabled={isBlocked || !isFormValid()}
+                className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-1.5 ${
+                  isBlocked || !isFormValid()
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : isCompleted
+                      ? 'bg-orange-500 text-white hover:bg-orange-600'
+                      : 'bg-green-500 text-white hover:bg-green-600'
+                }`}
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                {isCompleted ? t('task.uncomplete') : t('task.complete')}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* CheckItems for check/multicheck tasks */}
         {isCheckType && task?.checkItems && task.checkItems.length > 0 && (
@@ -201,6 +539,35 @@ export default function TaskCard({ task, phaseId, activityId, onViewEvidence }: 
                 {t('task.checkItems.progress')}: {requiredCheckedCount}/{totalRequiredItems} {t('task.checkItems.requiredCompleted')}
               </p>
             )}
+            
+            {/* Action buttons for check/multicheck tasks */}
+            <div className="mt-4 pt-3 border-t border-gray-200 flex justify-end gap-2">
+              <button
+                onClick={handleSaveProgress}
+                disabled={isBlocked || isCompleted}
+                className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
+                  isBlocked || isCompleted
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-blue-500 text-white hover:bg-blue-600'
+                }`}
+              >
+                Guardar
+              </button>
+              <button
+                onClick={handleToggleComplete}
+                disabled={isBlocked || !storeActions.canCompleteCheckTask?.(phaseId, task.id, activityId)}
+                className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-1.5 ${
+                  isBlocked || !storeActions.canCompleteCheckTask?.(phaseId, task.id, activityId)
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : isCompleted
+                      ? 'bg-orange-500 text-white hover:bg-orange-600'
+                      : 'bg-green-500 text-white hover:bg-green-600'
+                }`}
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                {isCompleted ? t('task.uncomplete') : t('task.complete')}
+              </button>
+            </div>
           </div>
         )}
 
@@ -269,3 +636,5 @@ export default function TaskCard({ task, phaseId, activityId, onViewEvidence }: 
     </div>
   );
 }
+
+export default memo(TaskCard);

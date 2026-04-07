@@ -2,6 +2,21 @@
 
 Aplicación web para gestión y seguimiento de procesos DevSecOps con soporte para evidencias, dependencias entre tareas, links dinámicos y exportación de resultados.
 
+## ✨ Características Principales
+
+- **Gestión de Procesos**: Carga de plantillas YAML, JSON importado o procesos personalizados
+- **Tipos de Tareas**: Standard, Check (checkbox individual), Multicheck (múltiples checkboxes), Dynamic-list (listas de items), Detail-list (detalles por item de lista), Form (formularios con layout de columnas), Export-excel
+- **Sistema de Dependencias**: Bloqueo automático de tareas hasta completar dependencias
+- **Evidencias**: Texto e imágenes (upload a S3 o modo local Base64)
+- **Variables Dinámicas**: Auto-fill desde configuración DevOps
+- **Links Dinámicos**: URLs parametrizables con variables del proceso
+- **Timer de Proceso**: Tracking de tiempo con sesiones múltiples
+- **Exportación**: JSON y documentos Word con evidencias
+- **Modo Dark/Light**: Toggle de tema con soporte del sistema operativo
+- **Gestión Multi-proceso**: Tabs para trabajar con múltiples procesos simultáneamente
+- **Persistencia**: Estado guardado en localStorage con compresión
+- **i18n**: Soporte para español e inglés
+
 ## 📊 Diagramas
 
 La documentación visual de la aplicación está organizada en diagramas detallados que ilustran diferentes aspectos del sistema. Cada diagrama incluye contexto, descripción y explicaciones complementarias.
@@ -43,7 +58,38 @@ Diagrama de secuencia que ilustra las interacciones temporales entre componentes
 
 **[Ver diagrama completo →](docs/diagrams/flujo-datos.md)**
 
-## 🚀 Stack Tecnológico
+## � Documentación Adicional
+
+Documentación especializada para diferentes aspectos del proyecto:
+
+### 📝 [Guía de Procesos YAML](README.process.md)
+
+Guía completa para crear y configurar procesos YAML. Incluye:
+
+- **Estructura General**: Campos obligatorios y opcionales
+- **Variables de Proceso**: Tipos, configuración y uso
+- **Fases y Actividades**: Organización jerárquica
+- **Tipos de Tareas**: Standard, Check, Multicheck, Export-Excel, Dynamic-List, Detail-List, Form
+- **Subprocesos**: Carga de procesos externos desde GitHub, URL o local
+- **Configuraciones Avanzadas**: Referencias, dependencias, links dinámicos, evidencia
+- **Ejemplo Paso a Paso**: Guía completa para crear un proceso personalizado
+- **Buenas Prácticas**: Nomenclatura, estructura, validación, mantenimiento
+
+**[Ver guía completa →](README.process.md)**
+
+### 🐳 [Docker Hub](README.dockerhub.md)
+
+Documentación específica para la imagen Docker en Docker Hub. Incluye:
+
+- **Descripción del Proyecto**: Resumen para el repositorio Docker Hub
+- **Características**: Lista de funcionalidades principales
+- **Uso**: Comandos para ejecutar la imagen Docker
+- **Configuración**: Variables de entorno y volúmenes
+- **Autor y Licencia**: Información del autor y licencia GPL-3.0
+
+**[Ver documentación Docker →](README.dockerhub.md)**
+
+## � Stack Tecnológico
 
 | Tecnología | Versión | Descripción |
 |------------|---------|-------------|
@@ -51,6 +97,7 @@ Diagrama de secuencia que ilustra las interacciones temporales entre componentes
 | **TypeScript** | 5.2.2 | Tipado estático |
 | **Tailwind CSS** | 3.3.3 + shadcn/ui | Estilos y componentes UI |
 | **Zustand** | 5.0.12 | Estado global con persistencia localStorage |
+| **Immer** | ^10.1.0 | Mutaciones inmutables eficientes |
 | **Vitest** | 4.1.2 | Tests unitarios |
 | **Playwright** | 1.40.0 | Tests E2E |
 | **Vite** | 6.4.1 | Build tool y dev server para tests |
@@ -75,6 +122,8 @@ nextjs_space/
 │   │   ├── page.tsx            # Vista principal del proceso
 │   │   └── _components/        # Componentes específicos del proceso
 │   │       ├── task-card.tsx       # Tarjeta de tarea individual
+│   │       ├── activity-card.tsx   # Tarjeta de actividad con tareas
+│   │       ├── dynamic-list-input.tsx # Input para listas dinámicas
 │   │       ├── process-sidebar.tsx # Sidebar de navegación de fases
 │   │       ├── progress-bar.tsx    # Barra de progreso visual
 │   │       ├── evidence-modal.tsx  # Modal de gestión de evidencias
@@ -96,12 +145,17 @@ nextjs_space/
 ├── lib/                         # Lógica de negocio central
 │   ├── types.ts                # Tipos TypeScript principales
 │   ├── store.ts                # Zustand store - proceso actual
+│   ├── session-store.ts        # Zustand store - gestión multi-proceso
+│   ├── loading-store.ts        # Zustand store - tracking de operaciones
 │   ├── config-store.ts         # Zustand store - config DevOps
+│   ├── persist-storage.ts      # Storage comprimido con debounce
 │   ├── helpers.ts              # Funciones: progreso, dependencias, validación
 │   ├── yaml-parser.ts          # Parser YAML → ProcessState
 │   ├── json-utils.ts           # Import/Export JSON con evidencias
 │   ├── word-generator.ts       # Generador de documentos Word
+│   ├── excel-generator.ts      # Generador de reportes Excel
 │   ├── i18n-context.tsx        # Contexto de internacionalización (ES/EN)
+│   ├── sanitize.ts             # Sanitización XSS
 │   ├── aws-config.ts           # Config AWS S3 (modo local si no hay credenciales)
 │   ├── s3.ts                   # Utilidades S3 (upload, download, delete)
 │   ├── config-loader.ts        # Carga y parseo de config DevOps
@@ -109,23 +163,30 @@ nextjs_space/
 │
 ├── data/                        # Datos estáticos
 │   ├── processes/              # Procesos YAML predefinidos
-│   │   ├── index.json         # Catálogo: 5 plantillas
+│   │   ├── index.json         # Catálogo: 6 plantillas
 │   │   ├── it-security-audit.yaml      # 3 fases, 13 tareas
 │   │   ├── devops-release.yaml         # 3 fases, 10 tareas
 │   │   ├── incident-response.yaml        # 4 fases, 12 tareas
 │   │   ├── devops-pipeline.yaml        # Con variables y links dinámicos
-│   │   └── pull-request-validation.yaml # 6 fases, 21 tareas, 8 variables
+│   │   ├── pull-request-validation.yaml # 6 fases, 21 tareas, 8 variables
+│   │   └── release-checklist.yaml      # Checklist de liberación con dynamic-list
 │   └── process-tracker-config.example.json  # Template de configuración
 │
 ├── __tests__/                   # Tests
-│   ├── unit/lib/               # Tests unitarios (51 tests)
-│   │   ├── helpers.test.ts    # Progreso, dependencias, validación
-│   │   ├── yaml-parser.test.ts # Parseo YAML
-│   │   └── json-utils.test.ts  # Import/export JSON
-│   ├── e2e/flows/              # Tests E2E con Playwright
-│   │   ├── load-process.spec.ts    # Carga plantillas/YAML/JSON
-│   │   ├── dependencies.spec.ts    # Flujo de dependencias
-│   │   └── export-results.spec.ts  # Exportación JSON y Word
+│   ├── unit/                   # Tests unitarios
+│   │   ├── lib/               # Tests de lógica de negocio
+│   │   │   ├── helpers.test.ts    # Progreso, dependencias, validación
+│   │   │   ├── yaml-parser.test.ts # Parseo YAML
+│   │   │   ├── json-utils.test.ts  # Import/export JSON
+│   │   │   └── excel-generator.test.ts # Generación Excel
+│   │   └── components/       # Tests de componentes UI
+│   │       └── dynamic-list-input.test.tsx # Input de listas dinámicas
+│   ├── e2e/                   # Tests E2E con Playwright
+│   │   ├── flows/              # Flujos principales
+│   │   │   ├── load-process.spec.ts    # Carga plantillas/YAML/JSON
+│   │   │   ├── dependencies.spec.ts    # Flujo de dependencias
+│   │   │   └── export-results.spec.ts  # Exportación JSON y Word
+│   │   └── release-checklist-export.spec.ts # Export Excel para release checklist
 │   └── fixtures/               # Archivos de prueba
 │       ├── simple-process.yaml
 │       ├── complex-dependencies.yaml
@@ -941,7 +1002,7 @@ docker push tuusuario/devsecops-process-tracker:custom
 | Datos no persisten | Usar volumen Docker o configurar S3 |
 | Contenedor no inicia | Ver logs: `docker logs devsecops-tracker` |
 
-```
+
 
 ## 🚀 CI/CD Pipelines
 
@@ -1101,35 +1162,7 @@ perf(store): optimize state updates
 
 ## 📊 Historial de Cambios
 
-| Fecha | Versión | Descripción |
-|-------|---------|-------------|
-| 2026-04-06 | 1.25.0 | **Process Page Layout Refactor**: Header fijo con contenido scrollable. Nombre del proceso y tabs de fases en misma línea para optimizar espacio. Barra de progreso global en formato horizontal (label + barra + porcentaje en una línea). Botones del timer restaurados con texto visible. Tamaños de texto unificados (proceso y fase: text-xl) |
-| 2026-04-06 | 1.24.0 | **Estimated Time & Semaphore Colors**: Nuevo campo `estimatedTime` en templates YAML (formato legible: "2h", "30m", "1h30m"). Timer con colorimetría semáforo: 🟢 verde (0-60%), 🟡 amarillo (60-100%), 🔴 rojo (>100%). Indicador de estado con mensaje y porcentaje. Funciones `parseTimeString()` y `getTimeStatus()` en helpers. Templates actualizados con tiempos estimados |
-| 2026-04-06 | 1.23.0 | **Fixes & Performance**: Timer auto-start mejorado (funciona con procesos resumidos), botón "Volver al inicio" pausa el timer, animación barra de progreso GitHub corregida (position absolute, overflow-hidden), optimización de rendimiento con selectores Zustand individuales para evitar re-renders, fix botones anidados en ProcessTabs |
-| 2026-04-06 | 1.22.0 | **Global Progress Indicator**: Implementación de indicador de progreso global estilo GitHub (barra azul delgada) que aparece durante operaciones de carga/exportación. Store global loading-store para rastrear operaciones activas. Integrado en layout.tsx y componentes existentes (exportaciones, carga de plantillas/archivos). Tests: 11 unitarios para store, 4 unitarios para componente, 6 E2E Playwright |
-| 2026-04-06 | 1.21.0 | **Auto-start Process Timer**: Timer del proceso se inicia automáticamente en primera interacción del usuario (clic en tarea/cambio de fase). Flag hasStartedInteraction en store para rastrear interacción. Tests: 11 nuevos tests en store-timer.test.ts, 5 tests en process-timer-auto-start.test.ts |
-| 2026-04-06 | 1.21.0 | **Security Vulnerabilities Fixed**: Resolución completa de vulnerabilidades npm (minimatch CVE-2026-27903/27904, brace-expansion CVE-2026-33750, picomatch CVE-2026-33671/33672, tar CVE-2026-29786/31802) mediante overrides en package.json (minimatch@3.1.4, brace-expansion@1.1.13, picomatch@4.0.4, tar@7.5.11) compatibles con ESLint, actualización de npm en Dockerfile, migración a Alpine 3.21.5 en base image Docker. Vulnerabilidades en npm global (brace-expansion, picomatch) ignoradas en .trivyignore ya que no son explotables en runtime. Trivy scan: 0 vulnerabilidades en Alpine y paquetes npm de la aplicación |
-| 2026-04-04 | 1.20.0 | **Docker Hub Metadata & Cleanup**: Actualización automática de descripción, overview y categorías en Docker Hub, cleanup de imágenes antiguas preservando solo versión semver en Docker Hub y GHCR, fix API GHCR para paquetes de usuario |
-| 2026-04-04 | 1.19.0 | **CI/CD Fixes**: Fix Node.js 24 warnings, Dockerfile ARG declarations para BUILD_DATE/VCS_REF/VERSION, CodeQL v4 upgrade, FORCE_JAVASCRIPT_ACTIONS_TO_NODE24, simplificación de tags Docker (solo semver sin major/minor aliases) |
-| 2026-04-02 | 1.13.1 | **Fix CI/CD y Tests**: Migración ESLint de `next lint` a ESLint CLI, permisos SARIF corregidos (`security-events: write`), CodeQL actualizado a v4, coverage tests aumentado a 127 tests (67% coverage), tipos corregidos en json-utils.ts, script Abacus AI eliminado por seguridad |
-| 2026-04-02 | 1.13.0 | **CI/CD con GitHub Actions**: Workflows completos (CI, Release, Docker), Semantic Versioning automático, Conventional Commits, CodeQL SAST, Trivy scanning, Docker multi-arch con Cosign signing, SBOM (SPDX/CycloneDX), SLSA Level 3 attestations, health check endpoint |
-| 2026-04-02 | 1.12.0 | **Task Types y Clipboard**: Soporte para 3 tipos de tareas (`standard`, `check`, `multicheck`), validación de checkItems requeridos/opcionales, clipboard paste (Ctrl+V) para imágenes, botón "Terminar Tarea" en modal, ActivityCard con imágenes y links dinámicos, i18n actualizado |
-| 2026-04-02 | 1.11.0 | **Activities y Subprocesses**: Nuevo nivel jerárquico `activities` entre phases y tasks, soporte para `subprocesses` como referencias a procesos externos (GitHub/URL/local), subprocess-loader para carga dinámica, sidebar expandible con actividades, i18n para nuevos componentes |
-| 2026-04-01 | 1.10.0 | **Modo Dark/Light**: Toggle Sol/Luna en header, soporte sistema operativo, variables CSS HSL semánticas, ThemeProvider (next-themes), migración completa de colores en páginas y componentes |
-| 2026-04-01 | 1.9.0 | **Gestión de Procesos Múltiples**: Process Tabs en header, Command Palette (Ctrl+P), sección "Procesos en Curso" con tarjetas visuales estilo templates. Iconografía de estados, barras de progreso, acciones rápidas. Session store con Zustand y persistencia comprimida |
-| 2026-03-31 | 1.8.0 | **Seguridad y Performance Pro**: Validación Zod en APIs, Rate Limiting, Sanitización XSS, Persistencia comprimida (lz-string), Manejo de errores centralizado, Virtualización de listas (@tanstack/react-virtual), Sistema Optimistic Updates |
-| 2026-03-31 | 1.7.1 | **Análisis Pro v2**: Reporte completo de arquitectura y UX con 30+ mejoras priorizadas (ver `outcome/ARCHITECTURE_UX_ANALYSIS_v2.md`) |
-| 2026-03-31 | 1.7.0 | **Mejoras Pro**: Error Boundary global, accesibilidad ARIA, lazy loading modales, sistema Toast, optimización Zustand, skeletons |
-| 2026-03-31 | 1.6.2 | **UI Compactación**: Tarjetas de tareas y sidebar más compactos, reducción ~30% espacio vertical |
-| 2026-03-31 | 1.6.1 | **Bugfix**: Tiempos correctos en exports, imágenes con proporciones preservadas en Word |
-| 2026-03-30 | 1.6.0 | **Process Timer**: Start/Pause para tracking de tiempo, múltiples sesiones, reporte de tiempos en Word |
-| 2026-03-29 | 1.5.0 | Tests E2E con Playwright, modo local base64 para imágenes, 0 vulnerabilidades, actualización Next.js 15.5.14 |
-| 2026-03-27 | 1.4.1 | Generación automática de template JSON basado en variables |
-| 2026-03-27 | 1.4.0 | Configuración DevOps con auto-fill de variables |
-| 2026-03-27 | 1.3.0 | Nuevo proceso `pull-request-validation.yaml` (6 fases, 21 tareas) |
-| 2026-03-27 | 1.2.0 | Variables de proceso y links dinámicos parametrizables |
-| 2026-03-27 | 1.1.0 | Procesos precargados, API `/api/processes` |
-| 2026-03-01 | 1.0.0 | Versión inicial con carga YAML/JSON, evidencias, exportación Word |
+**Ver [README.history.md](README.history.md) para el historial completo de cambios.**
 
 ## 📄 Licencia
 

@@ -3,6 +3,7 @@
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun, BorderStyle } from 'docx';
 import { ProcessState } from './types';
 import { formatDurationLong } from './helpers';
+import { replaceFormConfigTokens } from './excel-template-helper';
 
 // Constants for image sizing
 const MAX_IMAGE_WIDTH = 500;  // Max width in pixels for Word doc
@@ -217,7 +218,14 @@ export async function generateWordDocument(process: ProcessState): Promise<Blob>
     );
 
     // Tasks
-    for (const task of phase?.tasks ?? []) {
+    const allTasks = [...(phase?.tasks ?? []), ...(phase?.activities?.flatMap(a => a.tasks) ?? [])];
+    
+    // Get templatePath from export-excel task for token replacement
+    const exportTask = allTasks.find(t => t.type === 'export-excel' && t.exportConfig);
+    const templatePath = exportTask?.exportConfig?.templatePath;
+
+    for (let i = 0; i < allTasks.length; i++) {
+      const task = allTasks[i];
       sections.push(
         new Paragraph({
           text: task?.name ?? '',
@@ -340,6 +348,151 @@ export async function generateWordDocument(process: ProcessState): Promise<Blob>
               }
             }
           }
+        }
+
+        // Dynamic List Evidence
+        if (task?.type === 'dynamic-list') {
+          if (task?.listData && task.listData.length > 0) {
+            sections.push(
+              new Paragraph({
+                text: `Lista (${task.listData.length} items):`,
+                spacing: { after: 200 }
+              })
+            );
+
+            task.listData.forEach((item, idx) => {
+              sections.push(
+                new Paragraph({
+                  children: [
+                    new TextRun({ text: `${idx + 1}. `, bold: true }),
+                    new TextRun(item.value || '')
+                  ],
+                  spacing: { after: 100 }
+                })
+              );
+            });
+          } else {
+            sections.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: 'No hay items en la lista',
+                    italics: true,
+                    color: '94A3B8'
+                  })
+                ],
+                spacing: { after: 200 }
+              })
+            );
+          }
+        }
+
+        // Detail List Evidence
+        if (task?.type === 'detail-list') {
+          if (task?.detailData && task.detailData.length > 0) {
+            sections.push(
+              new Paragraph({
+                text: `Detalles (${task.detailData.length} items):`,
+                spacing: { after: 200 }
+              })
+            );
+
+            task.detailData.forEach((item, idx) => {
+              sections.push(
+                new Paragraph({
+                  children: [
+                    new TextRun({ text: `${idx + 1}. `, bold: true }),
+                    new TextRun(item.sourceItem || ''),
+                    new TextRun({ text: ': ', bold: true }),
+                    new TextRun(item.capturedText || '')
+                  ],
+                  spacing: { after: 100 }
+                })
+              );
+            });
+          } else {
+            sections.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: 'No hay detalles capturados',
+                    italics: true,
+                    color: '94A3B8'
+                  })
+                ],
+                spacing: { after: 200 }
+              })
+            );
+          }
+        }
+
+        // Form Evidence
+        if (task?.type === 'form') {
+          let formConfig = task.formConfig;
+          
+          // Replace tokens in form labels if templatePath is available
+          if (templatePath && formConfig) {
+            try {
+              formConfig = await replaceFormConfigTokens(formConfig, templatePath);
+            } catch (error) {
+              console.error('Error replacing form tokens in Word report:', error);
+              // Fallback to original config
+            }
+          }
+          
+          if (task?.formData && task.formData.length > 0) {
+            sections.push(
+              new Paragraph({
+                text: `Datos del Formulario (${task.formData.length} campos):`,
+                spacing: { after: 200 }
+              })
+            );
+
+            task.formData.forEach((field) => {
+              const fieldConfig = formConfig?.fields.find(f => f.id === field.fieldId);
+              const label = fieldConfig?.label || field.fieldId;
+              const value = field.value ?? '';
+
+              sections.push(
+                new Paragraph({
+                  children: [
+                    new TextRun({ text: `${label}: `, bold: true }),
+                    new TextRun(String(value))
+                  ],
+                  spacing: { after: 100 }
+                })
+              );
+            });
+          } else {
+            sections.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: 'No hay datos del formulario',
+                    italics: true,
+                    color: '94A3B8'
+                  })
+                ],
+                spacing: { after: 200 }
+              })
+            );
+          }
+        }
+
+        // If no evidence at all for completed task
+        if (task?.completed && !task?.evidence?.text && (!task?.evidence?.images || task.evidence.images.length === 0) && task?.type !== 'dynamic-list' && task?.type !== 'detail-list' && task?.type !== 'form') {
+          sections.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: 'Sin evidencia',
+                  italics: true,
+                  color: '94A3B8'
+                })
+              ],
+              spacing: { after: 200 }
+            })
+          );
         }
       }
     }

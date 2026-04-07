@@ -9,6 +9,14 @@ import { compress, decompress } from 'lz-string';
 // ============================================
 
 const STORAGE_VERSION = 1;
+const SAVE_DEBOUNCE_MS = 1000; // Debounce saves by 1 second
+
+interface DebouncedStorage {
+  timeout: ReturnType<typeof setTimeout> | null;
+  pendingValue: StorageValue<unknown> | null;
+}
+
+const debouncedStorages = new Map<string, DebouncedStorage>();
 
 interface StorageWrapper {
   version: number;
@@ -55,27 +63,49 @@ export function createCompressedStorage<T>(): PersistStorage<T> {
     setItem: (name: string, value: StorageValue<T>): void => {
       if (typeof window === 'undefined') return;
       
-      try {
-        const wrapper: StorageWrapper = {
-          version: STORAGE_VERSION,
-          timestamp: new Date().toISOString(),
-          state: value.state,
-        };
-        
-        const compressed = compress(JSON.stringify(wrapper));
-        
-        // Check size before saving
-        const sizeInKB = compressed.length / 1024;
-        if (sizeInKB > 4500) {
-          console.warn(`Storage ${name} approaching localStorage limit: ${sizeInKB.toFixed(2)}KB`);
+      // Get or create debounce state for this storage
+      let debounceState = debouncedStorages.get(name) as DebouncedStorage | undefined;
+      if (!debounceState) {
+        debounceState = { timeout: null, pendingValue: null };
+        debouncedStorages.set(name, debounceState);
+      }
+      
+      // Store pending value
+      debounceState.pendingValue = value as StorageValue<unknown>;
+      
+      // Clear existing timeout
+      if (debounceState.timeout) {
+        clearTimeout(debounceState.timeout);
+      }
+      
+      // Set new timeout for actual save
+      debounceState.timeout = setTimeout(() => {
+        try {
+          const wrapper: StorageWrapper = {
+            version: STORAGE_VERSION,
+            timestamp: new Date().toISOString(),
+            state: debounceState!.pendingValue!.state,
+          };
+          
+          const compressed = compress(JSON.stringify(wrapper));
+          
+          // Check size before saving
+          const sizeInKB = compressed.length / 1024;
+          if (sizeInKB > 4500) {
+            console.warn(`Storage ${name} approaching localStorage limit: ${sizeInKB.toFixed(2)}KB`);
+          }
+          
+          localStorage.setItem(name, compressed);
+        } catch (error) {
+          console.error(`Error writing storage ${name}:`, error);
+          // Fallback to uncompressed
+          localStorage.setItem(name, JSON.stringify(debounceState!.pendingValue));
         }
         
-        localStorage.setItem(name, compressed);
-      } catch (error) {
-        console.error(`Error writing storage ${name}:`, error);
-        // Fallback to uncompressed
-        localStorage.setItem(name, JSON.stringify(value));
-      }
+        // Clear pending
+        debounceState!.pendingValue = null;
+        debounceState!.timeout = null;
+      }, SAVE_DEBOUNCE_MS);
     },
     
     removeItem: (name: string): void => {

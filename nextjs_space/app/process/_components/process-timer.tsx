@@ -117,10 +117,16 @@ export default function ProcessTimer() {
 
   if (!isClient || !process) return null;
 
-  // Build tooltip text for estimated time
-  const tooltipText = hasEstimate 
-    ? `${t('timer.estimated')}: ${formatDurationLong(estimatedTime!)}` 
-    : '';
+  // Build tooltip text with full status info
+  const buildTooltip = () => {
+    const parts: string[] = [];
+    if (hasEstimate) {
+      parts.push(`${t('timer.estimated')}: ${formatDurationLong(estimatedTime!)}`);
+    }
+    parts.push(getStatusMessage());
+    return parts.join(' | ');
+  };
+  const tooltipText = buildTooltip();
 
   return (
     <div 
@@ -152,8 +158,10 @@ export default function ProcessTimer() {
           timeStatus === 'exceeded' && hasEstimate 
             ? 'text-red-600 font-medium' 
             : timeStatus === 'warning' && hasEstimate
-              ? 'text-yellow-600'
-              : 'text-gray-400'
+              ? 'text-yellow-600 font-medium'
+              : timeStatus === 'on-time' && hasEstimate
+                ? 'text-green-600 font-medium'
+                : 'text-muted-foreground'
         }`}>
           {getStatusMessage()}
         </span>

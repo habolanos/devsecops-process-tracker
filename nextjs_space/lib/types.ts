@@ -95,13 +95,99 @@ export interface TaskYAML {
   name: string;
   description?: string;                 // Optional for check/multicheck (checkItems have descriptions)
   order: number;
-  type?: 'standard' | 'check' | 'multicheck';  // Default: 'standard'
+  type?: 'standard' | 'check' | 'multicheck' | 'export-excel' | 'dynamic-list' | 'detail-list' | 'form';  // Default: 'standard'
   checkItem?: CheckItemYAML;            // For type='check' (single checkbox)
   checkItems?: CheckItemYAML[];         // For type='multicheck' (multiple checkboxes)
   references?: Reference[];
   evidence: EvidenceConfig;
   dependencies?: string[];
   dynamicLinks?: DynamicLinkYAML[];     // Task-level dynamic links
+  exportConfig?: ExportExcelConfig;     // For type='export-excel'
+  listConfig?: DynamicListConfig;       // For type='dynamic-list'
+  detailConfig?: DetailListConfig;      // For type='detail-list'
+  formConfig?: FormConfig;              // For type='form'
+}
+
+export interface ExportExcelConfig {
+  templatePath: string;                 // Path to Excel template
+  outputFilename?: string;              // Custom filename pattern
+  autoDownload?: boolean;               // Auto-download on task completion (default: true)
+}
+
+export interface DynamicListConfig {
+  label: string;                        // Label for each item (e.g., "Repositorio", "Componente")
+  placeholder?: string;                 // Placeholder text for input
+  minItems?: number;                    // Minimum required items (default: 1)
+  maxItems?: number;                    // Maximum allowed items (default: unlimited)
+  allowDuplicates?: boolean;            // Allow duplicate values (default: false)
+  separators?: string[];                // Separators for parsing (default: [",", ";", "\n"])
+  trimItems?: boolean;                  // Trim whitespace from items (default: true)
+}
+
+export interface DetailListConfig {
+  sourceTaskId: string;                 // ID of the dynamic-list task to reference
+  placeholder?: string;                 // Placeholder text for detail input (supports {item} variable)
+  maxLength?: number;                   // Max length for each detail text
+}
+
+export interface ListItem {
+  id: string;
+  value: string;
+  addedAt: string;                      // ISO timestamp
+}
+
+export interface DetailItem {
+  sourceItem: string;                   // The item from the source task
+  capturedText: string;                 // The captured detail text
+  addedAt: string;                      // ISO timestamp
+}
+
+// ============================================
+// Form Task Types
+// ============================================
+
+export type FieldType = 'text' | 'number' | 'email' | 'date' | 'time' | 'datetime' | 'boolean' | 'textarea' | 'image' | 'select';
+
+export type FormLayoutType = 'vertical' | 'grid';
+export type FormGapSize = 'small' | 'medium' | 'large';
+
+export interface FormLayoutConfig {
+  type: FormLayoutType;
+  columns?: number;  // 1-4 for grid
+  gap?: FormGapSize;
+}
+
+export interface FormFieldConfig {
+  id: string;
+  label: string;
+  type: FieldType;
+  required: boolean;
+  placeholder?: string;
+  maxLength?: number;
+  minLength?: number;
+  defaultValue?: any;
+  options?: string[];
+  maxImages?: number;
+  colSpan?: number;  // 1-4, how many columns the field occupies
+  description?: string;
+  descriptionCell?: string;  // Excel cell reference for label (e.g., "F85-1" for F85 row offset -1)
+  valueCell?: string;      // Excel cell reference for value (e.g., "F85")
+  validation?: {
+    pattern?: string;
+    min?: number;
+    max?: number;
+  };
+}
+
+export interface FormConfig {
+  layout: FormLayoutConfig;
+  fields: FormFieldConfig[];
+}
+
+export interface FormFieldValue {
+  fieldId: string;
+  value: any;
+  filledAt: string;
 }
 
 export interface CheckItemYAML {
@@ -116,7 +202,7 @@ export interface Reference {
 }
 
 export interface EvidenceConfig {
-  type: 'text' | 'image' | 'both';
+  type: 'text' | 'image' | 'both' | 'form' | 'none';
   required: boolean;
   description?: string;
 }
@@ -200,7 +286,7 @@ export interface TaskState {
   name: string;
   description: string;
   order: number;
-  type: 'standard' | 'check' | 'multicheck';  // Task type
+  type: 'standard' | 'check' | 'multicheck' | 'export-excel' | 'dynamic-list' | 'detail-list' | 'form';  // Task type
   checkItems: CheckItemState[];       // Empty for 'standard', 1 for 'check', N for 'multicheck'
   references: Reference[];
   evidenceConfig: EvidenceConfig;
@@ -210,6 +296,13 @@ export interface TaskState {
   evidence: TaskEvidence;
   isBlocked: boolean;
   dynamicLinks: DynamicLinkYAML[];  // Task-level dynamic links
+  exportConfig?: ExportExcelConfig; // For type='export-excel'
+  listConfig?: DynamicListConfig;   // For type='dynamic-list'
+  listData?: ListItem[];            // Captured list items for 'dynamic-list'
+  detailConfig?: DetailListConfig;  // For type='detail-list'
+  detailData?: DetailItem[];        // Captured detail items for 'detail-list'
+  formConfig?: FormConfig;          // For type='form'
+  formData?: FormFieldValue[];      // Captured form field values for 'form'
 }
 
 export interface CheckItemState {
@@ -274,7 +367,7 @@ export interface TaskExport {
   name: string;
   description: string;
   order: number;
-  type: 'standard' | 'check' | 'multicheck';
+  type: 'standard' | 'check' | 'multicheck' | 'export-excel' | 'dynamic-list' | 'detail-list' | 'form';
   checkItems: CheckItemState[];
   completed: boolean;
   completedAt?: string;
@@ -287,4 +380,15 @@ export interface TaskExport {
       originalUrl?: string;
     }[];
   };
+  references: Reference[];
+  dependencies: string[];
+  dynamicLinks: DynamicLinkYAML[];
+  evidenceConfig: EvidenceConfig;
+  exportConfig?: ExportExcelConfig;
+  listConfig?: DynamicListConfig;
+  listData?: ListItem[];
+  detailConfig?: DetailListConfig;
+  detailData?: DetailItem[];
+  formConfig?: FormConfig;
+  formData?: FormFieldValue[];
 }

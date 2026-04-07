@@ -152,6 +152,9 @@ export function validateTaskEvidence(task: TaskState): boolean {
         images &&
         images.length > 0
       );
+    case 'form':
+      // For form type, validation is handled by form field requirements
+      return true;
     default:
       return true;
   }
@@ -196,6 +199,17 @@ export function getAllDependentTasks(taskId: string, process: ProcessState): str
 
 export function canCompleteTask(task: TaskState): boolean {
   if (task?.isBlocked) return false;
+  
+  // For form tasks, validate all required fields are filled
+  if (task?.type === 'form' && task?.formConfig) {
+    const requiredFields = task.formConfig.fields.filter(f => f.required);
+    const filledRequired = requiredFields.filter(f => {
+      const value = task.formData?.find(d => d.fieldId === f.id)?.value;
+      return value && (!Array.isArray(value) || value.length > 0);
+    });
+    return filledRequired.length === requiredFields.length;
+  }
+  
   return validateTaskEvidence(task);
 }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { memo, useState, useCallback } from 'react';
 import { ActivityState, TaskState } from '@/lib/types';
 import { useI18n } from '@/lib/i18n-context';
 import { sanitizeText, sanitizeUrl } from '@/lib/sanitize';
@@ -20,10 +20,15 @@ interface ActivityCardProps {
   onViewEvidence: (task: TaskState) => void;
 }
 
-export default function ActivityCard({ activity, phaseId, onViewEvidence }: ActivityCardProps) {
+function ActivityCard({ activity, phaseId, onViewEvidence }: ActivityCardProps) {
   const { t } = useI18n();
   const [isExpanded, setIsExpanded] = useState(true);
   const [showImageModal, setShowImageModal] = useState<string | null>(null);
+
+  // Stable callback for each task to prevent memo breaking
+  const handleViewEvidence = useCallback((task: TaskState) => {
+    onViewEvidence(task);
+  }, [onViewEvidence]);
 
   const completedTasks = activity.tasks?.filter((t) => t.completed).length ?? 0;
   const totalTasks = activity.tasks?.length ?? 0;
@@ -141,7 +146,7 @@ export default function ActivityCard({ activity, phaseId, onViewEvidence }: Acti
                 task={task}
                 phaseId={phaseId}
                 activityId={activity.id}
-                onViewEvidence={() => onViewEvidence(task)}
+                onViewEvidence={() => handleViewEvidence(task)}
               />
             ))}
           </div>
@@ -166,3 +171,5 @@ export default function ActivityCard({ activity, phaseId, onViewEvidence }: Acti
     </div>
   );
 }
+
+export default memo(ActivityCard);

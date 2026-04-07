@@ -39,7 +39,7 @@ const translations: Translations = {
   'task.uncompleted': { es: 'Tarea desmarcada', en: 'Task unmarked' },
   'task.pending': { es: 'Pendiente', en: 'Pending' },
   'task.blocked': { es: 'Bloqueada', en: 'Blocked' },
-  'task.complete': { es: 'Marcar como Completada', en: 'Mark as Complete' },
+  'task.complete': { es: 'Terminar Tarea', en: 'Complete Task' },
   'task.uncomplete': { es: 'Desmarcar', en: 'Unmark' },
   'task.mark': { es: 'Completar tarea', en: 'Complete task' },
   'task.unmark': { es: 'Desmarcar tarea', en: 'Unmark task' },
