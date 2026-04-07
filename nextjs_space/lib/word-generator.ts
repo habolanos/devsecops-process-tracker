@@ -217,7 +217,8 @@ export async function generateWordDocument(process: ProcessState): Promise<Blob>
     );
 
     // Tasks
-    for (const task of phase?.tasks ?? []) {
+    const allTasks = [...(phase?.tasks ?? []), ...(phase?.activities?.flatMap(a => a.tasks) ?? [])];
+    for (const task of allTasks) {
       sections.push(
         new Paragraph({
           text: task?.name ?? '',
@@ -340,6 +341,139 @@ export async function generateWordDocument(process: ProcessState): Promise<Blob>
               }
             }
           }
+        }
+
+        // Dynamic List Evidence
+        if (task?.type === 'dynamic-list') {
+          if (task?.listData && task.listData.length > 0) {
+            sections.push(
+              new Paragraph({
+                text: `Lista (${task.listData.length} items):`,
+                spacing: { after: 200 }
+              })
+            );
+
+            task.listData.forEach((item, idx) => {
+              sections.push(
+                new Paragraph({
+                  children: [
+                    new TextRun({ text: `${idx + 1}. `, bold: true }),
+                    new TextRun(item.value || '')
+                  ],
+                  spacing: { after: 100 }
+                })
+              );
+            });
+          } else {
+            sections.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: 'No hay items en la lista',
+                    italics: true,
+                    color: '94A3B8'
+                  })
+                ],
+                spacing: { after: 200 }
+              })
+            );
+          }
+        }
+
+        // Detail List Evidence
+        if (task?.type === 'detail-list') {
+          if (task?.detailData && task.detailData.length > 0) {
+            sections.push(
+              new Paragraph({
+                text: `Detalles (${task.detailData.length} items):`,
+                spacing: { after: 200 }
+              })
+            );
+
+            task.detailData.forEach((item, idx) => {
+              sections.push(
+                new Paragraph({
+                  children: [
+                    new TextRun({ text: `${idx + 1}. `, bold: true }),
+                    new TextRun(item.sourceItem || ''),
+                    new TextRun({ text: ': ', bold: true }),
+                    new TextRun(item.capturedText || '')
+                  ],
+                  spacing: { after: 100 }
+                })
+              );
+            });
+          } else {
+            sections.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: 'No hay detalles capturados',
+                    italics: true,
+                    color: '94A3B8'
+                  })
+                ],
+                spacing: { after: 200 }
+              })
+            );
+          }
+        }
+
+        // Form Evidence
+        if (task?.type === 'form') {
+          if (task?.formData && task.formData.length > 0) {
+            sections.push(
+              new Paragraph({
+                text: `Datos del Formulario (${task.formData.length} campos):`,
+                spacing: { after: 200 }
+              })
+            );
+
+            task.formData.forEach((field) => {
+              const fieldConfig = task.formConfig?.fields.find(f => f.id === field.fieldId);
+              const label = fieldConfig?.label || field.fieldId;
+              const value = field.value ?? '';
+
+              sections.push(
+                new Paragraph({
+                  children: [
+                    new TextRun({ text: `${label}: `, bold: true }),
+                    new TextRun(String(value))
+                  ],
+                  spacing: { after: 100 }
+                })
+              );
+            });
+          } else {
+            sections.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: 'No hay datos del formulario',
+                    italics: true,
+                    color: '94A3B8'
+                  })
+                ],
+                spacing: { after: 200 }
+              })
+            );
+          }
+        }
+
+        // If no evidence at all for completed task
+        if (task?.completed && !task?.evidence?.text && (!task?.evidence?.images || task.evidence.images.length === 0) && task?.type !== 'dynamic-list' && task?.type !== 'detail-list' && task?.type !== 'form') {
+          sections.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: 'Sin evidencia',
+                  italics: true,
+                  color: '94A3B8'
+                })
+              ],
+              spacing: { after: 200 }
+            })
+          );
         }
       }
     }
