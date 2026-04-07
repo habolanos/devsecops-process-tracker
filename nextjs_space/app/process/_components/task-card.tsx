@@ -104,11 +104,12 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
   // Get templatePath from export-excel task for token replacement in form labels
   const getTemplatePath = (): string | undefined => {
     if (!process) return undefined;
+    const phases = process.phases || [];
     
     // Find the export-excel task in the same phase/activity
     const allTasks = activityId 
-      ? process.phases.find(p => p.id === phaseId)?.activities?.find(a => a.id === activityId)?.tasks || []
-      : process.phases.find(p => p.id === phaseId)?.tasks || [];
+      ? phases.find(p => p.id === phaseId)?.activities?.find(a => a.id === activityId)?.tasks || []
+      : phases.find(p => p.id === phaseId)?.tasks || [];
       
     const exportTask = allTasks.find(t => t.type === 'export-excel' && t.exportConfig);
     return exportTask?.exportConfig?.templatePath;

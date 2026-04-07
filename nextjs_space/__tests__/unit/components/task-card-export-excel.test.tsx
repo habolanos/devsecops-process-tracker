@@ -2,14 +2,20 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import TaskCard from '@/app/process/_components/task-card';
 import { TaskState } from '@/lib/types';
-import { useProcessStore } from '@/lib/store';
 
 // Mock the stores and utilities
 const mockProcessState = {
   process: {
     id: 'test-process',
     name: 'Test Process',
-    capturedVariables: { rfc: 'RFC123', notaInstalacion: 'NOTA456' }
+    capturedVariables: { rfc: 'RFC123', notaInstalacion: 'NOTA456' },
+    phases: [
+      {
+        id: 'phase-1',
+        tasks: [],
+        activities: [],
+      },
+    ],
   },
   completeTask: vi.fn(),
   uncompleteTask: vi.fn(),
@@ -17,14 +23,18 @@ const mockProcessState = {
   canCompleteCheckTask: vi.fn().mockReturnValue(true)
 };
 
-vi.mock('@/lib/store', () => ({
-  useProcessStore: vi.fn((selector) => {
+vi.mock('@/lib/store', () => {
+  const mockedUseProcessStore = vi.fn((selector) => {
     return selector ? selector(mockProcessState) : mockProcessState;
-  })
-}));
+  });
+  Object.assign(mockedUseProcessStore, {
+    getState: () => mockProcessState,
+  });
 
-// Add getState to the mock
-(useProcessStore as any).getState = () => mockProcessState;
+  return {
+    useProcessStore: mockedUseProcessStore,
+  };
+});
 
 vi.mock('@/lib/i18n-context', () => ({
   useI18n: () => ({
