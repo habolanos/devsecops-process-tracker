@@ -47,8 +47,17 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
   const currentListItems = task?.listData?.length ?? 0;
   const isListMinMet = currentListItems >= listMinItems;
 
-  // Check if task requires image evidence
-  const requiresImageEvidence = task?.evidenceConfig?.type === 'image' || task?.evidenceConfig?.type === 'both';
+  // Check if task requires evidence (text, image, or both) AND is required
+  const requiresEvidence = task?.evidenceConfig?.required && (
+    task?.evidenceConfig?.type === 'text' || 
+    task?.evidenceConfig?.type === 'image' || 
+    task?.evidenceConfig?.type === 'both'
+  );
+  // Check if task specifically requires image evidence AND is required
+  const requiresImageEvidence = task?.evidenceConfig?.required && (
+    task?.evidenceConfig?.type === 'image' || 
+    task?.evidenceConfig?.type === 'both'
+  );
 
   // Handle save progress - open dialog for image evidence, just toast otherwise
   const handleSaveProgress = () => {
@@ -114,6 +123,12 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
         await handleExportExcel();
         storeActions.completeTask?.(phaseId, task.id, activityId);
         toast.success(t('task.completed'));
+        return;
+      }
+      
+      // If task requires evidence (text, image, or both), open evidence modal
+      if (requiresEvidence) {
+        onViewEvidence();
         return;
       }
       
