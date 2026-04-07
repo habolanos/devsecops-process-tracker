@@ -33,6 +33,36 @@ export const EXCEL_CELL_MAP = {
       FIN_GUARDIA_DIURNA: 'W14'
     },
     
+    // LISTA DE ITEMS (F5-F13)
+    LISTA_ITEMS: {
+      START_ROW: 5,
+      END_ROW: 13,
+      COLUMN: 'F',
+      MAX_ITEMS: 9
+    },
+    
+    // DETALLE DE ITEMS (3 secciones)
+    DETALLE_ITEMS: {
+      SECCION_1: {
+        START_ROW: 47,
+        END_ROW: 56,
+        COLUMN: 'B',
+        MAX_ITEMS: 10
+      },
+      SECCION_2: {
+        START_ROW: 60,
+        END_ROW: 69,
+        COLUMN: 'B',
+        MAX_ITEMS: 10
+      },
+      SECCION_3: {
+        START_ROW: 72,
+        END_ROW: 81,
+        COLUMN: 'B',
+        MAX_ITEMS: 10
+      }
+    },
+    
     // VALIDACIÓN DE CONFIGURACIONES ANTES DE LA LIBERACIÓN
     VALIDACIONES: {
       START_ROW: 18,
@@ -152,6 +182,12 @@ export interface ReleaseReportData {
   finGuardiaNocturna?: Date;
   finGuardiaDiurna?: Date;
   
+  // Lista de Items (F5-F13)
+  listaItems?: string[];
+  
+  // Detalle de Items (B47-B56, B60-B69, B72-B81)
+  detalleItems?: string[];
+  
   // Validaciones
   validaciones?: Array<{
     aplica: boolean;
@@ -244,6 +280,16 @@ export function processToReleaseReport(process: ProcessData): ReleaseReportData 
     });
   });
   
+  // Extract listData from dynamic-list tasks
+  // Look for the first dynamic-list task with listData
+  const dynamicListTask = allTasks.find(task => task.type === 'dynamic-list' && task.listData);
+  const listaItems = dynamicListTask?.listData?.map((item: any) => item.value) || [];
+  
+  // Extract detailData from detail-list tasks
+  // Look for the first detail-list task with detailData
+  const detailListTask = allTasks.find(task => task.type === 'detail-list' && task.detailData);
+  const detalleItems = detailListTask?.detailData?.map((item: any) => item.capturedText) || [];
+  
   // Build validations from completed tasks
   const validaciones = allTasks.map(task => ({
     aplica: true,
@@ -275,6 +321,9 @@ export function processToReleaseReport(process: ProcessData): ReleaseReportData 
     lider: variables.lider || '',
     desarrollador: variables.developer || '',
     fechaLiberacion: process.completedAt ? new Date(process.completedAt) : new Date(),
+    
+    listaItems,
+    detalleItems,
     
     validaciones,
     
@@ -364,6 +413,46 @@ export async function generateReleaseExcel(
   if (data.sreNocturno) worksheet.getCell(info.SRE_NOCTURNO).value = data.sreNocturno;
   if (data.sreDiurno) worksheet.getCell(info.SRE_DIURNO).value = data.sreDiurno;
   if (data.tester) worksheet.getCell(info.TESTER).value = data.tester;
+  
+  // Fill Lista Items (F5-F13)
+  if (data.listaItems && data.listaItems.length > 0) {
+    const listaMap = map.LISTA_ITEMS;
+    data.listaItems.forEach((item, idx) => {
+      if (idx < listaMap.MAX_ITEMS) {
+        const row = listaMap.START_ROW + idx;
+        worksheet.getCell(`${listaMap.COLUMN}${row}`).value = item;
+      }
+    });
+  }
+  
+  // Fill Detalle Items (3 secciones: B47-B56, B60-B69, B72-B81)
+  if (data.detalleItems && data.detalleItems.length > 0) {
+    const detalleMap = map.DETALLE_ITEMS;
+    
+    // Sección 1: B47-B56
+    data.detalleItems.forEach((detalle, idx) => {
+      if (idx < detalleMap.SECCION_1.MAX_ITEMS) {
+        const row = detalleMap.SECCION_1.START_ROW + idx;
+        worksheet.getCell(`${detalleMap.SECCION_1.COLUMN}${row}`).value = detalle;
+      }
+    });
+    
+    // Sección 2: B60-B69 (repetir mismos datos)
+    data.detalleItems.forEach((detalle, idx) => {
+      if (idx < detalleMap.SECCION_2.MAX_ITEMS) {
+        const row = detalleMap.SECCION_2.START_ROW + idx;
+        worksheet.getCell(`${detalleMap.SECCION_2.COLUMN}${row}`).value = detalle;
+      }
+    });
+    
+    // Sección 3: B72-B81 (repetir mismos datos)
+    data.detalleItems.forEach((detalle, idx) => {
+      if (idx < detalleMap.SECCION_3.MAX_ITEMS) {
+        const row = detalleMap.SECCION_3.START_ROW + idx;
+        worksheet.getCell(`${detalleMap.SECCION_3.COLUMN}${row}`).value = detalle;
+      }
+    });
+  }
   
   // Fill Validaciones
   if (data.validaciones) {

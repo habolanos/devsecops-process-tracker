@@ -95,7 +95,7 @@ export interface TaskYAML {
   name: string;
   description?: string;                 // Optional for check/multicheck (checkItems have descriptions)
   order: number;
-  type?: 'standard' | 'check' | 'multicheck' | 'export-excel' | 'dynamic-list';  // Default: 'standard'
+  type?: 'standard' | 'check' | 'multicheck' | 'export-excel' | 'dynamic-list' | 'detail-list';  // Default: 'standard'
   checkItem?: CheckItemYAML;            // For type='check' (single checkbox)
   checkItems?: CheckItemYAML[];         // For type='multicheck' (multiple checkboxes)
   references?: Reference[];
@@ -104,6 +104,7 @@ export interface TaskYAML {
   dynamicLinks?: DynamicLinkYAML[];     // Task-level dynamic links
   exportConfig?: ExportExcelConfig;     // For type='export-excel'
   listConfig?: DynamicListConfig;       // For type='dynamic-list'
+  detailConfig?: DetailListConfig;      // For type='detail-list'
 }
 
 export interface ExportExcelConfig {
@@ -122,9 +123,21 @@ export interface DynamicListConfig {
   trimItems?: boolean;                  // Trim whitespace from items (default: true)
 }
 
+export interface DetailListConfig {
+  sourceTaskId: string;                 // ID of the dynamic-list task to reference
+  placeholder?: string;                 // Placeholder text for detail input (supports {item} variable)
+  maxLength?: number;                   // Max length for each detail text
+}
+
 export interface ListItem {
   id: string;
   value: string;
+  addedAt: string;                      // ISO timestamp
+}
+
+export interface DetailItem {
+  sourceItem: string;                   // The item from the source task
+  capturedText: string;                 // The captured detail text
   addedAt: string;                      // ISO timestamp
 }
 
@@ -224,7 +237,7 @@ export interface TaskState {
   name: string;
   description: string;
   order: number;
-  type: 'standard' | 'check' | 'multicheck' | 'export-excel' | 'dynamic-list';  // Task type
+  type: 'standard' | 'check' | 'multicheck' | 'export-excel' | 'dynamic-list' | 'detail-list';  // Task type
   checkItems: CheckItemState[];       // Empty for 'standard', 1 for 'check', N for 'multicheck'
   references: Reference[];
   evidenceConfig: EvidenceConfig;
@@ -237,6 +250,8 @@ export interface TaskState {
   exportConfig?: ExportExcelConfig; // For type='export-excel'
   listConfig?: DynamicListConfig;   // For type='dynamic-list'
   listData?: ListItem[];            // Captured list items for 'dynamic-list'
+  detailConfig?: DetailListConfig;  // For type='detail-list'
+  detailData?: DetailItem[];        // Captured detail items for 'detail-list'
 }
 
 export interface CheckItemState {

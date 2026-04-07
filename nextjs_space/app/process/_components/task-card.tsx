@@ -11,8 +11,9 @@ import { CheckCircle2, Circle, Lock, ExternalLink, FileText, Image as ImageIcon,
 import { toast } from 'sonner';
 import { DynamicLinksList } from './dynamic-link-button';
 import { DynamicListInput } from './dynamic-list-input';
+import { DetailListInput } from './detail-list-input';
 import { generateReleaseExcel, processToReleaseReport, downloadExcel, generateReleaseFilename } from '@/lib/excel-generator';
-import { ListItem } from '@/lib/types';
+import { ListItem, DetailItem } from '@/lib/types';
 
 interface TaskCardProps {
   task: TaskState;
@@ -30,22 +31,56 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
     toggleCheckItem: state?.toggleCheckItem,
     canCompleteCheckTask: state?.canCompleteCheckTask,
     updateListData: state?.updateListData,
+    updateDetailData: state?.updateDetailData,
   })));
 
   const taskType = task?.type || 'standard';
   const isCheckType = taskType === 'check' || taskType === 'multicheck';
   const isExportExcelType = taskType === 'export-excel';
   const isDynamicListType = taskType === 'dynamic-list';
+  const isDetailListType = taskType === 'detail-list';
 
   // Handle list data changes for dynamic-list tasks
   const handleListDataChange = (items: ListItem[]) => {
     storeActions.updateListData?.(phaseId, task.id, items, activityId);
   };
 
+  // Handle detail data changes for detail-list tasks
+  const handleDetailDataChange = (detailData: DetailItem[]) => {
+    storeActions.updateDetailData?.(phaseId, task.id, detailData, activityId);
+  };
+
   // Check if dynamic-list task meets minimum items requirement
   const listMinItems = task?.listConfig?.minItems ?? 1;
   const currentListItems = task?.listData?.length ?? 0;
   const isListMinMet = currentListItems >= listMinItems;
+
+  // For detail-list tasks, find the source task to get items
+  const process = useProcessStore.getState().process;
+  let sourceItems: string[] = [];
+  if (isDetailListType && task?.detailConfig?.sourceTaskId && process) {
+    // Find source task by ID
+    const findTaskById = (taskId: string): TaskState | null => {
+      for (const phase of process.phases || []) {
+        const found = phase.tasks?.find(t => t.id === taskId);
+        if (found) return found;
+        for (const activity of phase.activities || []) {
+          const foundInActivity = activity.tasks?.find(t => t.id === taskId);
+          if (foundInActivity) return foundInActivity;
+        }
+      }
+      return null;
+    };
+    
+    const sourceTask = findTaskById(task.detailConfig.sourceTaskId);
+    if (sourceTask?.listData) {
+      sourceItems = sourceTask.listData.map(item => item.value);
+    }
+  }
+
+  const detailMinItems = sourceItems.length;
+  const currentDetailItems = task?.detailData?.filter(d => d.capturedText.trim().length > 0).length ?? 0;
+  const isDetailMinMet = currentDetailItems >= detailMinItems;
 
   // Check if task requires evidence (text, image, or both) AND is required
   const requiresEvidence = task?.evidenceConfig?.required && (
@@ -114,6 +149,14 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
       if (isDynamicListType && !isListMinMet) {
         toast.warning('Lista incompleta', {
           description: `Se requieren al menos ${listMinItems} item(s). Actualmente hay ${currentListItems}.`,
+        });
+        return;
+      }
+      
+      // For detail-list tasks, verify minimum details
+      if (isDetailListType && !isDetailMinMet) {
+        toast.warning('Detalles incompletos', {
+          description: `Complete todos los detalles (${currentDetailItems}/${detailMinItems}).`,
         });
         return;
       }
@@ -319,6 +362,48 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
                 disabled={isBlocked || !isListMinMet}
                 className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-1.5 ${
                   isBlocked || !isListMinMet
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : isCompleted
+                      ? 'bg-orange-500 text-white hover:bg-orange-600'
+                      : 'bg-green-500 text-white hover:bg-green-600'
+                }`}
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                {isCompleted ? t('task.uncomplete') : t('task.complete')}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* DetailList for detail-list tasks */}
+        {isDetailListType && task?.detailConfig && (
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <DetailListInput
+              config={task.detailConfig}
+              sourceItems={sourceItems}
+              detailData={task.detailData || []}
+              onDetailDataChange={handleDetailDataChange}
+              disabled={isCompleted || isBlocked}
+            />
+            
+            {/* Action buttons for detail-list tasks */}
+            <div className="mt-4 pt-3 border-t border-gray-200 flex justify-end gap-2">
+              <button
+                onClick={handleSaveProgress}
+                disabled={isBlocked || isCompleted}
+                className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
+                  isBlocked || isCompleted
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-blue-500 text-white hover:bg-blue-600'
+                }`}
+              >
+                Guardar
+              </button>
+              <button
+                onClick={handleToggleComplete}
+                disabled={isBlocked || !isDetailMinMet}
+                className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-1.5 ${
+                  isBlocked || !isDetailMinMet
                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     : isCompleted
                       ? 'bg-orange-500 text-white hover:bg-orange-600'
