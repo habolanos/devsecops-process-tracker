@@ -367,7 +367,7 @@ export interface TaskExport {
   name: string;
   description: string;
   order: number;
-  type: 'standard' | 'check' | 'multicheck';
+  type: 'standard' | 'check' | 'multicheck' | 'export-excel' | 'dynamic-list' | 'detail-list' | 'form';
   checkItems: CheckItemState[];
   completed: boolean;
   completedAt?: string;
@@ -380,4 +380,15 @@ export interface TaskExport {
       originalUrl?: string;
     }[];
   };
+  references: Reference[];
+  dependencies: string[];
+  dynamicLinks: DynamicLinkYAML[];
+  evidenceConfig: EvidenceConfig;
+  exportConfig?: ExportExcelConfig;
+  listConfig?: DynamicListConfig;
+  listData?: ListItem[];
+  detailConfig?: DetailListConfig;
+  detailData?: DetailItem[];
+  formConfig?: FormConfig;
+  formData?: FormFieldValue[];
 }
