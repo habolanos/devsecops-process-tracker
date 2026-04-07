@@ -54,7 +54,7 @@ export async function replaceCellTokens(
  * @param offset - Number of columns to offset (negative for left, positive for right)
  * @returns The offset cell reference or null if invalid
  */
-function getOffsetCell(cellRef: string, offset: number): string | null {
+export function getOffsetCell(cellRef: string, offset: number): string | null {
   if (!cellRef || offset === 0) return cellRef;
   
   // Parse column letters and row number
