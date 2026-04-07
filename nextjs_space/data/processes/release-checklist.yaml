@@ -533,7 +533,7 @@ process:
               gap: "medium"
             fields:
               - id: "campo1"
-                label: "Validador Principal"
+                label: "#OFFSET-1#"
                 type: "text"
                 required: true
                 placeholder: "Nombre del validador"
@@ -541,19 +541,19 @@ process:
                 colSpan: 1
                 valueCell: "F85"
               - id: "campo2"
-                label: "Fecha de Validación"
+                label: "#OFFSET-1#"
                 type: "date"
                 required: true
                 colSpan: 1
                 valueCell: "F86"
               - id: "campo3"
-                label: "Hora Validación"
+                label: "#OFFSET-1#"
                 type: "time"
                 required: true
                 colSpan: 1
                 valueCell: "F87"
               - id: "campo4"
-                label: "Estado Final"
+                label: "#OFFSET-1#"
                 type: "select"
                 required: true
                 options:
@@ -563,7 +563,7 @@ process:
                 colSpan: 1
                 valueCell: "S85"
               - id: "campo5"
-                label: "Nivel de Riesgo"
+                label: "#OFFSET-1#"
                 type: "select"
                 required: true
                 options:
@@ -574,7 +574,7 @@ process:
                 colSpan: 1
                 valueCell: "S86"
               - id: "campo6"
-                label: "Observaciones Finales"
+                label: "#OFFSET-1#"
                 type: "textarea"
                 required: false
                 placeholder: "Observaciones adicionales"

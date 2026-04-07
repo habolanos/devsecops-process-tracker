@@ -1,23 +1,40 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FormConfig, FormFieldValue, FormLayoutType } from '@/lib/types';
 import { FormInput } from './form-input';
+import { replaceFormConfigTokens } from '@/lib/excel-template-helper';
 
 interface FormRendererProps {
   config: FormConfig;
   data: FormFieldValue[];
   onDataChange: (data: FormFieldValue[]) => void;
   disabled?: boolean;
+  templatePath?: string;  // Path to Excel template for token replacement
 }
 
-export function FormRenderer({ config, data, onDataChange, disabled }: FormRendererProps) {
+export function FormRenderer({ config, data, onDataChange, disabled, templatePath }: FormRendererProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [processedConfig, setProcessedConfig] = useState<FormConfig>(config);
 
   const layout = config.layout || { type: 'vertical' as FormLayoutType };
   const isGrid = layout.type === 'grid';
   const columns = layout.columns || 2;
   const gapClass = layout.gap === 'small' ? 'gap-2' : layout.gap === 'large' ? 'gap-6' : 'gap-4';
+
+  // Replace cell tokens in labels when templatePath is provided
+  useEffect(() => {
+    if (templatePath) {
+      replaceFormConfigTokens(config, templatePath)
+        .then(setProcessedConfig)
+        .catch((err) => {
+          console.error('Error replacing cell tokens:', err);
+          setProcessedConfig(config); // Fallback to original config
+        });
+    } else {
+      setProcessedConfig(config);
+    }
+  }, [config, templatePath]);
 
   const updateFieldValue = (fieldId: string, value: any) => {
     const newData = [...data];
@@ -67,7 +84,7 @@ export function FormRenderer({ config, data, onDataChange, disabled }: FormRende
     let isValid = true;
     const newErrors: Record<string, string> = {};
 
-    config.fields.forEach((field) => {
+    processedConfig.fields.forEach((field) => {
       const fieldValue = data.find((d) => d.fieldId === field.id)?.value;
 
       if (field.required && (!fieldValue || (Array.isArray(fieldValue) && fieldValue.length === 0))) {
@@ -81,7 +98,7 @@ export function FormRenderer({ config, data, onDataChange, disabled }: FormRende
   };
 
   const isFormValid = () => {
-    const requiredFields = config.fields.filter((f) => f.required);
+    const requiredFields = processedConfig.fields.filter((f) => f.required);
     const filledRequired = requiredFields.filter((f) => {
       const value = data.find((d) => d.fieldId === f.id)?.value;
       return value && (!Array.isArray(value) || value.length > 0);
@@ -110,7 +127,7 @@ export function FormRenderer({ config, data, onDataChange, disabled }: FormRende
       {isGrid ? (
         // Layout Grid
         <div className={`grid grid-cols-${columns} ${gapClass}`}>
-          {config.fields.map((field) => {
+          {processedConfig.fields.map((field) => {
             const fieldValue = data.find((d) => d.fieldId === field.id)?.value;
             return (
               <div key={field.id} className={getColSpanClass(field.colSpan)}>
@@ -128,7 +145,7 @@ export function FormRenderer({ config, data, onDataChange, disabled }: FormRende
       ) : (
         // Layout Vertical
         <div className="space-y-4">
-          {config.fields.map((field) => {
+          {processedConfig.fields.map((field) => {
             const fieldValue = data.find((d) => d.fieldId === field.id)?.value;
             return (
               <FormInput

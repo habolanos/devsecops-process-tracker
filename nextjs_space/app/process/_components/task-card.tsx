@@ -101,6 +101,21 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
     return filledRequired.length === requiredFields.length;
   };
 
+  // Get templatePath from export-excel task for token replacement in form labels
+  const getTemplatePath = (): string | undefined => {
+    if (!process) return undefined;
+    
+    // Find the export-excel task in the same phase/activity
+    const allTasks = activityId 
+      ? process.phases.find(p => p.id === phaseId)?.activities?.find(a => a.id === activityId)?.tasks || []
+      : process.phases.find(p => p.id === phaseId)?.tasks || [];
+      
+    const exportTask = allTasks.find(t => t.type === 'export-excel' && t.exportConfig);
+    return exportTask?.exportConfig?.templatePath;
+  };
+
+  const templatePath = getTemplatePath();
+
   // Check if task requires evidence (text, image, or both) AND is required
   const requiresEvidence = task?.evidenceConfig?.required && (
     task?.evidenceConfig?.type === 'text' || 
@@ -452,6 +467,7 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
               data={task.formData || []}
               onDataChange={handleFormDataChange}
               disabled={isCompleted || isBlocked}
+              templatePath={templatePath}
             />
             
             {/* Action buttons for form tasks */}
