@@ -2,7 +2,7 @@ process:
   id: "pull-request-validation-2026"
   name: "Validación de Pull Request"
   description: "Proceso completo para aceptación de Pull Request incluyendo validación de CI/CD, tags, breakers y evidencia de despliegue"
-  version: "1.0.0"
+  version: "1.29.5"
   estimatedTime: "45m"
   
   variables:

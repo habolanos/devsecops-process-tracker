@@ -2,7 +2,7 @@ process:
   id: "incident-response-2026"
   name: "Respuesta a Incidentes de Seguridad"
   description: "Procedimiento estructurado de respuesta ante incidentes de seguridad informática"
-  version: "1.0.0"
+  version: "1.29.5"
   estimatedTime: "3h"
   phases:
     - id: "phase-1-detection"
