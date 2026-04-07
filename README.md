@@ -5,7 +5,7 @@ Aplicación web para gestión y seguimiento de procesos DevSecOps con soporte pa
 ## ✨ Características Principales
 
 - **Gestión de Procesos**: Carga de plantillas YAML, JSON importado o procesos personalizados
-- **Tipos de Tareas**: Standard, Check (checkbox individual), Multicheck (múltiples checkboxes), Dynamic-list (listas de items), Export-excel
+- **Tipos de Tareas**: Standard, Check (checkbox individual), Multicheck (múltiples checkboxes), Dynamic-list (listas de items), Detail-list (detalles por item de lista), Export-excel
 - **Sistema de Dependencias**: Bloqueo automático de tareas hasta completar dependencias
 - **Evidencias**: Texto e imágenes (upload a S3 o modo local Base64)
 - **Variables Dinámicas**: Auto-fill desde configuración DevOps
@@ -1133,6 +1133,7 @@ perf(store): optimize state updates
 
 | Fecha | Versión | Descripción |
 |-------|---------|-------------|
+| 2026-04-06 | 1.28.0 | **Detail List Task Type**: Nuevo tipo de tarea `detail-list` para capturar texto detallado por cada item de una tarea `dynamic-list`. Características: referencia por ID a tarea fuente (sourceTaskId), renderizado dinámico de inputs por cada item, validación de completitud, mapeo a Excel (F5-F13 para lista, B47-B56/B60-B69/B72-B81 para detalles repetidos en 3 secciones). Componente `DetailListInput`, acción `updateDetailData` en store, configuración YAML `detailConfig`. Interface `DetailItem`, actualización de `processToReleaseReport` para extracción de datos |
 | 2026-04-06 | 1.27.0 | **Performance Optimization & Evidence Flow**: Optimización de checkboxes usando Immer para mutaciones eficientes (sin recrear árbol de objetos), debounce de 1 segundo en localStorage (evita compresión LZ-string en cada click), React.memo en TaskCard/ActivityCard para evitar re-renders innecesarios, useCallback para funciones estables. UI mejorada: "Terminar Tarea" en lugar de "Marcar como Completada", botones "Guardar" y "Terminar Tarea" visibles directamente para dynamic-list/multicheck (sin "Ver Detalles"). Botón "Guardar": muestra toast para texto, abre modal para imagen. Botón "Terminar Tarea": abre modal si requiere evidencia (text/image/both) y required=true |
 | 2026-04-06 | 1.26.0 | **Dynamic List Task Type**: Nuevo tipo de tarea `dynamic-list` para capturar listas de items (repositorios, componentes, URLs, etc.). Características: parsing automático por separadores (coma, punto y coma, salto de línea), validación de mínimo/máximo items, detección de duplicados, UI con textarea + chips eliminables. Componente `DynamicListInput`, acción `updateListData` en store, configuración YAML `listConfig`. Tests unitarios incluidos. Proceso `release-checklist.yaml` actualizado con tarea de ejemplo |
 | 2026-04-06 | 1.25.0 | **Process Page Layout Refactor**: Header fijo con contenido scrollable. Nombre del proceso y tabs de fases en misma línea para optimizar espacio. Barra de progreso global en formato horizontal (label + barra + porcentaje en una línea). Botones del timer restaurados con texto visible. Tamaños de texto unificados (proceso y fase: text-xl) |
