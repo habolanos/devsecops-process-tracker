@@ -971,7 +971,7 @@ docker push tuusuario/devsecops-process-tracker:custom
 | Datos no persisten | Usar volumen Docker o configurar S3 |
 | Contenedor no inicia | Ver logs: `docker logs devsecops-tracker` |
 
-```
+
 
 ## 🚀 CI/CD Pipelines
 
