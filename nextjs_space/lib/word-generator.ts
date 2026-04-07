@@ -3,6 +3,7 @@
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun, BorderStyle } from 'docx';
 import { ProcessState } from './types';
 import { formatDurationLong } from './helpers';
+import { replaceFormConfigTokens } from './excel-template-helper';
 
 // Constants for image sizing
 const MAX_IMAGE_WIDTH = 500;  // Max width in pixels for Word doc
@@ -218,7 +219,13 @@ export async function generateWordDocument(process: ProcessState): Promise<Blob>
 
     // Tasks
     const allTasks = [...(phase?.tasks ?? []), ...(phase?.activities?.flatMap(a => a.tasks) ?? [])];
-    for (const task of allTasks) {
+    
+    // Get templatePath from export-excel task for token replacement
+    const exportTask = allTasks.find(t => t.type === 'export-excel' && t.exportConfig);
+    const templatePath = exportTask?.exportConfig?.templatePath;
+
+    for (let i = 0; i < allTasks.length; i++) {
+      const task = allTasks[i];
       sections.push(
         new Paragraph({
           text: task?.name ?? '',
@@ -421,6 +428,18 @@ export async function generateWordDocument(process: ProcessState): Promise<Blob>
 
         // Form Evidence
         if (task?.type === 'form') {
+          let formConfig = task.formConfig;
+          
+          // Replace tokens in form labels if templatePath is available
+          if (templatePath && formConfig) {
+            try {
+              formConfig = await replaceFormConfigTokens(formConfig, templatePath);
+            } catch (error) {
+              console.error('Error replacing form tokens in Word report:', error);
+              // Fallback to original config
+            }
+          }
+          
           if (task?.formData && task.formData.length > 0) {
             sections.push(
               new Paragraph({
@@ -430,7 +449,7 @@ export async function generateWordDocument(process: ProcessState): Promise<Blob>
             );
 
             task.formData.forEach((field) => {
-              const fieldConfig = task.formConfig?.fields.find(f => f.id === field.fieldId);
+              const fieldConfig = formConfig?.fields.find(f => f.id === field.fieldId);
               const label = fieldConfig?.label || field.fieldId;
               const value = field.value ?? '';
 
