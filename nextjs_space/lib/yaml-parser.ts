@@ -53,8 +53,8 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
         });
       }
       
-      if (taskType !== 'export-excel' && taskType !== 'dynamic-list' && taskType !== 'detail-list') {
-        throw new Error(`Invalid task type '${taskType}' in ${contextId}. Must be 'standard', 'check', 'multicheck', 'export-excel', 'dynamic-list', or 'detail-list'`);
+      if (taskType !== 'export-excel' && taskType !== 'dynamic-list' && taskType !== 'detail-list' && taskType !== 'form') {
+        throw new Error(`Invalid task type '${taskType}' in ${contextId}. Must be 'standard', 'check', 'multicheck', 'export-excel', 'dynamic-list', 'detail-list', or 'form'`);
       }
       return [];
     };
@@ -71,7 +71,7 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
           name: task.name,
           description: task.description || '',
           order: task.order || 0,
-          type: taskType as 'standard' | 'check' | 'multicheck' | 'export-excel' | 'dynamic-list' | 'detail-list',
+          type: taskType as 'standard' | 'check' | 'multicheck' | 'export-excel' | 'dynamic-list' | 'detail-list' | 'form',
           checkItems: parseCheckItems(task, `task ${task.id} in ${contextId}`),
           references: task.references || [],
           evidenceConfig: task.evidence || { type: 'text', required: false },
@@ -81,6 +81,8 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
           listData: [],
           detailConfig: task.detailConfig,
           detailData: [],
+          formConfig: task.formConfig,
+          formData: [],
           completed: false,
           evidence: { images: [] },
           isBlocked: false,

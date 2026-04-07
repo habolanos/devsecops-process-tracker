@@ -521,10 +521,76 @@ process:
             required: true
             description: "Comentarios generales de la liberación realizada"
 
+        - id: "task-7-1b"
+          name: "Formulario de Validación Final"
+          description: "Complete los campos de validación final para el reporte"
+          order: 2
+          type: "form"
+          formConfig:
+            layout:
+              type: "grid"
+              columns: 3
+              gap: "medium"
+            fields:
+              - id: "campo1"
+                label: "Validador Principal"
+                type: "text"
+                required: true
+                placeholder: "Nombre del validador"
+                maxLength: 100
+                colSpan: 1
+                valueCell: "F85"
+              - id: "campo2"
+                label: "Fecha de Validación"
+                type: "date"
+                required: true
+                colSpan: 1
+                valueCell: "F86"
+              - id: "campo3"
+                label: "Hora Validación"
+                type: "time"
+                required: true
+                colSpan: 1
+                valueCell: "F87"
+              - id: "campo4"
+                label: "Estado Final"
+                type: "select"
+                required: true
+                options:
+                  - "Aprobado"
+                  - "Aprobado con observaciones"
+                  - "Rechazado"
+                colSpan: 1
+                valueCell: "S85"
+              - id: "campo5"
+                label: "Nivel de Riesgo"
+                type: "select"
+                required: true
+                options:
+                  - "Bajo"
+                  - "Medio"
+                  - "Alto"
+                  - "Crítico"
+                colSpan: 1
+                valueCell: "S86"
+              - id: "campo6"
+                label: "Observaciones Finales"
+                type: "textarea"
+                required: false
+                placeholder: "Observaciones adicionales"
+                maxLength: 500
+                colSpan: 3
+                valueCell: "S87"
+          evidence:
+            type: "form"
+            required: true
+            description: "Los datos del formulario constituyen la evidencia de validación"
+          dependencies: ["task-7-1"]
+
         - id: "task-7-2"
           name: "Generar Reporte Excel"
           description: "Genera automáticamente el checklist de liberación en formato Excel"
-          order: 2
+          order: 3
           type: "export-excel"
           exportConfig:
             templatePath: "/templates/TEMPLATE_Checklist_Liberacion.xlsx"

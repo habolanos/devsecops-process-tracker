@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { produce } from 'immer';
-import { ProcessState, TaskEvidence, CapturedVariables, WorkSession, ListItem, DetailItem } from './types';
+import { ProcessState, TaskEvidence, CapturedVariables, WorkSession, ListItem, DetailItem, FormFieldValue } from './types';
 import { updateProgress, updateTaskBlockedStatus, getAllDependentTasks } from './helpers';
 import { createCompressedStorage } from './persist-storage';
 
@@ -35,6 +35,9 @@ interface ProcessStore {
   
   // Detail List Actions (for detail-list tasks)
   updateDetailData: (phaseId: string, taskId: string, detailData: DetailItem[], activityId?: string) => void;
+  
+  // Form Actions (for form tasks)
+  updateFormData: (phaseId: string, taskId: string, formData: FormFieldValue[], activityId?: string) => void;
   
   markProcessComplete: () => void;
   
@@ -431,6 +434,49 @@ export const useProcessStore = create<ProcessStore>()(persist(
           return {
             ...phase,
             tasks: (phase.tasks ?? []).map(updateTaskDetailData)
+          };
+        });
+
+        return {
+          process: {
+            ...state.process,
+            phases: updatedPhases
+          }
+        };
+      });
+    },
+
+    updateFormData: (phaseId, taskId, formData, activityId) => {
+      set((state) => {
+        if (!state.process) return state;
+
+        const updateTaskFormData = (task: any) => {
+          if (task?.id !== taskId) return task;
+          return {
+            ...task,
+            formData: formData
+          };
+        };
+
+        const updatedPhases = state.process.phases.map((phase) => {
+          if (phase?.id !== phaseId) return phase;
+
+          if (activityId) {
+            return {
+              ...phase,
+              activities: (phase.activities ?? []).map((activity) => {
+                if (activity?.id !== activityId) return activity;
+                return {
+                  ...activity,
+                  tasks: activity.tasks.map(updateTaskFormData)
+                };
+              })
+            };
+          }
+
+          return {
+            ...phase,
+            tasks: (phase.tasks ?? []).map(updateTaskFormData)
           };
         });
 

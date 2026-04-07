@@ -12,8 +12,9 @@ import { toast } from 'sonner';
 import { DynamicLinksList } from './dynamic-link-button';
 import { DynamicListInput } from './dynamic-list-input';
 import { DetailListInput } from './detail-list-input';
+import { FormRenderer } from './form-renderer';
 import { generateReleaseExcel, processToReleaseReport, downloadExcel, generateReleaseFilename } from '@/lib/excel-generator';
-import { ListItem, DetailItem } from '@/lib/types';
+import { ListItem, DetailItem, FormFieldValue } from '@/lib/types';
 
 interface TaskCardProps {
   task: TaskState;
@@ -32,6 +33,7 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
     canCompleteCheckTask: state?.canCompleteCheckTask,
     updateListData: state?.updateListData,
     updateDetailData: state?.updateDetailData,
+    updateFormData: state?.updateFormData,
   })));
 
   const taskType = task?.type || 'standard';
@@ -39,6 +41,7 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
   const isExportExcelType = taskType === 'export-excel';
   const isDynamicListType = taskType === 'dynamic-list';
   const isDetailListType = taskType === 'detail-list';
+  const isFormType = taskType === 'form';
 
   // Handle list data changes for dynamic-list tasks
   const handleListDataChange = (items: ListItem[]) => {
@@ -48,6 +51,11 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
   // Handle detail data changes for detail-list tasks
   const handleDetailDataChange = (detailData: DetailItem[]) => {
     storeActions.updateDetailData?.(phaseId, task.id, detailData, activityId);
+  };
+
+  // Handle form data changes for form tasks
+  const handleFormDataChange = (formData: FormFieldValue[]) => {
+    storeActions.updateFormData?.(phaseId, task.id, formData, activityId);
   };
 
   // Check if dynamic-list task meets minimum items requirement
@@ -81,6 +89,17 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
   const detailMinItems = sourceItems.length;
   const currentDetailItems = task?.detailData?.filter(d => d.capturedText.trim().length > 0).length ?? 0;
   const isDetailMinMet = currentDetailItems >= detailMinItems;
+
+  // For form tasks, check if all required fields are filled
+  const isFormValid = () => {
+    if (!isFormType || !task?.formConfig) return true;
+    const requiredFields = task.formConfig.fields.filter(f => f.required);
+    const filledRequired = requiredFields.filter(f => {
+      const value = task.formData?.find(d => d.fieldId === f.id)?.value;
+      return value && (!Array.isArray(value) || value.length > 0);
+    });
+    return filledRequired.length === requiredFields.length;
+  };
 
   // Check if task requires evidence (text, image, or both) AND is required
   const requiresEvidence = task?.evidenceConfig?.required && (
@@ -157,6 +176,14 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
       if (isDetailListType && !isDetailMinMet) {
         toast.warning('Detalles incompletos', {
           description: `Complete todos los detalles (${currentDetailItems}/${detailMinItems}).`,
+        });
+        return;
+      }
+      
+      // For form tasks, verify all required fields are filled
+      if (isFormType && !isFormValid()) {
+        toast.warning('Formulario incompleto', {
+          description: 'Complete todos los campos requeridos del formulario',
         });
         return;
       }
@@ -404,6 +431,47 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
                 disabled={isBlocked || !isDetailMinMet}
                 className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-1.5 ${
                   isBlocked || !isDetailMinMet
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : isCompleted
+                      ? 'bg-orange-500 text-white hover:bg-orange-600'
+                      : 'bg-green-500 text-white hover:bg-green-600'
+                }`}
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                {isCompleted ? t('task.uncomplete') : t('task.complete')}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* FormRenderer for form tasks */}
+        {isFormType && task?.formConfig && (
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <FormRenderer
+              config={task.formConfig}
+              data={task.formData || []}
+              onDataChange={handleFormDataChange}
+              disabled={isCompleted || isBlocked}
+            />
+            
+            {/* Action buttons for form tasks */}
+            <div className="mt-4 pt-3 border-t border-gray-200 flex justify-end gap-2">
+              <button
+                onClick={handleSaveProgress}
+                disabled={isBlocked || isCompleted}
+                className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
+                  isBlocked || isCompleted
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-blue-500 text-white hover:bg-blue-600'
+                }`}
+              >
+                Guardar
+              </button>
+              <button
+                onClick={handleToggleComplete}
+                disabled={isBlocked || !isFormValid()}
+                className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-1.5 ${
+                  isBlocked || !isFormValid()
                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     : isCompleted
                       ? 'bg-orange-500 text-white hover:bg-orange-600'

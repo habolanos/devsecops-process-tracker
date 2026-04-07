@@ -95,7 +95,7 @@ export interface TaskYAML {
   name: string;
   description?: string;                 // Optional for check/multicheck (checkItems have descriptions)
   order: number;
-  type?: 'standard' | 'check' | 'multicheck' | 'export-excel' | 'dynamic-list' | 'detail-list';  // Default: 'standard'
+  type?: 'standard' | 'check' | 'multicheck' | 'export-excel' | 'dynamic-list' | 'detail-list' | 'form';  // Default: 'standard'
   checkItem?: CheckItemYAML;            // For type='check' (single checkbox)
   checkItems?: CheckItemYAML[];         // For type='multicheck' (multiple checkboxes)
   references?: Reference[];
@@ -105,6 +105,7 @@ export interface TaskYAML {
   exportConfig?: ExportExcelConfig;     // For type='export-excel'
   listConfig?: DynamicListConfig;       // For type='dynamic-list'
   detailConfig?: DetailListConfig;      // For type='detail-list'
+  formConfig?: FormConfig;              // For type='form'
 }
 
 export interface ExportExcelConfig {
@@ -141,6 +142,54 @@ export interface DetailItem {
   addedAt: string;                      // ISO timestamp
 }
 
+// ============================================
+// Form Task Types
+// ============================================
+
+export type FieldType = 'text' | 'number' | 'email' | 'date' | 'time' | 'datetime' | 'boolean' | 'textarea' | 'image' | 'select';
+
+export type FormLayoutType = 'vertical' | 'grid';
+export type FormGapSize = 'small' | 'medium' | 'large';
+
+export interface FormLayoutConfig {
+  type: FormLayoutType;
+  columns?: number;  // 1-4 for grid
+  gap?: FormGapSize;
+}
+
+export interface FormFieldConfig {
+  id: string;
+  label: string;
+  type: FieldType;
+  required: boolean;
+  placeholder?: string;
+  maxLength?: number;
+  minLength?: number;
+  defaultValue?: any;
+  options?: string[];
+  maxImages?: number;
+  colSpan?: number;  // 1-4, how many columns the field occupies
+  description?: string;
+  descriptionCell?: string;  // Excel cell reference for label (e.g., "F85-1" for F85 row offset -1)
+  valueCell?: string;      // Excel cell reference for value (e.g., "F85")
+  validation?: {
+    pattern?: string;
+    min?: number;
+    max?: number;
+  };
+}
+
+export interface FormConfig {
+  layout: FormLayoutConfig;
+  fields: FormFieldConfig[];
+}
+
+export interface FormFieldValue {
+  fieldId: string;
+  value: any;
+  filledAt: string;
+}
+
 export interface CheckItemYAML {
   id?: string;                          // Optional for 'check', required for 'multicheck'
   description: string;                  // Always required
@@ -153,7 +202,7 @@ export interface Reference {
 }
 
 export interface EvidenceConfig {
-  type: 'text' | 'image' | 'both';
+  type: 'text' | 'image' | 'both' | 'form' | 'none';
   required: boolean;
   description?: string;
 }
@@ -237,7 +286,7 @@ export interface TaskState {
   name: string;
   description: string;
   order: number;
-  type: 'standard' | 'check' | 'multicheck' | 'export-excel' | 'dynamic-list' | 'detail-list';  // Task type
+  type: 'standard' | 'check' | 'multicheck' | 'export-excel' | 'dynamic-list' | 'detail-list' | 'form';  // Task type
   checkItems: CheckItemState[];       // Empty for 'standard', 1 for 'check', N for 'multicheck'
   references: Reference[];
   evidenceConfig: EvidenceConfig;
@@ -252,6 +301,8 @@ export interface TaskState {
   listData?: ListItem[];            // Captured list items for 'dynamic-list'
   detailConfig?: DetailListConfig;  // For type='detail-list'
   detailData?: DetailItem[];        // Captured detail items for 'detail-list'
+  formConfig?: FormConfig;          // For type='form'
+  formData?: FormFieldValue[];      // Captured form field values for 'form'
 }
 
 export interface CheckItemState {

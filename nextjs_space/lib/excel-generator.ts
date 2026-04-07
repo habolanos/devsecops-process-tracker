@@ -63,6 +63,16 @@ export const EXCEL_CELL_MAP = {
       }
     },
     
+    // FORM FIELDS (F85-F87, S85-S87)
+    FORM_FIELDS: {
+      'campo1': 'F85',
+      'campo2': 'F86',
+      'campo3': 'F87',
+      'campo4': 'S85',
+      'campo5': 'S86',
+      'campo6': 'S87'
+    },
+    
     // VALIDACIÓN DE CONFIGURACIONES ANTES DE LA LIBERACIÓN
     VALIDACIONES: {
       START_ROW: 18,
@@ -188,6 +198,9 @@ export interface ReleaseReportData {
   // Detalle de Items (B47-B56, B60-B69, B72-B81)
   detalleItems?: string[];
   
+  // Form Data (form fields)
+  formData?: Record<string, any>;
+  
   // Validaciones
   validaciones?: Array<{
     aplica: boolean;
@@ -290,6 +303,14 @@ export function processToReleaseReport(process: ProcessData): ReleaseReportData 
   const detailListTask = allTasks.find(task => task.type === 'detail-list' && task.detailData);
   const detalleItems = detailListTask?.detailData?.map((item: any) => item.capturedText) || [];
   
+  // Extract formData from form tasks
+  // Look for the first form task with formData
+  const formTask = allTasks.find(task => task.type === 'form' && task.formData);
+  const formData = formTask?.formData?.reduce((acc: Record<string, any>, item: any) => {
+    acc[item.fieldId] = item.value;
+    return acc;
+  }, {}) || {};
+  
   // Build validations from completed tasks
   const validaciones = allTasks.map(task => ({
     aplica: true,
@@ -324,6 +345,7 @@ export function processToReleaseReport(process: ProcessData): ReleaseReportData 
     
     listaItems,
     detalleItems,
+    formData,
     
     validaciones,
     
@@ -450,6 +472,17 @@ export async function generateReleaseExcel(
       if (idx < detalleMap.SECCION_3.MAX_ITEMS) {
         const row = detalleMap.SECCION_3.START_ROW + idx;
         worksheet.getCell(`${detalleMap.SECCION_3.COLUMN}${row}`).value = detalle;
+      }
+    });
+  }
+  
+  // Fill Form Fields (F85-F87, S85-S87)
+  if (data.formData) {
+    const formMap = map.FORM_FIELDS;
+    Object.entries(data.formData).forEach(([fieldId, value]) => {
+      const cellRef = formMap[fieldId as keyof typeof formMap];
+      if (cellRef && value) {
+        worksheet.getCell(cellRef).value = value;
       }
     });
   }
