@@ -2,6 +2,21 @@
 
 Aplicación web para gestión y seguimiento de procesos DevSecOps con soporte para evidencias, dependencias entre tareas, links dinámicos y exportación de resultados.
 
+## ✨ Características Principales
+
+- **Gestión de Procesos**: Carga de plantillas YAML, JSON importado o procesos personalizados
+- **Tipos de Tareas**: Standard, Check (checkbox individual), Multicheck (múltiples checkboxes), Dynamic-list (listas de items), Export-excel
+- **Sistema de Dependencias**: Bloqueo automático de tareas hasta completar dependencias
+- **Evidencias**: Texto e imágenes (upload a S3 o modo local Base64)
+- **Variables Dinámicas**: Auto-fill desde configuración DevOps
+- **Links Dinámicos**: URLs parametrizables con variables del proceso
+- **Timer de Proceso**: Tracking de tiempo con sesiones múltiples
+- **Exportación**: JSON y documentos Word con evidencias
+- **Modo Dark/Light**: Toggle de tema con soporte del sistema operativo
+- **Gestión Multi-proceso**: Tabs para trabajar con múltiples procesos simultáneamente
+- **Persistencia**: Estado guardado en localStorage con compresión
+- **i18n**: Soporte para español e inglés
+
 ## 📊 Diagramas
 
 La documentación visual de la aplicación está organizada en diagramas detallados que ilustran diferentes aspectos del sistema. Cada diagrama incluye contexto, descripción y explicaciones complementarias.
@@ -51,6 +66,7 @@ Diagrama de secuencia que ilustra las interacciones temporales entre componentes
 | **TypeScript** | 5.2.2 | Tipado estático |
 | **Tailwind CSS** | 3.3.3 + shadcn/ui | Estilos y componentes UI |
 | **Zustand** | 5.0.12 | Estado global con persistencia localStorage |
+| **Immer** | ^10.1.0 | Mutaciones inmutables eficientes |
 | **Vitest** | 4.1.2 | Tests unitarios |
 | **Playwright** | 1.40.0 | Tests E2E |
 | **Vite** | 6.4.1 | Build tool y dev server para tests |
@@ -75,6 +91,8 @@ nextjs_space/
 │   │   ├── page.tsx            # Vista principal del proceso
 │   │   └── _components/        # Componentes específicos del proceso
 │   │       ├── task-card.tsx       # Tarjeta de tarea individual
+│   │       ├── activity-card.tsx   # Tarjeta de actividad con tareas
+│   │       ├── dynamic-list-input.tsx # Input para listas dinámicas
 │   │       ├── process-sidebar.tsx # Sidebar de navegación de fases
 │   │       ├── progress-bar.tsx    # Barra de progreso visual
 │   │       ├── evidence-modal.tsx  # Modal de gestión de evidencias
@@ -96,12 +114,17 @@ nextjs_space/
 ├── lib/                         # Lógica de negocio central
 │   ├── types.ts                # Tipos TypeScript principales
 │   ├── store.ts                # Zustand store - proceso actual
+│   ├── session-store.ts        # Zustand store - gestión multi-proceso
+│   ├── loading-store.ts        # Zustand store - tracking de operaciones
 │   ├── config-store.ts         # Zustand store - config DevOps
+│   ├── persist-storage.ts      # Storage comprimido con debounce
 │   ├── helpers.ts              # Funciones: progreso, dependencias, validación
 │   ├── yaml-parser.ts          # Parser YAML → ProcessState
 │   ├── json-utils.ts           # Import/Export JSON con evidencias
 │   ├── word-generator.ts       # Generador de documentos Word
+│   ├── excel-generator.ts      # Generador de reportes Excel
 │   ├── i18n-context.tsx        # Contexto de internacionalización (ES/EN)
+│   ├── sanitize.ts             # Sanitización XSS
 │   ├── aws-config.ts           # Config AWS S3 (modo local si no hay credenciales)
 │   ├── s3.ts                   # Utilidades S3 (upload, download, delete)
 │   ├── config-loader.ts        # Carga y parseo de config DevOps
@@ -109,23 +132,30 @@ nextjs_space/
 │
 ├── data/                        # Datos estáticos
 │   ├── processes/              # Procesos YAML predefinidos
-│   │   ├── index.json         # Catálogo: 5 plantillas
+│   │   ├── index.json         # Catálogo: 6 plantillas
 │   │   ├── it-security-audit.yaml      # 3 fases, 13 tareas
 │   │   ├── devops-release.yaml         # 3 fases, 10 tareas
 │   │   ├── incident-response.yaml        # 4 fases, 12 tareas
 │   │   ├── devops-pipeline.yaml        # Con variables y links dinámicos
-│   │   └── pull-request-validation.yaml # 6 fases, 21 tareas, 8 variables
+│   │   ├── pull-request-validation.yaml # 6 fases, 21 tareas, 8 variables
+│   │   └── release-checklist.yaml      # Checklist de liberación con dynamic-list
 │   └── process-tracker-config.example.json  # Template de configuración
 │
 ├── __tests__/                   # Tests
-│   ├── unit/lib/               # Tests unitarios (51 tests)
-│   │   ├── helpers.test.ts    # Progreso, dependencias, validación
-│   │   ├── yaml-parser.test.ts # Parseo YAML
-│   │   └── json-utils.test.ts  # Import/export JSON
-│   ├── e2e/flows/              # Tests E2E con Playwright
-│   │   ├── load-process.spec.ts    # Carga plantillas/YAML/JSON
-│   │   ├── dependencies.spec.ts    # Flujo de dependencias
-│   │   └── export-results.spec.ts  # Exportación JSON y Word
+│   ├── unit/                   # Tests unitarios
+│   │   ├── lib/               # Tests de lógica de negocio
+│   │   │   ├── helpers.test.ts    # Progreso, dependencias, validación
+│   │   │   ├── yaml-parser.test.ts # Parseo YAML
+│   │   │   ├── json-utils.test.ts  # Import/export JSON
+│   │   │   └── excel-generator.test.ts # Generación Excel
+│   │   └── components/       # Tests de componentes UI
+│   │       └── dynamic-list-input.test.tsx # Input de listas dinámicas
+│   ├── e2e/                   # Tests E2E con Playwright
+│   │   ├── flows/              # Flujos principales
+│   │   │   ├── load-process.spec.ts    # Carga plantillas/YAML/JSON
+│   │   │   ├── dependencies.spec.ts    # Flujo de dependencias
+│   │   │   └── export-results.spec.ts  # Exportación JSON y Word
+│   │   └── release-checklist-export.spec.ts # Export Excel para release checklist
 │   └── fixtures/               # Archivos de prueba
 │       ├── simple-process.yaml
 │       ├── complex-dependencies.yaml
@@ -1103,6 +1133,7 @@ perf(store): optimize state updates
 
 | Fecha | Versión | Descripción |
 |-------|---------|-------------|
+| 2026-04-06 | 1.27.0 | **Performance Optimization & Evidence Flow**: Optimización de checkboxes usando Immer para mutaciones eficientes (sin recrear árbol de objetos), debounce de 1 segundo en localStorage (evita compresión LZ-string en cada click), React.memo en TaskCard/ActivityCard para evitar re-renders innecesarios, useCallback para funciones estables. UI mejorada: "Terminar Tarea" en lugar de "Marcar como Completada", botones "Guardar" y "Terminar Tarea" visibles directamente para dynamic-list/multicheck (sin "Ver Detalles"). Botón "Guardar": muestra toast para texto, abre modal para imagen. Botón "Terminar Tarea": abre modal si requiere evidencia (text/image/both) y required=true |
 | 2026-04-06 | 1.26.0 | **Dynamic List Task Type**: Nuevo tipo de tarea `dynamic-list` para capturar listas de items (repositorios, componentes, URLs, etc.). Características: parsing automático por separadores (coma, punto y coma, salto de línea), validación de mínimo/máximo items, detección de duplicados, UI con textarea + chips eliminables. Componente `DynamicListInput`, acción `updateListData` en store, configuración YAML `listConfig`. Tests unitarios incluidos. Proceso `release-checklist.yaml` actualizado con tarea de ejemplo |
 | 2026-04-06 | 1.25.0 | **Process Page Layout Refactor**: Header fijo con contenido scrollable. Nombre del proceso y tabs de fases en misma línea para optimizar espacio. Barra de progreso global en formato horizontal (label + barra + porcentaje en una línea). Botones del timer restaurados con texto visible. Tamaños de texto unificados (proceso y fase: text-xl) |
 | 2026-04-06 | 1.24.0 | **Estimated Time & Semaphore Colors**: Nuevo campo `estimatedTime` en templates YAML (formato legible: "2h", "30m", "1h30m"). Timer con colorimetría semáforo: 🟢 verde (0-60%), 🟡 amarillo (60-100%), 🔴 rojo (>100%). Indicador de estado con mensaje y porcentaje. Funciones `parseTimeString()` y `getTimeStatus()` en helpers. Templates actualizados con tiempos estimados |
