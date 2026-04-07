@@ -2,7 +2,7 @@ process:
   id: "it-security-audit-2026"
   name: "Auditoría de Seguridad IT"
   description: "Proceso completo de auditoría de seguridad de sistemas de información para organizaciones"
-  version: "1.29.5"
+  version: "1.0.0"
   estimatedTime: "4h"
   phases:
     - id: "phase-1-planning"

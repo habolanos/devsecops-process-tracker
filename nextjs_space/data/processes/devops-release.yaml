@@ -2,7 +2,7 @@ process:
   id: "devops-release-2026"
   name: "Release DevOps"
   description: "Proceso de liberación de software con validaciones de calidad y seguridad"
-  version: "1.29.5"
+  version: "1.0.0"
   estimatedTime: "2h"
   phases:
     - id: "phase-1-preparation"
