@@ -119,7 +119,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🐛 Bug Fixes
 
-* add README-DOCKER.md for Docker Hub with author info and improved categories API ([d4b80a7](https://github.com/habolanos/devsecops-process-tracker/commit/d4b80a71c6a75471ac2235d8e5049d25bfe3be5c))
+* add README.dockerhub.md for Docker Hub with author info and improved categories API ([d4b80a7](https://github.com/habolanos/devsecops-process-tracker/commit/d4b80a71c6a75471ac2235d8e5049d25bfe3be5c))
 
 
 ### 📖 Documentation

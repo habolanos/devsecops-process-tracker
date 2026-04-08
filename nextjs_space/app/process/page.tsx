@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, lazy, Suspense } from 'react';
+import { useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { useProcessStore } from '@/lib/store';
 import { useSessionStore } from '@/lib/session-store';
@@ -55,6 +55,12 @@ export default function ProcessPage() {
   const [showVariablesForm, setShowVariablesForm] = useState(false);
   const [showConfigUpload, setShowConfigUpload] = useState(false);
   
+  // Stable callback for viewing evidence to prevent memo breaking
+  const handleViewEvidence = useCallback((taskId: string) => {
+    setCurrentTask?.(taskId);
+    setShowEvidenceModal(true);
+  }, [setCurrentTask]);
+  
   // Config store
   const configIsLoaded = useConfigStore((state) => state.isLoaded);
   const configFileName = useConfigStore((state) => state.fileName);
@@ -73,6 +79,16 @@ export default function ProcessPage() {
       updateSnapshot(activeTrayId, process);
     }
   }, [process, activeTrayId, updateSnapshot]);
+
+  // Pause timer when leaving the process page (component unmount)
+  useEffect(() => {
+    return () => {
+      const currentProcess = useProcessStore.getState().process;
+      if (currentProcess?.timeTracking?.status === 'running') {
+        useProcessStore.getState().pauseProcessTimer();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!process) {
@@ -308,10 +324,7 @@ export default function ProcessPage() {
                       key={activity.id}
                       activity={activity}
                       phaseId={currentPhaseId ?? ''}
-                      onViewEvidence={(task) => {
-                        setCurrentTask?.(task?.id ?? null);
-                        setShowEvidenceModal(true);
-                      }}
+                      onViewEvidence={(task) => handleViewEvidence(task?.id ?? '')}
                     />
                   ))
                 ) : (
@@ -321,10 +334,7 @@ export default function ProcessPage() {
                       key={task?.id}
                       task={task}
                       phaseId={currentPhaseId ?? ''}
-                      onViewEvidence={() => {
-                        setCurrentTask?.(task?.id ?? null);
-                        setShowEvidenceModal(true);
-                      }}
+                      onViewEvidence={() => handleViewEvidence(task?.id ?? '')}
                     />
                   )) ?? null
                 )}

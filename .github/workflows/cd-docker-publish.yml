@@ -423,12 +423,12 @@ jobs:
           fi
           
           # Create full description from Docker-specific README (entire file, it's small enough)
-          if [ -f "README-DOCKER.md" ]; then
-            FULL_DESCRIPTION=$(cat README-DOCKER.md)
-            echo "Using README-DOCKER.md for full description"
+          if [ -f "README.dockerhub.md" ]; then
+            FULL_DESCRIPTION=$(cat README.dockerhub.md)
+            echo "Using README.dockerhub.md for full description"
           else
             FULL_DESCRIPTION=$(head -c 10000 README.md)
-            echo "Using truncated README.md for full description (README-DOCKER.md not found)"
+            echo "Using truncated README.md for full description (README.dockerhub.md not found)"
           fi
           
           # Update repository description and overview

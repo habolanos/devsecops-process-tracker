@@ -37,6 +37,7 @@ describe('persist-storage', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.clearAllMocks();
   });
 
@@ -87,10 +88,14 @@ describe('persist-storage', () => {
 
     describe('setItem', () => {
       it('should store compressed data', () => {
+        vi.useFakeTimers();
         const data = { state: { test: 'value' } };
         storage.setItem('test-key', data);
-        
+
+        vi.runAllTimers();
+
         expect(localStorageMock['test-key']).toContain('compressed:');
+        vi.useRealTimers();
       });
 
       it('should handle server-side rendering (window undefined)', () => {
@@ -111,6 +116,7 @@ describe('persist-storage', () => {
       });
 
       it('should fallback to uncompressed on error', () => {
+        vi.useFakeTimers();
         const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
         
         // Mock setItem to throw once
@@ -126,12 +132,16 @@ describe('persist-storage', () => {
         
         const data = { state: { test: 'value' } };
         storage.setItem('test-key', data);
+
+        vi.runAllTimers();
         
-        expect(consoleSpy).toHaveBeenCalled();
+        // Verify it was called twice (compressed failed, then uncompressed)
         expect(window.localStorage.setItem).toHaveBeenCalledTimes(2);
+        expect(consoleSpy).toHaveBeenCalled();
         
         window.localStorage.setItem = originalSetItem;
         consoleSpy.mockRestore();
+        vi.useRealTimers();
       });
     });
 

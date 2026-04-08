@@ -24,14 +24,21 @@ describe('importProcessFromJSON', () => {
             description: 'First phase',
             order: 1,
             progress: 0.5,
+            activities: [],
             tasks: [
               {
                 id: 'task-1',
                 name: 'Task 1',
                 description: 'First task',
                 order: 1,
+                type: 'standard',
                 completed: true,
                 completedAt: '2024-01-15T11:00:00Z',
+                checkItems: [],
+                references: [],
+                dependencies: [],
+                dynamicLinks: [],
+                evidenceConfig: { type: 'text', required: false },
                 evidence: {
                   text: 'Some evidence',
                   images: [
@@ -65,6 +72,8 @@ describe('importProcessFromJSON', () => {
       process: {
         id: 'test',
         name: 'Test',
+        description: 'Test',
+        version: '1.0.0',
         exportedAt: '2024-01-01T00:00:00Z',
         progress: 0,
         phases: []
@@ -97,6 +106,8 @@ describe('importProcessFromJSON', () => {
       process: {
         id: 'test',
         name: 'Test',
+        description: '',
+        version: '1.0.0',
         exportedAt: '2024-01-01T00:00:00Z',
         progress: 0,
         phases: [
@@ -106,13 +117,20 @@ describe('importProcessFromJSON', () => {
             description: '',
             order: 0,
             progress: 0,
+            activities: [],
             tasks: [
               {
                 id: 'task-1',
                 name: 'Task 1',
                 description: '',
                 order: 0,
+                type: 'standard',
                 completed: false,
+                checkItems: [],
+                references: [],
+                dependencies: [],
+                dynamicLinks: [],
+                evidenceConfig: { type: 'text', required: false },
                 evidence: {
                   images: []
                 }
@@ -136,20 +154,31 @@ describe('importProcessFromJSON', () => {
       process: {
         id: 'test',
         name: 'Test',
+        description: 'Test',
+        version: '1.0.0',
         exportedAt: '2024-01-01T00:00:00Z',
         progress: 0,
         phases: [
           {
             id: 'p1',
             name: 'P1',
+            description: 'Phase 1',
             order: 1,
             progress: 0,
+            activities: [],
             tasks: [
               {
                 id: 't1',
                 name: 'T1',
+                description: '',
                 order: 1,
+                type: 'standard',
                 completed: false,
+                checkItems: [],
+                references: [],
+                dependencies: [],
+                dynamicLinks: [],
+                evidenceConfig: { type: 'text', required: false },
                 evidence: {
                   images: [
                     { name: 'img1.png', data: 'data1', source: 'file' },
@@ -171,6 +200,187 @@ describe('importProcessFromJSON', () => {
     expect(images[0].isPublic).toBe(false);
     expect(images[0].cloudStoragePath).toBe('');
   });
+
+  it('should import dynamic-list task with listData', () => {
+    const exportData: ProcessExportJSON = {
+      process: {
+        id: 'test',
+        name: 'Test',
+        description: 'Test',
+        version: '1.0.0',
+        exportedAt: '2024-01-01T00:00:00Z',
+        progress: 0,
+        phases: [
+          {
+            id: 'p1',
+            name: 'P1',
+            description: 'Phase 1',
+            order: 1,
+            progress: 0,
+            activities: [],
+            tasks: [
+              {
+                id: 't1',
+                name: 'Dynamic List Task',
+                description: '',
+                order: 1,
+                type: 'dynamic-list',
+                completed: true,
+                checkItems: [],
+                references: [],
+                dependencies: [],
+                dynamicLinks: [],
+                evidenceConfig: { type: 'form', required: true },
+                listConfig: {
+                  label: 'Repository',
+                  minItems: 1,
+                  maxItems: 10
+                },
+                listData: [
+                  { id: 'item-1', value: 'repo1', addedAt: '2024-01-01T00:00:00Z' },
+                  { id: 'item-2', value: 'repo2', addedAt: '2024-01-01T00:00:00Z' }
+                ],
+                evidence: {
+                  images: []
+                }
+              }
+            ]
+          }
+        ]
+      }
+    };
+
+    const result = importProcessFromJSON(exportData);
+    const task = result.phases[0].tasks[0];
+
+    expect(task.type).toBe('dynamic-list');
+    expect(task.listConfig?.label).toBe('Repository');
+    expect(task.listData?.length).toBe(2);
+    expect(task.listData?.[0].value).toBe('repo1');
+  });
+
+  it('should import detail-list task with detailData', () => {
+    const exportData: ProcessExportJSON = {
+      process: {
+        id: 'test',
+        name: 'Test',
+        description: 'Test',
+        version: '1.0.0',
+        exportedAt: '2024-01-01T00:00:00Z',
+        progress: 0,
+        phases: [
+          {
+            id: 'p1',
+            name: 'P1',
+            description: 'Phase 1',
+            order: 1,
+            progress: 0,
+            activities: [],
+            tasks: [
+              {
+                id: 't1',
+                name: 'Detail List Task',
+                description: '',
+                order: 1,
+                type: 'detail-list',
+                completed: true,
+                checkItems: [],
+                references: [],
+                dependencies: [],
+                dynamicLinks: [],
+                evidenceConfig: { type: 'form', required: true },
+                detailConfig: {
+                  sourceTaskId: 'source-task'
+                },
+                detailData: [
+                  { sourceItem: 'repo1', capturedText: 'Detail for repo1', addedAt: '2024-01-01T00:00:00Z' },
+                  { sourceItem: 'repo2', capturedText: 'Detail for repo2', addedAt: '2024-01-01T00:00:00Z' }
+                ],
+                evidence: {
+                  images: []
+                }
+              }
+            ]
+          }
+        ]
+      }
+    };
+
+    const result = importProcessFromJSON(exportData);
+    const task = result.phases[0].tasks[0];
+
+    expect(task.type).toBe('detail-list');
+    expect(task.detailConfig?.sourceTaskId).toBe('source-task');
+    expect(task.detailData?.length).toBe(2);
+    expect(task.detailData?.[0].sourceItem).toBe('repo1');
+    expect(task.detailData?.[0].capturedText).toBe('Detail for repo1');
+  });
+
+  it('should import form task with formData', () => {
+    const exportData: ProcessExportJSON = {
+      process: {
+        id: 'test',
+        name: 'Test',
+        description: 'Test',
+        version: '1.0.0',
+        exportedAt: '2024-01-01T00:00:00Z',
+        progress: 0,
+        phases: [
+          {
+            id: 'p1',
+            name: 'P1',
+            description: 'Phase 1',
+            order: 1,
+            progress: 0,
+            activities: [],
+            tasks: [
+              {
+                id: 't1',
+                name: 'Form Task',
+                description: '',
+                order: 1,
+                type: 'form',
+                completed: true,
+                checkItems: [],
+                references: [],
+                dependencies: [],
+                dynamicLinks: [],
+                evidenceConfig: { type: 'form', required: true },
+                formConfig: {
+                  layout: {
+                    type: 'grid',
+                    columns: 2,
+                    gap: 'medium'
+                  },
+                  fields: [
+                    { id: 'field1', label: 'Field 1', type: 'text', required: true },
+                    { id: 'field2', label: 'Field 2', type: 'number', required: false }
+                  ]
+                },
+                formData: [
+                  { fieldId: 'field1', value: 'Test value', filledAt: '2024-01-01T00:00:00Z' },
+                  { fieldId: 'field2', value: 123, filledAt: '2024-01-01T00:00:00Z' }
+                ],
+                evidence: {
+                  images: []
+                }
+              }
+            ]
+          }
+        ]
+      }
+    };
+
+    const result = importProcessFromJSON(exportData);
+    const task = result.phases[0].tasks[0];
+
+    expect(task.type).toBe('form');
+    expect(task.formConfig?.layout.type).toBe('grid');
+    expect(task.formConfig?.fields.length).toBe(2);
+    expect(task.formData?.length).toBe(2);
+    expect(task.formData?.[0].fieldId).toBe('field1');
+    expect(task.formData?.[0].value).toBe('Test value');
+  });
 });
 
 describe('downloadJSON', () => {
@@ -179,6 +389,8 @@ describe('downloadJSON', () => {
       process: {
         id: 'test',
         name: 'Test',
+        description: 'Test',
+        version: '1.0.0',
         exportedAt: '2024-01-01T00:00:00Z',
         progress: 0,
         phases: []

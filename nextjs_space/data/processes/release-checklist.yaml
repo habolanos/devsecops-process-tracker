@@ -1,0 +1,603 @@
+process:
+  id: "release-checklist-2026"
+  name: "Checklist de Liberación"
+  description: "Proceso de validación y checklist para liberaciones a producción con generación automática de reporte Excel"
+  version: "1.0.0"
+  estimatedTime: "45m"
+  
+  variables:
+    - key: "torre"
+      label: "Torre"
+      type: "select"
+      required: true
+      options:
+        - "Tienda"
+        - "Cds"
+        - "Cartera"
+        - "AMS"
+        - "Omnicanal"
+        - "Unity"
+        - "AMSX"
+        - "Juridico"
+        - "Bancoppel"
+        - "Comercial"
+    - key: "nombreProyecto"
+      label: "Nombre del Proyecto"
+      type: "text"
+      required: true
+      placeholder: "Ej: API-Pagos-v2"
+    - key: "api"
+      label: "API / Componente Principal"
+      type: "text"
+      required: true
+      placeholder: "Ej: api-payments"
+    - key: "componentesLiberar"
+      label: "Componentes a Liberar"
+      type: "text"
+      required: true
+      placeholder: "Ej: api-payments, api-notifications"
+    - key: "rfc"
+      label: "Número de RFC"
+      type: "text"
+      required: true
+      placeholder: "Ej: RFC123456"
+    - key: "notaInstalacion"
+      label: "Nota de Instalación"
+      type: "text"
+      required: true
+      placeholder: "Ej: NOTA789012"
+    - key: "uriMeet"
+      label: "URI de Reunión (Meet/Teams)"
+      type: "text"
+      required: false
+      placeholder: "https://meet.google.com/xxx-xxxx-xxx"
+    - key: "scmDiurno"
+      label: "SCM Diurno"
+      type: "text"
+      required: true
+      placeholder: "Nombre del SCM diurno"
+    - key: "sreNocturno"
+      label: "SRE Nocturno"
+      type: "text"
+      required: false
+      placeholder: "Nombre del SRE nocturno"
+    - key: "sreDiurno"
+      label: "SRE Diurno"
+      type: "text"
+      required: false
+      placeholder: "Nombre del SRE diurno"
+    - key: "lider"
+      label: "Líder Técnico"
+      type: "text"
+      required: true
+      placeholder: "Nombre del líder técnico"
+    - key: "tester"
+      label: "Tester"
+      type: "text"
+      required: false
+      placeholder: "Nombre del tester"
+    - key: "desarrollador"
+      label: "Desarrollador"
+      type: "text"
+      required: true
+      placeholder: "Nombre del desarrollador"
+    - key: "tipoLiberacion"
+      label: "Tipo de Liberación"
+      type: "select"
+      required: true
+      options:
+        - "Staging"
+        - "Produccion"
+        - "Pre-Productivo"
+    - key: "tiempoGuardia"
+      label: "Tiempo de Guardia"
+      type: "select"
+      required: true
+      options:
+        - "1 Hora"
+        - "2 Horas"
+        - "3 Horas"
+        - "4 Horas"
+        - "5 Horas"
+        - "6 Horas"
+        - "7 Horas"
+        - "8 Horas"
+        - "9 Horas"
+    - key: "repositoryUrl"
+      label: "URL del Repositorio"
+      type: "text"
+      required: true
+      placeholder: "https://github.com/org/repo"
+
+  phases:
+    # ========================================
+    # FASE 1: INFORMACIÓN GENERAL
+    # ========================================
+    - id: "phase-1"
+      name: "Información General"
+      description: "Registro de información general de la liberación"
+      order: 1
+      tasks:
+        - id: "task-1-1"
+          name: "Confirmar Datos del Proyecto"
+          description: "Verificar que todos los datos del proyecto están correctos"
+          order: 1
+          type: "check"
+          checkItem:
+            description: "He verificado que los datos del proyecto (torre, nombre, API, componentes) son correctos"
+            required: true
+          evidence:
+            type: "text"
+            required: false
+            description: "Comentarios adicionales sobre los datos del proyecto"
+
+        - id: "task-1-2"
+          name: "Registrar Repositorios a Liberar"
+          description: "Ingrese los nombres de los repositorios o componentes que serán liberados"
+          order: 2
+          type: "dynamic-list"
+          listConfig:
+            label: "Repositorio/Componente"
+            placeholder: "Ingrese nombres separados por coma, punto y coma, o salto de línea"
+            minItems: 1
+            maxItems: 20
+            allowDuplicates: false
+            separators:
+              - ","
+              - ";"
+              - "\n"
+            trimItems: true
+          evidence:
+            type: "text"
+            required: false
+            description: "Notas adicionales sobre los repositorios"
+          dependencies: ["task-1-1"]
+
+        - id: "task-1-2b"
+          name: "Detalle de Repositorios"
+          description: "Para cada repositorio, ingrese información adicional (versión, rama, comentarios)"
+          order: 3
+          type: "detail-list"
+          detailConfig:
+            sourceTaskId: "task-1-2"
+            placeholder: "Ingrese detalle para {item}"
+            maxLength: 200
+          evidence:
+            type: "text"
+            required: false
+            description: "Notas adicionales sobre los detalles"
+          dependencies: ["task-1-2"]
+
+        - id: "task-1-3"
+          name: "Confirmar Equipo de Trabajo"
+          description: "Verificar que el equipo de trabajo está completo"
+          order: 4
+          type: "multicheck"
+          checkItems:
+            - id: "check-scm"
+              description: "SCM asignado y disponible"
+              required: true
+            - id: "check-sre"
+              description: "SRE asignado (si aplica)"
+              required: false
+            - id: "check-lider"
+              description: "Líder técnico disponible"
+              required: true
+            - id: "check-dev"
+              description: "Desarrollador disponible para soporte"
+              required: true
+          evidence:
+            type: "text"
+            required: false
+            description: "Notas sobre disponibilidad del equipo"
+          dependencies: ["task-1-2"]
+
+    # ========================================
+    # FASE 2: VALIDACIONES PRE-LIBERACIÓN
+    # ========================================
+    - id: "phase-2"
+      name: "Validaciones Pre-Liberación"
+      description: "Validación de configuraciones antes de la liberación"
+      order: 2
+      tasks:
+        - id: "task-2-1"
+          name: "Validar Imagen en Harbor"
+          description: "Verificar que la imagen a liberar existe en Harbor"
+          order: 1
+          type: "multicheck"
+          checkItems:
+            - id: "check-rollback-harbor"
+              description: "Imagen de rollback existe en Harbor"
+              required: true
+            - id: "check-release-harbor"
+              description: "Imagen a liberar existe en Harbor"
+              required: true
+            - id: "check-fecha-imagen"
+              description: "Fecha de la imagen es la correcta"
+              required: true
+          evidence:
+            type: "image"
+            required: true
+            description: "Captura de Harbor mostrando las imágenes"
+
+        - id: "task-2-2"
+          name: "Validar Configuraciones"
+          description: "Verificar archivos de configuración"
+          order: 2
+          type: "multicheck"
+          checkItems:
+            - id: "check-properties"
+              description: "Configuración de properties validada"
+              required: false
+            - id: "check-yaml"
+              description: "Configuración YAML validada"
+              required: false
+            - id: "check-json"
+              description: "Configuración JSON validada"
+              required: false
+            - id: "check-servidor"
+              description: "Configuración de servidor validada"
+              required: false
+            - id: "check-config"
+              description: "Archivos config validados"
+              required: false
+            - id: "check-api"
+              description: "Configuración de API validada"
+              required: false
+          evidence:
+            type: "text"
+            required: false
+            description: "URLs o rutas de las configuraciones validadas"
+          dependencies: ["task-2-1"]
+
+        - id: "task-2-3"
+          name: "Validar Credenciales y Tokens"
+          description: "Verificar credenciales y tokens necesarios"
+          order: 3
+          type: "multicheck"
+          checkItems:
+            - id: "check-credenciales"
+              description: "Credenciales/Tokens validados"
+              required: false
+            - id: "check-timeout"
+              description: "Timeout de pipeline verificado"
+              required: false
+            - id: "check-manifest-bd"
+              description: "Manifest de BD validado (si aplica)"
+              required: false
+          evidence:
+            type: "text"
+            required: false
+            description: "Notas sobre credenciales verificadas"
+          dependencies: ["task-2-2"]
+
+        - id: "task-2-4"
+          name: "Validar Manifests Docker"
+          description: "Verificar manifests de Docker y YAML"
+          order: 4
+          type: "multicheck"
+          checkItems:
+            - id: "check-dockerfile"
+              description: "Manifest Docker validado"
+              required: false
+            - id: "check-yaml-manifest"
+              description: "Manifest YAML validado"
+              required: false
+            - id: "check-actualizaciones"
+              description: "Actualizaciones en imagen verificadas"
+              required: false
+          evidence:
+            type: "image"
+            required: false
+            description: "Captura de los manifests validados"
+          dependencies: ["task-2-3"]
+
+    # ========================================
+    # FASE 3: VALIDACIÓN DE PR Y DEUDA TÉCNICA
+    # ========================================
+    - id: "phase-3"
+      name: "PR y Deuda Técnica"
+      description: "Validación de Pull Request y deuda técnica"
+      order: 3
+      tasks:
+        - id: "task-3-1"
+          name: "Validar Integración de Arquitectura"
+          description: "Verificar que el código cumple con estándares de arquitectura"
+          order: 1
+          type: "check"
+          checkItem:
+            description: "El código ha sido revisado y cumple con los estándares de arquitectura"
+            required: true
+          evidence:
+            type: "image"
+            required: true
+            description: "Captura del PR aprobado por arquitectura"
+
+        - id: "task-3-2"
+          name: "Validar Deuda Técnica"
+          description: "Verificar que no hay deuda técnica crítica"
+          order: 2
+          type: "check"
+          checkItem:
+            description: "No existe deuda técnica crítica pendiente"
+            required: true
+          evidence:
+            type: "text"
+            required: false
+            description: "Descripción de deuda técnica existente (si aplica)"
+          dependencies: ["task-3-1"]
+
+        - id: "task-3-3"
+          name: "Validar Vulnerabilidades"
+          description: "Verificar escaneo de vulnerabilidades"
+          order: 3
+          type: "multicheck"
+          checkItems:
+            - id: "check-vuln-none"
+              description: "Sin vulnerabilidades críticas"
+              required: true
+            - id: "check-vuln-low"
+              description: "Vulnerabilidades bajas documentadas"
+              required: false
+            - id: "check-vuln-medium"
+              description: "Vulnerabilidades medias con plan de remediación"
+              required: false
+          evidence:
+            type: "image"
+            required: true
+            description: "Captura del reporte de vulnerabilidades"
+          dependencies: ["task-3-2"]
+
+    # ========================================
+    # FASE 4: VALIDACIÓN DE PIPELINES CD
+    # ========================================
+    - id: "phase-4"
+      name: "Pipelines CD"
+      description: "Validación de configuración de pipelines de CD"
+      order: 4
+      tasks:
+        - id: "task-4-1"
+          name: "Validar Variables de Pipeline"
+          description: "Verificar configuración de variables"
+          order: 1
+          type: "check"
+          checkItem:
+            description: "Variables de pipeline configuradas correctamente"
+            required: true
+          evidence:
+            type: "image"
+            required: true
+            description: "Captura de la configuración de variables"
+
+        - id: "task-4-2"
+          name: "Validar Puertos y Health Check"
+          description: "Verificar configuración de puertos y health checks"
+          order: 2
+          type: "multicheck"
+          checkItems:
+            - id: "check-puertos"
+              description: "Puertos configurados correctamente"
+              required: true
+            - id: "check-health"
+              description: "Health check configurado"
+              required: true
+          evidence:
+            type: "text"
+            required: false
+            description: "URLs de health check"
+          dependencies: ["task-4-1"]
+
+        - id: "task-4-3"
+          name: "Validar Orden de Despliegue"
+          description: "Verificar orden de tareas de despliegue"
+          order: 3
+          type: "check"
+          checkItem:
+            description: "Orden de despliegue de componentes validado"
+            required: true
+          evidence:
+            type: "text"
+            required: true
+            description: "Orden de despliegue de componentes"
+          dependencies: ["task-4-2"]
+
+    # ========================================
+    # FASE 5: COMPONENTES DE ROLLBACK
+    # ========================================
+    - id: "phase-5"
+      name: "Plan de Rollback"
+      description: "Documentación del plan de rollback"
+      order: 5
+      tasks:
+        - id: "task-5-1"
+          name: "Documentar Componentes de Rollback"
+          description: "Registrar información de rollback por componente"
+          order: 1
+          type: "check"
+          checkItem:
+            description: "Información de rollback documentada para cada componente"
+            required: true
+          evidence:
+            type: "text"
+            required: true
+            description: "Lista de componentes con número de release y rama para rollback"
+
+        - id: "task-5-2"
+          name: "Validar URLs de Rollback"
+          description: "Verificar que las URLs de rollback son accesibles"
+          order: 2
+          type: "check"
+          checkItem:
+            description: "URLs de release para rollback verificadas"
+            required: true
+          evidence:
+            type: "image"
+            required: false
+            description: "Captura de los releases disponibles para rollback"
+          dependencies: ["task-5-1"]
+
+    # ========================================
+    # FASE 6: EJECUCIÓN DE LIBERACIÓN
+    # ========================================
+    - id: "phase-6"
+      name: "Ejecución de Liberación"
+      description: "Registro de la ejecución del despliegue"
+      order: 6
+      tasks:
+        - id: "task-6-1"
+          name: "Iniciar Guardia"
+          description: "Registrar inicio de la guardia de liberación"
+          order: 1
+          type: "check"
+          checkItem:
+            description: "Guardia iniciada - equipo conectado y disponible"
+            required: true
+          evidence:
+            type: "image"
+            required: true
+            description: "Captura del chat/meet mostrando inicio de guardia"
+
+        - id: "task-6-2"
+          name: "Ejecutar Despliegue CD"
+          description: "Ejecutar y validar el pipeline de CD"
+          order: 2
+          type: "multicheck"
+          checkItems:
+            - id: "check-cd-ejecutado"
+              description: "Pipeline CD ejecutado exitosamente"
+              required: true
+            - id: "check-despliegue-ok"
+              description: "Despliegue verificado en ambiente"
+              required: true
+          evidence:
+            type: "image"
+            required: true
+            description: "Captura del pipeline ejecutado exitosamente"
+          dependencies: ["task-6-1"]
+
+        - id: "task-6-3"
+          name: "Validar Servicios Desplegados"
+          description: "Verificar que los servicios responden correctamente"
+          order: 3
+          type: "check"
+          checkItem:
+            description: "Servicios validados con curls/health checks exitosos"
+            required: true
+          evidence:
+            type: "image"
+            required: true
+            description: "Captura de los health checks exitosos"
+          dependencies: ["task-6-2"]
+
+        - id: "task-6-4"
+          name: "Finalizar Guardia"
+          description: "Registrar fin de la guardia"
+          order: 4
+          type: "check"
+          checkItem:
+            description: "Guardia finalizada - liberación exitosa"
+            required: true
+          evidence:
+            type: "text"
+            required: false
+            description: "Comentarios finales de la guardia"
+          dependencies: ["task-6-3"]
+
+    # ========================================
+    # FASE 7: GENERACIÓN DE REPORTE
+    # ========================================
+    - id: "phase-7"
+      name: "Generación de Reporte"
+      description: "Generación automática del reporte de liberación en Excel"
+      order: 7
+      tasks:
+        - id: "task-7-1"
+          name: "Agregar Comentarios Generales"
+          description: "Documentar comentarios generales de la liberación"
+          order: 1
+          type: "standard"
+          evidence:
+            type: "text"
+            required: true
+            description: "Comentarios generales de la liberación realizada"
+
+        - id: "task-7-1b"
+          name: "Formulario de Validación Final"
+          description: "Complete los campos de validación final para el reporte"
+          order: 2
+          type: "form"
+          formConfig:
+            layout:
+              type: "grid"
+              columns: 3
+              gap: "medium"
+            fields:
+              - id: "campo1"
+                label: "#OFFSET-1#"
+                type: "text"
+                required: true
+                placeholder: "Nombre del validador"
+                maxLength: 100
+                colSpan: 1
+                valueCell: "F85"
+              - id: "campo2"
+                label: "#OFFSET-1#"
+                type: "date"
+                required: true
+                colSpan: 1
+                valueCell: "F86"
+              - id: "campo3"
+                label: "#OFFSET-1#"
+                type: "time"
+                required: true
+                colSpan: 1
+                valueCell: "F87"
+              - id: "campo4"
+                label: "#OFFSET-1#"
+                type: "select"
+                required: true
+                options:
+                  - "Aprobado"
+                  - "Aprobado con observaciones"
+                  - "Rechazado"
+                colSpan: 1
+                valueCell: "S85"
+              - id: "campo5"
+                label: "#OFFSET-1#"
+                type: "select"
+                required: true
+                options:
+                  - "Bajo"
+                  - "Medio"
+                  - "Alto"
+                  - "Crítico"
+                colSpan: 1
+                valueCell: "S86"
+              - id: "campo6"
+                label: "#OFFSET-1#"
+                type: "textarea"
+                required: false
+                placeholder: "Observaciones adicionales"
+                maxLength: 500
+                colSpan: 3
+                valueCell: "S87"
+          evidence:
+            type: "form"
+            required: true
+            description: "Los datos del formulario constituyen la evidencia de validación"
+          dependencies: ["task-7-1"]
+
+        - id: "task-7-2"
+          name: "Generar Reporte Excel"
+          description: "Genera automáticamente el checklist de liberación en formato Excel"
+          order: 3
+          type: "export-excel"
+          exportConfig:
+            templatePath: "/templates/TEMPLATE_Checklist_Liberacion.xlsx"
+            outputFilename: "Checklist_Liberacion_{fecha}_{rfc}_{notaInstalacion}"
+            autoDownload: true
+          evidence:
+            type: "text"
+            required: false
+            description: "El archivo Excel se genera automáticamente al completar esta tarea"
+          dependencies: ["task-7-1"]
