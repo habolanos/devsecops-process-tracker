@@ -4,22 +4,37 @@ import TaskCard from '@/app/process/_components/task-card';
 import { TaskState } from '@/lib/types';
 
 // Mock the stores and utilities
-vi.mock('@/lib/store', () => ({
-  useProcessStore: vi.fn((selector) => {
-    const state = {
-      process: {
-        id: 'test-process',
-        name: 'Test Process',
-        capturedVariables: { rfc: 'RFC123', notaInstalacion: 'NOTA456' }
+const mockProcessState = {
+  process: {
+    id: 'test-process',
+    name: 'Test Process',
+    capturedVariables: { rfc: 'RFC123', notaInstalacion: 'NOTA456' },
+    phases: [
+      {
+        id: 'phase-1',
+        tasks: [],
+        activities: [],
       },
-      completeTask: vi.fn(),
-      uncompleteTask: vi.fn(),
-      toggleCheckItem: vi.fn(),
-      canCompleteCheckTask: vi.fn().mockReturnValue(true)
-    };
-    return selector ? selector(state) : state;
-  })
-}));
+    ],
+  },
+  completeTask: vi.fn(),
+  uncompleteTask: vi.fn(),
+  toggleCheckItem: vi.fn(),
+  canCompleteCheckTask: vi.fn().mockReturnValue(true)
+};
+
+vi.mock('@/lib/store', () => {
+  const mockedUseProcessStore = vi.fn((selector) => {
+    return selector ? selector(mockProcessState) : mockProcessState;
+  });
+  Object.assign(mockedUseProcessStore, {
+    getState: () => mockProcessState,
+  });
+
+  return {
+    useProcessStore: mockedUseProcessStore,
+  };
+});
 
 vi.mock('@/lib/i18n-context', () => ({
   useI18n: () => ({

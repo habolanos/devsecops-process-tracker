@@ -106,7 +106,7 @@ describe('importProcessFromJSON', () => {
       process: {
         id: 'test',
         name: 'Test',
-        description: 'Test',
+        description: '',
         version: '1.0.0',
         exportedAt: '2024-01-01T00:00:00Z',
         progress: 0,
