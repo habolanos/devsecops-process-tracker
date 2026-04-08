@@ -5,6 +5,72 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.25.0](https://github.com/habolanos/devsecops-process-tracker/compare/1.24.0...1.25.0) (2026-04-08)
+
+
+### 🚀 Features
+
+* add dedicated Excel generation button for export-excel task type ([a991eb4](https://github.com/habolanos/devsecops-process-tracker/commit/a991eb428731202ad7dd8f3b64d0b95e76d61eb6))
+* add detail-list task type with Excel mapping ([6d728a5](https://github.com/habolanos/devsecops-process-tracker/commit/6d728a597341e21fa28ce382f2fb210309b9bbdb))
+* add dynamic-list task type and optimize checkbox performance ([7bc770e](https://github.com/habolanos/devsecops-process-tracker/commit/7bc770e2a4bea0b59ba230e7ffc7eb8517991250))
+* add excel generator for release checklist report ([e91beec](https://github.com/habolanos/devsecops-process-tracker/commit/e91beecc9434ed5ef60c88d4292471121685da30))
+* add export-excel task type for automatic release checklist generation ([b2dd5af](https://github.com/habolanos/devsecops-process-tracker/commit/b2dd5afadb00d549c596f4729739f2e9fb918aed))
+* add release-checklist process to index ([1c9527f](https://github.com/habolanos/devsecops-process-tracker/commit/1c9527f24ab8e22f0067f72fec5dd50967054393))
+* auto-complete task after successful Excel generation ([6772fcf](https://github.com/habolanos/devsecops-process-tracker/commit/6772fcff3751ea956d53db15ba53d4bd3134af8f))
+* open evidence modal when task requires evidence on completion ([61e3086](https://github.com/habolanos/devsecops-process-tracker/commit/61e30869df632863d4c42e6424c5e59d5b99cf44))
+
+
+### 🐛 Bug Fixes
+
+* add evidence support for new task types in Word report ([1210820](https://github.com/habolanos/devsecops-process-tracker/commit/12108207c148b8158b2103bb64f86096c5312f8b))
+* add export-excel task type to YAML parser ([da884a8](https://github.com/habolanos/devsecops-process-tracker/commit/da884a8bece2a36e35b249e515c9925b0cb62f79))
+* add form task type with grid layout and Excel mapping ([8d27565](https://github.com/habolanos/devsecops-process-tracker/commit/8d275654d3c52a38c6ff8bb4acf9de227c163a2e))
+* complete JSON export with all task data for new types ([82000f3](https://github.com/habolanos/devsecops-process-tracker/commit/82000f3c5828ac9afb4083288999b46794dec9c5))
+* improve timer status message visibility - larger text and better colors ([330da49](https://github.com/habolanos/devsecops-process-tracker/commit/330da49971dee1ea7d95f9e0bbc62dcda930c40c))
+* improve timer tooltip to always show estimated time and status ([a8a48dd](https://github.com/habolanos/devsecops-process-tracker/commit/a8a48ddf956fe46f94f85bb9c6adf714ed1025d0))
+* pause timer on component unmount when leaving process page ([f575488](https://github.com/habolanos/devsecops-process-tracker/commit/f575488f97d52e7fd2a1db91ea3a475b3104372b))
+* reduce timer status text to 10px and improve tooltip with full status ([41c1f68](https://github.com/habolanos/devsecops-process-tracker/commit/41c1f68c2332643f0f2511dea7889f50921e38e9))
+* replace cell tokens in form labels for Word report ([e52d7d7](https://github.com/habolanos/devsecops-process-tracker/commit/e52d7d722bafad86fc523ac2a57187eadc6aaf85)), closes [#OFFSET-1](https://github.com/habolanos/devsecops-process-tracker/issues/OFFSET-1)
+* **tests:** stabilize coverage failures in task-card and storage ([169cc5e](https://github.com/habolanos/devsecops-process-tracker/commit/169cc5ed50b10f950c271d37eb074437ff42e62d))
+* **yaml-parser:** add detail-list to valid task types validation ([6e3f687](https://github.com/habolanos/devsecops-process-tracker/commit/6e3f6871a976049c808d9a9dbcf872e690c2e90e))
+
+
+### 🔃 Refactoring
+
+* rename README-DOCKER.md to README.dockerhub.md ([66d5e8f](https://github.com/habolanos/devsecops-process-tracker/commit/66d5e8f6f5dad6c7dae554f81952ab1a9819fcea))
+
+
+### 📖 Documentation
+
+* add links to additional README files in main README ([fa22c26](https://github.com/habolanos/devsecops-process-tracker/commit/fa22c26e5f60c88ddda200ff6b3c2ad01a8208fe))
+* move change history to README.history.md ([f0476e9](https://github.com/habolanos/devsecops-process-tracker/commit/f0476e9ae11704de85522c92624ec9581f4e7ab4))
+* **readme:** add v1.29.1 changelog for cell reference tokens ([86b0ed7](https://github.com/habolanos/devsecops-process-tracker/commit/86b0ed70ba62f103f69b0d1df7455c1e07508a3a))
+* **readme:** add v1.29.2 changelog for Word evidence fix ([fe47316](https://github.com/habolanos/devsecops-process-tracker/commit/fe47316824286d664f677f33cdeb4eb680fd44ba))
+* **readme:** add v1.29.3 changelog for Word token replacement fix ([386b523](https://github.com/habolanos/devsecops-process-tracker/commit/386b523a1e0b8bc0ca13d44bd35784ab8390c236))
+* **readme:** add v1.29.4 changelog for JSON export fix ([d268713](https://github.com/habolanos/devsecops-process-tracker/commit/d268713dba8e5d68f885d61f935641bc351f333e))
+* **readme:** add v1.29.5 changelog for testing coverage ([98f8309](https://github.com/habolanos/devsecops-process-tracker/commit/98f830940d145873d105a7773a3edcae2c772849))
+* **readme:** fix markdown rendering issue ([1b71622](https://github.com/habolanos/devsecops-process-tracker/commit/1b716229d9f058fe423e2e840b1f8e2272b3fb92))
+* **readme:** update changelog to remove YAML version update reference ([e69fdfb](https://github.com/habolanos/devsecops-process-tracker/commit/e69fdfb1928fca288dc89984d232c938e7896f5c))
+* **readme:** update README with v1.28.0 changes ([9761fa5](https://github.com/habolanos/devsecops-process-tracker/commit/9761fa5732ff1e8818f3a9392e5a7248ac7f49d9))
+* **readme:** update v1.29.5 changelog to include YAML version updates ([eef8bc9](https://github.com/habolanos/devsecops-process-tracker/commit/eef8bc9172a5ce67ef2181548cf3faf2a2bb56bd))
+* update README with v1.27.0 changes and improve structure ([f1d152b](https://github.com/habolanos/devsecops-process-tracker/commit/f1d152b7b55a76127628d530f8db171d26bc25ba))
+
+
+### 🧪 Tests
+
+* add tests for export-excel task type and release checklist process ([20d3ece](https://github.com/habolanos/devsecops-process-tracker/commit/20d3ece618dc07c043adb20779b9b6a2a5c33b9b))
+* add unit tests for excel-template-helper and json-utils ([0daa08d](https://github.com/habolanos/devsecops-process-tracker/commit/0daa08d87291f581c787dbdf8e096f618bad7693))
+* **coverage:** add targeted tests for low-coverage modules ([f7a9824](https://github.com/habolanos/devsecops-process-tracker/commit/f7a9824e1139fbdf072deaaf4da061678cc553ff))
+* fix excel-generator tests to match implementation ([91ec7b0](https://github.com/habolanos/devsecops-process-tracker/commit/91ec7b0dfe1c8ea16a29e1cb4de1f414b71956a9))
+* increase excel-generator.ts coverage from 16% to 95% ([dab7783](https://github.com/habolanos/devsecops-process-tracker/commit/dab7783ee87017b0cbb446f49bc58ec109f41b03))
+* increase test coverage for task-card.tsx and store.ts ([807059b](https://github.com/habolanos/devsecops-process-tracker/commit/807059bae7528d71c3db3452925777849608c38e))
+
+
+### 🔀 CI/CD
+
+* relax commitlint rules to be less restrictive ([3d057b0](https://github.com/habolanos/devsecops-process-tracker/commit/3d057b0db2c92630195a649ed6c57bc03f44a868))
+* relax commitlint rules to be less restrictive ([e7c9f05](https://github.com/habolanos/devsecops-process-tracker/commit/e7c9f052749ac7a8c481c23d7c4a2be1d596dc11))
+
 ## [1.24.0](https://github.com/habolanos/devsecops-process-tracker/compare/1.23.0...1.24.0) (2026-04-06)
 
 
