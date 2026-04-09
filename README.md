@@ -109,6 +109,7 @@ Documentación específica para la imagen Docker en Docker Hub. Incluye:
 | **Lucide React** | 0.446.0 | Iconos |
 | **lodash** | 4.17.23 | Utilidades JavaScript |
 | **webpack** | 5.105.4 | Bundler (usado por Next.js) |
+| **bpmn-js** | ^18.14.0 | Visualización de diagramas BPMN 2.0 interactivos |
 
 ## 📁 Estructura del Proyecto
 
@@ -130,7 +131,8 @@ nextjs_space/
 │   │       ├── variables-form.tsx  # Formulario de variables dinámicas
 │   │       ├── config-upload.tsx   # Upload de configuración DevOps
 │   │       ├── dynamic-link-button.tsx # Botones con URLs dinámicas
-│   │       └── process-timer.tsx   # Timer de proceso (Start/Pause)
+│   │       ├── process-timer.tsx   # Timer de proceso (Start/Pause)
+│   │       └── bpmn-viewer.tsx     # Visor BPMN 2.0 interactivo (lazy load)
 │   └── api/                     # API Routes (Next.js)
 │       ├── processes/          # GET /api/processes - listar plantillas
 │       │   └── [id]/          # GET /api/processes/[id] - detalle
@@ -145,6 +147,7 @@ nextjs_space/
 ├── lib/                         # Lógica de negocio central
 │   ├── types.ts                # Tipos TypeScript principales
 │   ├── store.ts                # Zustand store - proceso actual
+│   ├── bpmn-generator.ts       # Generador XML BPMN 2.0 desde ProcessState
 │   ├── session-store.ts        # Zustand store - gestión multi-proceso
 │   ├── loading-store.ts        # Zustand store - tracking de operaciones
 │   ├── config-store.ts         # Zustand store - config DevOps
