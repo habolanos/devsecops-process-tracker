@@ -152,7 +152,9 @@
     "minimatch": "^3.1.4",
     "brace-expansion": "^1.1.13",
     "picomatch": "^4.0.4",
-    "tar": "^7.5.11"
+    "tar": "^7.5.11",
+    "glob": "^13.0.0",
+    "rimraf": "^5.0.0"
   },
   "browserslist": [
     "ie >= 11",
