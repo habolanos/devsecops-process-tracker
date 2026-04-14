@@ -6,6 +6,7 @@ Historial completo de versiones y cambios del DevSecOps Process Tracker.
 
 | Fecha | Versión | Descripción |
 |-------|---------|-------------|
+| 2026-04-14 | 2.0.3 | **Docker Build Fix**: Eliminado archivo `.docker.labels` (valores sin comillas causaban `Process: not found`). Labels OCI hardcodeados directamente en `LABEL` instruction del Dockerfile. Resueltos 6 warnings `UndefinedVar` y error de shell sourcing. ARGs dinámicos (`BUILD_DATE`, `VCS_REF`, `VERSION`) permanecen configurables. |
 | 2026-04-14 | 2.0.2 | **npm Deprecation Warnings Resolution**: Overrides de dependencias transitivas deprecadas. `glob@^13.0.0` reemplaza `glob@7.2.3` (elimina también `inflight@1.0.6`). `rimraf@^5.0.0` reemplaza `rimraf@2.7.1`. Warnings restantes sin reemplazo API-compatible: `whatwg-encoding`, `lodash.isequal`, `mumath`, `fstream` — seguros como dependencias transitivas. |
 | 2026-04-14 | 2.0.1 | **Vercel Deployment Fix**: Corrección de error "No Output Directory named dist" en Vercel. `output: 'standalone'` removido del next.config.js por defecto (solo necesario para Docker). Agregado `NEXT_OUTPUT_STANDALONE=1` como env var condicional en Dockerfile. Creado `vercel.json` con buildCommand, installCommand y outputDirectory correctos para despliegue en Vercel. Build ahora funciona en ambos entornos: Vercel (default) y Docker (standalone). |
 | 2026-04-08 | **2.0.0** | **Visualización BPMN Interactiva**: Vista de diagrama BPMN 2.0 generada automáticamente desde `ProcessState`. Toggle Lista/BPMN en header del proceso. Generador `lib/bpmn-generator.ts` que convierte el proceso en XML BPMN 2.0 con pool, lanes por fase, tareas tipadas (userTask/manualTask/serviceTask), sequence flows y coordenadas DI calculadas. Componente `bpmn-viewer.tsx` con: carga lazy (`ssr: false`) de `bpmn-js`, colores de estado por tarea (verde=completada, azul=seleccionada, amarillo=pendiente, gris=bloqueada), toolbar de zoom (in/out/fit), leyenda de estados, click en tarea → navega a lista y activa la tarea. 39 nuevos tests unitarios para `bpmn-generator.ts`. Bump de versión mayor por nueva funcionalidad de visualización de procesos. |
@@ -52,7 +53,7 @@ Historial completo de versiones y cambios del DevSecOps Process Tracker.
 ## 📈 Estadísticas de Versiones
 
 - **Total de versiones**: 43+
-- **Última versión**: 2.0.2
+- **Última versión**: 2.0.3
 - **Primer lanzamiento**: 1.0.0 (2026-03-01)
 - **Periodo de desarrollo**: ~38 días
 - **Promedio de versiones por semana**: ~7-8
