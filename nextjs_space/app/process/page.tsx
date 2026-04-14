@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, lazy, Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useProcessStore } from '@/lib/store';
 import { useSessionStore } from '@/lib/session-store';
@@ -9,7 +10,8 @@ import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n-context';
 import { exportProcessToJSON, downloadJSON } from '@/lib/json-utils';
 import { generateWordDocument, downloadWordDocument } from '@/lib/word-generator';
-import { ArrowLeft, Download, FileText, CheckCircle2, Globe, Settings, FileJson } from 'lucide-react';
+import { ArrowLeft, Download, FileText, CheckCircle2, Globe, Settings, FileJson, List, Workflow } from 'lucide-react';
+
 import { ThemeToggle } from '@/components/theme-toggle';
 import ProcessSidebar from './_components/process-sidebar';
 import TaskCard from './_components/task-card';
@@ -18,14 +20,17 @@ import ProgressBar from './_components/progress-bar';
 import { ProcessTabs } from '@/components/process-tabs';
 import { ModalSkeleton } from '@/components/skeletons/modal-skeleton';
 import { useLoadingStore } from '@/lib/loading-store';
+import { DynamicLinksList } from './_components/dynamic-link-button';
+import ProcessTimer from './_components/process-timer';
+import { useConfigStore } from '@/lib/config-store';
 
 // Lazy load modals for better performance
 const EvidenceModal = lazy(() => import('./_components/evidence-modal'));
 const VariablesForm = lazy(() => import('./_components/variables-form'));
 const ConfigUpload = lazy(() => import('./_components/config-upload').then(m => ({ default: m.ConfigUpload })));
-import { DynamicLinksList } from './_components/dynamic-link-button';
-import ProcessTimer from './_components/process-timer';
-import { useConfigStore } from '@/lib/config-store';
+
+// Lazy load BPMN viewer — bpmn-js requires browser APIs (canvas, window), ssr: false mandatory
+const BpmnViewer = dynamic(() => import('./_components/bpmn-viewer'), { ssr: false });
 
 export default function ProcessPage() {
   const router = useRouter();
@@ -39,9 +44,10 @@ export default function ProcessPage() {
     }))
   );
   
-  const { setCurrentTask, markProcessComplete, stopProcessTimer, pauseProcessTimer } = useProcessStore(
+  const { setCurrentTask, setCurrentPhase, markProcessComplete, stopProcessTimer, pauseProcessTimer } = useProcessStore(
     useShallow((state) => ({
       setCurrentTask: state?.setCurrentTask,
+      setCurrentPhase: state?.setCurrentPhase,
       markProcessComplete: state?.markProcessComplete,
       stopProcessTimer: state?.stopProcessTimer,
       pauseProcessTimer: state?.pauseProcessTimer,
@@ -54,12 +60,21 @@ export default function ProcessPage() {
   const [showEvidenceModal, setShowEvidenceModal] = useState(false);
   const [showVariablesForm, setShowVariablesForm] = useState(false);
   const [showConfigUpload, setShowConfigUpload] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'bpmn'>('list');
   
   // Stable callback for viewing evidence to prevent memo breaking
   const handleViewEvidence = useCallback((taskId: string) => {
     setCurrentTask?.(taskId);
     setShowEvidenceModal(true);
   }, [setCurrentTask]);
+
+  // BPMN task click: navigate to phase + switch to list view
+  const handleBpmnTaskClick = useCallback((taskId: string, phaseId: string) => {
+    setCurrentPhase?.(phaseId);
+    setCurrentTask?.(taskId);
+    setViewMode('list');
+    toast.info('Tarea seleccionada — vista lista activada');
+  }, [setCurrentPhase, setCurrentTask]);
   
   // Config store
   const configIsLoaded = useConfigStore((state) => state.isLoaded);
@@ -218,6 +233,34 @@ export default function ProcessPage() {
                 </button>
               )}
 
+              {/* View mode toggle: Lista / BPMN */}
+              <div className="flex items-center border border-border rounded-lg overflow-hidden" data-testid="view-mode-toggle">
+                <button
+                  onClick={() => setViewMode('list')}
+                  title="Vista Lista"
+                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${
+                    viewMode === 'list'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-secondary text-muted-foreground hover:bg-accent hover:text-foreground'
+                  }`}
+                >
+                  <List className="w-4 h-4" />
+                  <span>Lista</span>
+                </button>
+                <button
+                  onClick={() => setViewMode('bpmn')}
+                  title="Vista BPMN"
+                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${
+                    viewMode === 'bpmn'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-secondary text-muted-foreground hover:bg-accent hover:text-foreground'
+                  }`}
+                >
+                  <Workflow className="w-4 h-4" />
+                  <span>BPMN</span>
+                </button>
+              </div>
+
               <ThemeToggle language={language} />
               <button
                 onClick={() => setLanguage?.(language === 'es' ? 'en' : 'es')}
@@ -287,62 +330,94 @@ export default function ProcessPage() {
 
       {/* Main Content - Scrollable */}
       <div className="flex-1 overflow-y-auto">
-        <div className="flex max-w-7xl mx-auto">
-        {/* Sidebar */}
-        <ProcessSidebar />
 
-        {/* Task List */}
-        <main className="flex-1 p-6">
-          {currentPhase && (
-            <div>
-              <div className="mb-6">
-                <h2 className="text-xl font-bold text-foreground mb-2">
-                  {currentPhase.name}
-                </h2>
-                {currentPhase.description && (
-                  <p className="text-muted-foreground mb-4">{currentPhase.description}</p>
-                )}
-                <ProgressBar
-                  progress={currentPhase.progress ?? 0}
-                  label={t('phase.progress')}
-                  variant="secondary"
-                />
-                
-                {/* Phase-level Dynamic Links */}
-                {currentPhase.dynamicLinks && currentPhase.dynamicLinks.length > 0 && (
-                  <div className="mt-4 p-4 bg-card rounded-lg border border-border">
-                    <DynamicLinksList links={currentPhase.dynamicLinks} phaseId={currentPhase.id} />
-                  </div>
-                )}
-              </div>
-
-              <div className="grid gap-4">
-                {/* Render Activities if present */}
-                {currentPhase.activities && currentPhase.activities.length > 0 ? (
-                  currentPhase.activities.map((activity) => (
-                    <ActivityCard
-                      key={activity.id}
-                      activity={activity}
-                      phaseId={currentPhaseId ?? ''}
-                      onViewEvidence={(task) => handleViewEvidence(task?.id ?? '')}
-                    />
-                  ))
-                ) : (
-                  /* Render direct tasks (legacy support) */
-                  currentPhase.tasks?.map((task) => (
-                    <TaskCard
-                      key={task?.id}
-                      task={task}
-                      phaseId={currentPhaseId ?? ''}
-                      onViewEvidence={() => handleViewEvidence(task?.id ?? '')}
-                    />
-                  )) ?? null
-                )}
+        {/* ── BPMN Diagram View ── */}
+        {viewMode === 'bpmn' && (
+          <div className="max-w-7xl mx-auto px-6 py-6 h-full">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-bold text-foreground">Diagrama del Proceso</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Haz clic en cualquier tarea para ir directamente a ella
+                </p>
               </div>
             </div>
-          )}
-        </main>
-        </div>
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center h-64 text-muted-foreground">
+                  <span className="text-sm">Cargando diagrama…</span>
+                </div>
+              }
+            >
+              <BpmnViewer
+                process={process}
+                currentTaskId={currentTaskId}
+                onTaskClick={handleBpmnTaskClick}
+              />
+            </Suspense>
+          </div>
+        )}
+
+        {/* ── List View ── */}
+        {viewMode === 'list' && (
+          <div className="flex max-w-7xl mx-auto">
+            {/* Sidebar */}
+            <ProcessSidebar />
+
+            {/* Task List */}
+            <main className="flex-1 p-6">
+              {currentPhase && (
+                <div>
+                  <div className="mb-6">
+                    <h2 className="text-xl font-bold text-foreground mb-2">
+                      {currentPhase.name}
+                    </h2>
+                    {currentPhase.description && (
+                      <p className="text-muted-foreground mb-4">{currentPhase.description}</p>
+                    )}
+                    <ProgressBar
+                      progress={currentPhase.progress ?? 0}
+                      label={t('phase.progress')}
+                      variant="secondary"
+                    />
+
+                    {/* Phase-level Dynamic Links */}
+                    {currentPhase.dynamicLinks && currentPhase.dynamicLinks.length > 0 && (
+                      <div className="mt-4 p-4 bg-card rounded-lg border border-border">
+                        <DynamicLinksList links={currentPhase.dynamicLinks} phaseId={currentPhase.id} />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid gap-4">
+                    {/* Render Activities if present */}
+                    {currentPhase.activities && currentPhase.activities.length > 0 ? (
+                      currentPhase.activities.map((activity) => (
+                        <ActivityCard
+                          key={activity.id}
+                          activity={activity}
+                          phaseId={currentPhaseId ?? ''}
+                          onViewEvidence={(task) => handleViewEvidence(task?.id ?? '')}
+                        />
+                      ))
+                    ) : (
+                      /* Render direct tasks (legacy support) */
+                      currentPhase.tasks?.map((task) => (
+                        <TaskCard
+                          key={task?.id}
+                          task={task}
+                          phaseId={currentPhaseId ?? ''}
+                          onViewEvidence={() => handleViewEvidence(task?.id ?? '')}
+                        />
+                      )) ?? null
+                    )}
+                  </div>
+                </div>
+              )}
+            </main>
+          </div>
+        )}
+
       </div>
 
       {/* Evidence Modal - Lazy loaded */}
