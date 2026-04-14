@@ -53,7 +53,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY nextjs_space ./
 
 # Disable telemetry during build
-ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_TELEMETRY_DISABLED=1 \
+    NEXT_OUTPUT_STANDALONE=1
 
 # Build application with npm cache
 RUN --mount=type=cache,target=/root/.npm \
