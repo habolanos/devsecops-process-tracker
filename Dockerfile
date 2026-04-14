@@ -53,7 +53,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY nextjs_space ./
 
 # Disable telemetry during build
-ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_TELEMETRY_DISABLED=1 \
+    NEXT_OUTPUT_STANDALONE=1
 
 # Build application with npm cache
 RUN --mount=type=cache,target=/root/.npm \
@@ -73,25 +74,19 @@ RUN npm install -g npm@latest
 # Re-declare build args for this stage (required for LABEL to access them)
 ARG BUILD_DATE
 ARG VCS_REF
-ARG VERSION
+ARG VERSION=latest
 ARG BASE_IMAGE
 
-# Copy labels configuration file
-COPY .docker.labels .docker.labels
-
-# Load label variables from file
-RUN set -a && . .docker.labels && set +a
-
 # OCI Image Labels (https://github.com/opencontainers/image-spec/blob/main/annotations.md)
-LABEL org.opencontainers.image.title="${LABEL_TITLE}" \
-      org.opencontainers.image.description="${LABEL_DESCRIPTION}" \
+LABEL org.opencontainers.image.title="DevSecOps Process Tracker" \
+      org.opencontainers.image.description="Web application for DevSecOps process management with evidence tracking, dependencies, and exports" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.revision="${VCS_REF}" \
-      org.opencontainers.image.vendor="${LABEL_VENDOR}" \
-      org.opencontainers.image.licenses="${LABEL_LICENSES}" \
-      org.opencontainers.image.source="${LABEL_SOURCE}" \
-      org.opencontainers.image.documentation="${LABEL_DOCUMENTATION}" \
+      org.opencontainers.image.vendor="Harold Adrian" \
+      org.opencontainers.image.licenses="GPL-3.0" \
+      org.opencontainers.image.source="https://github.com/habolanos/devsecops-process-tracker" \
+      org.opencontainers.image.documentation="https://github.com/habolanos/devsecops-process-tracker/blob/main/README.md" \
       org.opencontainers.image.base.name="${BASE_IMAGE}"
 
 WORKDIR /app
