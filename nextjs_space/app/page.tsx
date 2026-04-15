@@ -551,24 +551,19 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="mt-20 py-8 border-t border-border bg-background">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-semibold rounded-full border border-emerald-200 dark:border-emerald-800">
-                <span className="w-2 h-2 bg-emerald-500 rounded-full" />
-                {t('footer.opensource')}
-              </span>
-              <a href="https://github.com/habolanos/devsecops-process-tracker" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors">
-                <Github className="w-4 h-4" />
-                <span className="text-sm">{t('footer.repo')}</span>
-              </a>
-              <a href="https://www.linkedin.com/in/habolanos" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-blue-600 transition-colors">
-                <Linkedin className="w-4 h-4" />
-                <span className="text-sm">{t('footer.linkedin')}</span>
-              </a>
-            </div>
-            <p className="text-muted-foreground text-sm">Process Tracker DevSecOps by Harold Adrian &copy; 2026</p>
+        <div className="max-w-7xl mx-auto px-6 flex flex-col items-center gap-3">
+          <div className="flex items-center gap-3">
+            <img src="https://badgen.net/badge/Open%20Source%20%3F/Yes%21/green?icon=github" alt={t('footer.opensource')} className="h-6" />
+            <a href="https://github.com/habolanos/devsecops-process-tracker" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border bg-card text-foreground hover:bg-accent hover:border-foreground/20 transition-all shadow-sm">
+              <Github className="w-4 h-4" />
+              <span className="text-sm font-medium">{t('footer.repo')}</span>
+            </a>
+            <a href="https://www.linkedin.com/in/habolanos" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border bg-card text-foreground hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 dark:hover:bg-blue-900/30 dark:hover:border-blue-700 dark:hover:text-blue-400 transition-all shadow-sm">
+              <Linkedin className="w-4 h-4" />
+              <span className="text-sm font-medium">{t('footer.linkedin')}</span>
+            </a>
           </div>
+          <p className="text-muted-foreground text-xs">Process Tracker DevSecOps by Harold Adrian &copy; 2026</p>
         </div>
       </footer>
     </div>
