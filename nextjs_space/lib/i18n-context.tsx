@@ -165,6 +165,11 @@ const translations: Translations = {
   'subprocess.source.github': { es: 'GitHub', en: 'GitHub' },
   'subprocess.source.url': { es: 'URL', en: 'URL' },
   'subprocess.source.local': { es: 'Local', en: 'Local' },
+
+  // Footer
+  'footer.opensource': { es: 'Open Source', en: 'Open Source' },
+  'footer.repo': { es: 'Repositorio', en: 'Repository' },
+  'footer.linkedin': { es: 'LinkedIn', en: 'LinkedIn' },
 };
 
 interface I18nContextType {
