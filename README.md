@@ -1201,4 +1201,15 @@ Este programa se distribuye con la esperanza de que sea útil, pero SIN NINGUNA 
 
 ---
 
+## 🌍 My Visits on real time
+
+[![ClustrMaps](https://www.clustrmaps.com/map_v2.png?d=2IMzz90NUzGxjVLJ385PGzeVLOoAvDNxc7El0ESQzbw&cl=ffffff)](https://clustrmaps.com/site/1c9qy)
+
+### 📊 Repo's Stats
+
+![GitHub stars](https://img.shields.io/github/stars/habolanos/devsecops-process-tracker?style=social)
+![GitHub forks](https://img.shields.io/github/forks/habolanos/devsecops-process-tracker?style=social)
+![GitHub watchers](https://img.shields.io/github/watchers/habolanos/devsecops-process-tracker?style=social)
+![Open Source? Yes!](https://badgen.net/badge/Open%20Source%20%3F/Yes%21/green?icon=github)
+
 **DevSecOps Process Tracker** © 2026 - Desarrollado por **Harold Adrian** con ❤️ usando Next.js y TypeScript

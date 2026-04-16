@@ -8,7 +8,7 @@ import { ProcessState, ProcessExportJSON } from '@/lib/types';
 import { useProcessStore } from '@/lib/store';
 import { useSessionStore } from '@/lib/session-store';
 import { useI18n } from '@/lib/i18n-context';
-import { Upload, FileText, Globe, Shield, Rocket, AlertTriangle, FolderOpen, GitPullRequest, Play, Pause, CheckCircle2, XCircle, Layers, Trash2, Download } from 'lucide-react';
+import { Upload, FileText, Globe, Shield, Rocket, AlertTriangle, FolderOpen, GitPullRequest, Play, Pause, CheckCircle2, XCircle, Layers, Trash2, Download, Github, Linkedin } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useLoadingStore } from '@/lib/loading-store';
 import { ProcessTabs } from '@/components/process-tabs';
@@ -551,8 +551,19 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="mt-20 py-8 border-t border-border bg-background">
-        <div className="max-w-7xl mx-auto px-6 text-center text-muted-foreground text-sm">
-          <p>Process Tracker MVP by Harold Adrian - habolanos &copy; 2026</p>
+        <div className="max-w-7xl mx-auto px-6 flex flex-col items-center gap-3">
+          <div className="flex items-center gap-3">
+            <img src="https://badgen.net/badge/Open%20Source%20%3F/Yes%21/green?icon=github" alt={t('footer.opensource')} className="h-6" />
+            <a href="https://github.com/habolanos/devsecops-process-tracker" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border bg-card text-foreground hover:bg-accent hover:border-foreground/20 transition-all shadow-sm">
+              <Github className="w-4 h-4" />
+              <span className="text-sm font-medium">{t('footer.repo')}</span>
+            </a>
+            <a href="https://www.linkedin.com/in/habolanos" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border bg-card text-foreground hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 dark:hover:bg-blue-900/30 dark:hover:border-blue-700 dark:hover:text-blue-400 transition-all shadow-sm">
+              <Linkedin className="w-4 h-4" />
+              <span className="text-sm font-medium">{t('footer.linkedin')}</span>
+            </a>
+          </div>
+          <p className="text-muted-foreground text-xs">Process Tracker DevSecOps by Harold Adrian &copy; 2026</p>
         </div>
       </footer>
     </div>
