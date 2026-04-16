@@ -212,6 +212,7 @@ jobs:
         if: always()
         with:
           sarif_file: 'trivy-fs-results.sarif'
+          category: 'ci / trivy-fs'
 
   # ==========================================================================
   # Security - SAST with CodeQL
@@ -318,6 +319,7 @@ jobs:
         if: always()
         with:
           sarif_file: 'trivy-image-results.sarif'
+          category: 'ci / trivy-image'
 
   # ==========================================================================
   # CI Summary
