@@ -13,8 +13,8 @@ interface Translations {
 
 const translations: Translations = {
   // Home page
-  'app.title': { es: 'Process Tracker DevSecOps', en: 'Process Tracker DevSecOps' },
-  'app.subtitle': { es: 'Gestiona de procesos de paso a paso con evidencia completa', en: 'Manage and execute processes step-by-step with full evidence' },
+  'app.title': { es: 'Process Tracker', en: 'Process Tracker' },
+  'app.subtitle': { es: 'Estandarización y Gestion de procesos DevSecOps', en: 'Standardization and Management of DevSecOps Processes' },
   'upload.yaml': { es: 'Cargar Proceso YAML', en: 'Upload YAML Process' },
   'upload.json': { es: 'Importar JSON', en: 'Import JSON' },
   'upload.drag': { es: 'Arrastra tu archivo aquí o haz clic para seleccionar', en: 'Drag your file here or click to select' },
