@@ -14,7 +14,7 @@ interface Translations {
 const translations: Translations = {
   // Home page
   'app.title': { es: 'Process Tracker', en: 'Process Tracker' },
-  'app.subtitle': { es: 'Gestiona y ejecuta procesos paso a paso con evidencia completa', en: 'Manage and execute processes step-by-step with full evidence' },
+  'app.subtitle': { es: 'Estandarización y Gestion de procesos DevSecOps', en: 'Standardization and Management of DevSecOps Processes' },
   'upload.yaml': { es: 'Cargar Proceso YAML', en: 'Upload YAML Process' },
   'upload.json': { es: 'Importar JSON', en: 'Import JSON' },
   'upload.drag': { es: 'Arrastra tu archivo aquí o haz clic para seleccionar', en: 'Drag your file here or click to select' },
@@ -165,6 +165,11 @@ const translations: Translations = {
   'subprocess.source.github': { es: 'GitHub', en: 'GitHub' },
   'subprocess.source.url': { es: 'URL', en: 'URL' },
   'subprocess.source.local': { es: 'Local', en: 'Local' },
+
+  // Footer
+  'footer.opensource': { es: 'Open Source', en: 'Open Source' },
+  'footer.repo': { es: 'Repositorio', en: 'Repository' },
+  'footer.linkedin': { es: 'LinkedIn', en: 'LinkedIn' },
 };
 
 interface I18nContextType {
