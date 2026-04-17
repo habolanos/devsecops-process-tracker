@@ -1,6 +1,64 @@
 # DevSecOps Process Tracker
 
-Aplicación web para gestión y seguimiento de procesos DevSecOps con soporte para evidencias, dependencias entre tareas, links dinámicos y exportación de resultados.
+[![GitHub stars](https://img.shields.io/github/stars/habolanos/devsecops-process-tracker?style=social)](https://github.com/habolanos/devsecops-process-tracker/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/habolanos/devsecops-process-tracker?style=social)](https://github.com/habolanos/devsecops-process-tracker/network/members)
+[![Open Source](https://badgen.net/badge/Open%20Source/Yes/green?icon=github)](https://github.com/habolanos/devsecops-process-tracker)
+
+> **Aplicación web profesional para gestión y seguimiento de procesos DevSecOps** con soporte completo para evidencias, dependencias entre tareas, links dinámicos, y múltiples formatos de exportación (Word, Excel, JSON, BPMN 2.0).
+>
+> Ideal para equipos de **DevOps, Seguridad, Auditoría y Compliance** que necesitan estandarizar procesos y mantener trazabilidad completa.
+
+**[🚀 Demo en Vivo](https://devsecops-process-tracker.vercel.app)** • **[📖 Guía YAML](README.process.md)** • **[🔄 BPMN 2.0](README.bpmn.md)** • **[🐳 Docker Hub](README.dockerhub.md)**
+
+---
+
+## 📋 Tabla de Contenidos
+
+1. [Inicio Rápido](#-inicio-rápido) - Ejecutar en 30 segundos con Docker
+2. [Características](#-características-principales) - Todo lo que puedes hacer
+3. [Arquitectura](#-arquitectura) - Cómo está construido
+4. [Guía de Uso](#-guía-de-uso) - Cómo usar la aplicación
+5. [Desarrollo](#-desarrollo) - Contribuir al proyecto
+6. [CI/CD](#-cicd-pipelines) - Pipelines disponibles
+7. [Historial](#-historial-de-cambios) - Changelog
+8. [Licencia](#-licencia) - GPL-3.0
+
+---
+
+## 🚀 Inicio Rápido
+
+### Opción 1: Docker (30 segundos ⏱️)
+
+```bash
+# Ejecutar última versión estable
+docker run -d -p 3000:3000 habolanos/devsecops-process-tracker:latest
+
+# Ver en: http://localhost:3000
+```
+
+**[📖 Ver opciones avanzadas de Docker →](#-docker)**
+
+### Opción 2: Desarrollo Local
+
+```bash
+# 1. Clonar
+git clone https://github.com/habolanos/devsecops-process-tracker.git
+cd devsecops-process-tracker/nextjs_space
+
+# 2. Instalar dependencias
+npm install
+
+# 3. Iniciar servidor de desarrollo
+npm run dev
+```
+
+La aplicación estará disponible en `http://localhost:3000`.
+
+### Opción 3: Deploy en Vercel
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/habolanos/devsecops-process-tracker&root-directory=nextjs_space)
+
+---
 
 ## ✨ Características Principales
 
@@ -218,33 +276,6 @@ nextjs_space/
 └── scripts/
     └── safe-seed.ts            # Seed de datos iniciales
 ```
-
-## 🚀 Inicio Rápido
-
-### Prerequisitos
-- Node.js 20+
-- npm 8+
-
-### Instalación
-
-```bash
-# Entrar al directorio
-cd nextjs_space
-
-# Instalar dependencias
-npm install
-
-# Iniciar servidor de desarrollo
-npm run dev
-```
-
-La aplicación estará disponible en `http://localhost:3000` (o `3001` si 3000 está ocupado).
-
-## 🔧 Configuración
-
-### Variables de Entorno (Opcional)
-
-Crear `.env.local` para activar modo S3 (sin esto, usa base64 local):
 
 ```env
 # AWS S3 Configuration
