@@ -227,6 +227,17 @@ export interface ProcessTimeTracking {
 }
 
 // ============================================
+// Process Author (User Identity)
+// ============================================
+
+export interface ProcessAuthor {
+  name: string;           // Hero name or custom name
+  avatarId: string;      // Marvel hero ID (e.g. 'iron-man')
+  isCustom: boolean;     // true = user entered custom name, false = random hero
+  capturedAt: string;    // ISO timestamp when author was captured
+}
+
+// ============================================
 // Runtime State Types
 // ============================================
 
@@ -245,6 +256,7 @@ export interface ProcessState {
   variableDefinitions: ProcessVariableYAML[];  // Variable definitions from YAML
   capturedVariables: CapturedVariables;        // User-captured values
   timeTracking: ProcessTimeTracking;           // Process time tracking
+  author?: ProcessAuthor;                       // Optional: who executed the process
 }
 
 export interface PhaseState {
@@ -339,6 +351,7 @@ export interface ProcessExportJSON {
     exportedAt: string;
     completedAt?: string;
     progress: number;
+    author?: ProcessAuthor;      // Optional: who executed the process
     phases: PhaseExport[];
   };
 }

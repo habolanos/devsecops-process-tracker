@@ -143,6 +143,7 @@ describe('json-utils additional coverage', () => {
           version: '2.0.0',
           exportedAt: '2024-01-01T00:00:00Z',
           progress: 75,
+          author: undefined,
           phases: [
             {
               id: 'imported-phase',
@@ -180,7 +181,7 @@ describe('json-utils additional coverage', () => {
         }
       };
 
-      const result = importProcessFromJSON(exportData);
+      const result = importProcessFromJSON(exportData as any);
       
       expect(result.id).toBe('imported-process');
       expect(result.name).toBe('Imported Process');
@@ -198,6 +199,7 @@ describe('json-utils additional coverage', () => {
           version: '2.0.0',
           exportedAt: '2024-01-01T00:00:00Z',
           progress: 75,
+          author: undefined,
           phases: [
             {
               id: 'imported-phase',
@@ -232,7 +234,7 @@ describe('json-utils additional coverage', () => {
         }
       };
 
-      const result = importProcessFromJSON(exportData);
+      const result = importProcessFromJSON(exportData as any);
       
       expect(result.phases[0].activities).toHaveLength(1);
       expect(result.phases[0].activities[0].tasks).toHaveLength(1);

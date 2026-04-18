@@ -1,4 +1,5 @@
-import { ProcessState, ProcessExportJSON, TaskExport, PhaseExport, ActivityExport, TaskState } from './types';
+import { ProcessState, ProcessExportJSON, TaskExport, PhaseExport, ActivityExport, TaskState, ProcessAuthor } from './types';
+import { useUserProfileStore } from './user-profile-store';
 
 // Helper function to export a single task
 async function exportTask(task: TaskState): Promise<TaskExport> {
@@ -49,6 +50,20 @@ async function exportTask(task: TaskState): Promise<TaskExport> {
 }
 
 export async function exportProcessToJSON(process: ProcessState): Promise<ProcessExportJSON> {
+  // Capture author: prefer existing, fallback to current user profile
+  const author: ProcessAuthor | undefined = process.author || (() => {
+    const userProfile = useUserProfileStore.getState().profile;
+    if (userProfile) {
+      return {
+        name: userProfile.name,
+        avatarId: userProfile.avatarId,
+        isCustom: userProfile.isCustom,
+        capturedAt: new Date().toISOString(),
+      };
+    }
+    return undefined;
+  })();
+
   const exportData: ProcessExportJSON = {
     process: {
       id: process.id,
@@ -58,6 +73,7 @@ export async function exportProcessToJSON(process: ProcessState): Promise<Proces
       exportedAt: new Date().toISOString(),
       completedAt: process.completedAt,
       progress: process.progress,
+      author,
       phases: await Promise.all(
         process.phases.map(async (phase) => {
           // Export activities
@@ -159,6 +175,8 @@ export function importProcessFromJSON(jsonData: ProcessExportJSON): ProcessState
         sessions: [],
         totalActiveTime: 0
       },
+      // Preserve original author from imported JSON
+      author: process.author || undefined,
       phases: process.phases.map((phase) => ({
         id: phase.id,
         name: phase.name,
