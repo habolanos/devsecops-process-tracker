@@ -12,6 +12,7 @@ import { Upload, FileText, Globe, Shield, Rocket, AlertTriangle, FolderOpen, Git
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useLoadingStore } from '@/lib/loading-store';
 import { ProcessTabs } from '@/components/process-tabs';
+import { UserProfilePopover } from '@/components/user-profile-popover';
 import { toast } from 'sonner';
 
 interface ProcessTemplate {
@@ -186,6 +187,7 @@ export default function HomePage() {
             </h1>
           </div>
           <div className="flex items-center gap-2">
+            <UserProfilePopover language={language} />
             <ThemeToggle language={language} />
             <button
               onClick={() => setLanguage?.(language === 'es' ? 'en' : 'es')}

@@ -70,6 +70,7 @@ La aplicación estará disponible en `http://localhost:3000`.
 - **Links Dinámicos**: URLs parametrizables con variables del proceso
 - **Timer de Proceso**: Tracking de tiempo con sesiones múltiples
 - **Exportación**: JSON y documentos Word con evidencias
+- **Perfil de Usuario**: Identidad opcional con avatares Marvel (nombre personalizable o superhéroe aleatorio), incluido en exportaciones
 - **Modo Dark/Light**: Toggle de tema con soporte del sistema operativo
 - **Gestión Multi-proceso**: Tabs para trabajar con múltiples procesos simultáneamente
 - **Visualización BPMN 2.0**: Diagramas interactivos con navegación por click
@@ -216,7 +217,9 @@ nextjs_space/
 │           └── delete/        # POST - eliminar de S3
 │
 ├── components/                  # Componentes UI reutilizables (50+ de shadcn)
-│   └── ui/                     # Botones, inputs, modals, etc.
+│   ├── ui/                     # Botones, inputs, modals, etc.
+│   ├── marvel-avatars.tsx       # SVG avatares de 10 superhéroes Marvel
+│   └── user-profile-popover.tsx # Popover de perfil de usuario con avatar
 │
 ├── lib/                         # Lógica de negocio central
 │   ├── types.ts                # Tipos TypeScript principales
@@ -225,6 +228,7 @@ nextjs_space/
 │   ├── session-store.ts        # Zustand store - gestión multi-proceso
 │   ├── loading-store.ts        # Zustand store - tracking de operaciones
 │   ├── config-store.ts         # Zustand store - config DevOps
+│   ├── user-profile-store.ts   # Zustand store - perfil de usuario con avatares
 │   ├── persist-storage.ts      # Storage comprimido con debounce
 │   ├── helpers.ts              # Funciones: progreso, dependencias, validación
 │   ├── yaml-parser.ts          # Parser YAML → ProcessState
