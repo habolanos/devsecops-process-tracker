@@ -5,7 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUserProfileStore } from '@/lib/user-profile-store';
-import { HeroAvatar, HeroGrid, getHeroById } from '@/components/marvel-avatars';
+import { HeroAvatar, HeroGrid, getHeroById } from '@/components/avatars';
 import { Dices, Save, Pencil, User, RotateCcw } from 'lucide-react';
 
 interface UserProfilePopoverProps {

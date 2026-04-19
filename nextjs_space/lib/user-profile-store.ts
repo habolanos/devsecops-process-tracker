@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { createCompressedStorage } from './persist-storage';
-import { getRandomHero, HEROES, HeroDef } from '@/components/marvel-avatars';
+import { getRandomHero, HEROES, HeroDef } from '@/components/avatars';
 
 // ============================================
 // User Profile Types
