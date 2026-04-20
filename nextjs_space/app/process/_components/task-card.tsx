@@ -13,7 +13,15 @@ import { DynamicLinksList } from './dynamic-link-button';
 import { DynamicListInput } from './dynamic-list-input';
 import { DetailListInput } from './detail-list-input';
 import { FormRenderer } from './form-renderer';
-import { generateReleaseExcel, processToReleaseReport, downloadExcel, generateReleaseFilename } from '@/lib/excel-generator';
+import {
+  generateReleaseExcel,
+  processToReleaseReport,
+  downloadExcel,
+  generateReleaseFilename,
+  executeExportPlan,
+  resolveExportPlan,
+  buildExportFilename,
+} from '@/lib/excel-generator';
 import { ListItem, DetailItem, FormFieldValue } from '@/lib/types';
 
 interface TaskCardProps {
@@ -101,16 +109,23 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
     return filledRequired.length === requiredFields.length;
   };
 
-  // Get templatePath from export-excel task for token replacement in form labels
+  // Resolve the Excel templatePath used for token replacement in form labels.
+  // Preference order:
+  //   1. process.export.templatePath (declarative, global)
+  //   2. An export-excel task in the same phase/activity that declares templatePath
   const getTemplatePath = (): string | undefined => {
     if (!process) return undefined;
+
+    // 1) Global process-level declarative config
+    const fromProcess = process.export?.templatePath;
+    if (fromProcess) return fromProcess;
+
+    // 2) Local export-excel task in same phase/activity
     const phases = process.phases || [];
-    
-    // Find the export-excel task in the same phase/activity
-    const allTasks = activityId 
+    const allTasks = activityId
       ? phases.find(p => p.id === phaseId)?.activities?.find(a => a.id === activityId)?.tasks || []
       : phases.find(p => p.id === phaseId)?.tasks || [];
-      
+
     const exportTask = allTasks.find(t => t.type === 'export-excel' && t.exportConfig);
     return exportTask?.exportConfig?.templatePath;
   };
@@ -138,32 +153,59 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
     }
   };
 
-  // Handle Excel export for export-excel task type
+  // Handle Excel export for export-excel task type.
+  // Prefers the declarative engine (process.export + task.exportConfig merge).
+  // Falls back to the legacy release-specific generator only if the task
+  // explicitly declares a templatePath and no declarative plan is resolvable.
   const handleExportExcel = async () => {
     try {
       const process = useProcessStore.getState().process;
       if (!process) return;
-      
+
+      // 1) Try the declarative engine first
+      const plan = resolveExportPlan(process, task);
+      if (plan) {
+        const blob = await executeExportPlan(plan, process);
+        const filename = buildExportFilename(plan.outputFilename, process);
+        downloadExcel(blob, filename);
+        if (!task.completed) {
+          storeActions.completeTask?.(phaseId, task.id, activityId);
+        }
+        toast.success('Reporte Excel generado y tarea completada');
+        return;
+      }
+
+      // 2) Legacy path (release-checklist-specific) — requires explicit templatePath.
+      //    We intentionally do NOT default to a hardcoded template path anymore.
+      const templatePath = task.exportConfig?.templatePath;
+      if (!templatePath) {
+        toast.error('Falta configuración de exportación (templatePath)', {
+          description:
+            'Declare process.export.templatePath o task.exportConfig.templatePath en el YAML.',
+        });
+        return;
+      }
+
       const reportData = processToReleaseReport(process);
       const variables = process.capturedVariables || {};
-      const templatePath = task.exportConfig?.templatePath || '/templates/TEMPLATE_Checklist_Liberacion.xlsx';
-      
       const blob = await generateReleaseExcel(templatePath, reportData);
-      const filename = generateReleaseFilename(
-        process.name || 'process',
-        variables.rfc,
-        variables.notaInstalacion
-      );
+      const filename = task.exportConfig?.outputFilename
+        ? buildExportFilename(task.exportConfig.outputFilename, process)
+        : generateReleaseFilename(
+            process.name || 'process',
+            variables.rfc,
+            variables.notaInstalacion,
+          );
       downloadExcel(blob, filename);
-      
-      // Auto-complete task after successful Excel generation
+
       if (!task.completed) {
         storeActions.completeTask?.(phaseId, task.id, activityId);
       }
       toast.success('Reporte Excel generado y tarea completada');
     } catch (error) {
       console.error('Excel export error:', error);
-      toast.error('Error al generar el reporte Excel');
+      const message = error instanceof Error ? error.message : 'Error desconocido';
+      toast.error('Error al generar el reporte Excel', { description: message });
     }
   };
 

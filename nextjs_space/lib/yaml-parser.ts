@@ -1,6 +1,68 @@
 import yaml from 'js-yaml';
-import { ProcessYAML, ProcessState, PhaseState, TaskState, ActivityState, SubprocessState, CapturedVariables, CheckItemState } from './types';
+import { ProcessYAML, ProcessState, PhaseState, TaskState, ActivityState, SubprocessState, CapturedVariables, CheckItemState, ProcessExportConfig } from './types';
 import { parseTimeString } from './helpers';
+
+const CELL_REF_RE = /^[A-Z]+[0-9]+$/;
+
+function validateCellRef(ref: unknown, context: string): void {
+  if (typeof ref !== 'string' || !CELL_REF_RE.test(ref)) {
+    throw new Error(`Invalid cell reference "${ref}" in ${context} (expected format like "F85")`);
+  }
+}
+
+function validateExportConfig(cfg: ProcessExportConfig | undefined, ctx: string): void {
+  if (!cfg) return;
+  if (!cfg.templatePath || typeof cfg.templatePath !== 'string') {
+    throw new Error(`${ctx}: 'templatePath' is required`);
+  }
+  const m = cfg.mappings;
+  if (!m) return;
+  if (m.variables) {
+    for (const [k, ref] of Object.entries(m.variables)) {
+      validateCellRef(ref, `${ctx}.mappings.variables['${k}']`);
+    }
+  }
+  if (m.staticCells) {
+    for (const ref of Object.keys(m.staticCells)) {
+      validateCellRef(ref, `${ctx}.mappings.staticCells key`);
+    }
+  }
+  if (m.time) {
+    for (const [k, ref] of Object.entries(m.time)) {
+      if (ref !== undefined) validateCellRef(ref, `${ctx}.mappings.time.${k}`);
+    }
+  }
+  if (m.process) {
+    for (const [k, ref] of Object.entries(m.process)) {
+      if (ref !== undefined) validateCellRef(ref, `${ctx}.mappings.process.${k}`);
+    }
+  }
+  if (m.comments) {
+    validateCellRef(m.comments.cell, `${ctx}.mappings.comments.cell`);
+  }
+  for (const [idx, src] of (m.taskSources || []).entries()) {
+    const where = `${ctx}.mappings.taskSources[${idx}]`;
+    if (!src || typeof src !== 'object' || !('kind' in src)) {
+      throw new Error(`${where}: missing 'kind'`);
+    }
+    if (src.kind === 'list') {
+      if (!src.sourceTaskId) throw new Error(`${where}: 'sourceTaskId' required for kind=list`);
+      if (!src.column || !/^[A-Z]+$/.test(src.column)) throw new Error(`${where}: invalid 'column'`);
+      if (typeof src.startRow !== 'number') throw new Error(`${where}: 'startRow' must be a number`);
+    } else if (src.kind === 'detail') {
+      if (!src.sourceTaskId) throw new Error(`${where}: 'sourceTaskId' required for kind=detail`);
+      if (!Array.isArray(src.sections) || src.sections.length === 0) {
+        throw new Error(`${where}: 'sections' must be a non-empty array`);
+      }
+    } else if (src.kind === 'form') {
+      if (!src.sourceTaskId) throw new Error(`${where}: 'sourceTaskId' required for kind=form`);
+    } else if (src.kind === 'checklist') {
+      if (typeof src.startRow !== 'number') throw new Error(`${where}: 'startRow' must be a number`);
+    } else {
+      throw new Error(`${where}: unknown kind '${(src as { kind?: string }).kind}'`);
+    }
+  }
+}
 
 export function parseYAMLToProcess(yamlContent: string): ProcessState {
   try {
@@ -10,11 +72,14 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
       throw new Error('Invalid YAML structure: missing "process" key');
     }
 
-    const { id, name, description, version, variables, phases, subprocesses, estimatedTime } = parsed.process as any;
+    const { id, name, description, version, variables, phases, subprocesses, estimatedTime, export: exportCfg } = parsed.process as any;
 
     if (!id || !name || !phases || !Array.isArray(phases)) {
       throw new Error('Invalid YAML: process must have id, name, and phases array');
     }
+
+    // Validate declarative export configuration (process-level)
+    validateExportConfig(exportCfg as ProcessExportConfig | undefined, `process.export`);
 
     // Helper function to parse checkItems based on task type
     const parseCheckItems = (task: any, contextId: string): CheckItemState[] => {
@@ -66,6 +131,29 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
           throw new Error(`Invalid task structure in ${contextId}`);
         }
         const taskType = task.type || 'standard';
+
+        // Validate export-excel task: must have templatePath itself OR inherit from process.export
+        if (taskType === 'export-excel') {
+          const taskTemplatePath = task.exportConfig?.templatePath;
+          const inherits = task.exportConfig?.inherit !== false;
+          const hasProcessTemplate = !!exportCfg?.templatePath;
+          if (!taskTemplatePath && !(inherits && hasProcessTemplate)) {
+            throw new Error(
+              `Task '${task.id}' (type=export-excel) in ${contextId} requires either exportConfig.templatePath or process.export.templatePath`,
+            );
+          }
+          // Also validate its mapping overrides if any
+          if (task.exportConfig?.mappings || task.exportConfig?.templatePath) {
+            validateExportConfig(
+              {
+                templatePath: taskTemplatePath || exportCfg?.templatePath || 'inherited',
+                mappings: task.exportConfig?.mappings,
+              } as ProcessExportConfig,
+              `task '${task.id}'.exportConfig`,
+            );
+          }
+        }
+
         return {
           id: task.id,
           name: task.name,
@@ -159,6 +247,7 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
         totalActiveTime: 0
       },
       subprocesses: parseSubprocesses(subprocesses || []),
+      export: exportCfg as ProcessExportConfig | undefined,
       phases: phases.map((phase) => {
         // Phase must have either activities or tasks (or both for backward compatibility)
         const hasActivities = phase.activities && Array.isArray(phase.activities) && phase.activities.length > 0;
