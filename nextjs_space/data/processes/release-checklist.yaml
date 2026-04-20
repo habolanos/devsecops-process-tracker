@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=../../../schemas/process.schema.json
 process:
   id: "release-checklist-2026"
   name: "Checklist de Liberación"
