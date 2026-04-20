@@ -41,6 +41,7 @@ export interface ProcessYAML {
     name: string;
     description: string;
     version: string;
+    estimatedTime?: string;             // Human-readable duration ("45m", "1h30m", "4h")
     variables?: ProcessVariableYAML[];  // Global process variables
     phases: PhaseYAML[];
     subprocesses?: SubprocessYAML[];    // External process references (optional)

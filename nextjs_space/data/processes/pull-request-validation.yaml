@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=../../../schemas/process.schema.json
 process:
   id: "pull-request-validation-2026"
   name: "Validación de Pull Request"
