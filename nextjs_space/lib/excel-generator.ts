@@ -1,6 +1,14 @@
 'use client';
 
 import * as ExcelJS from 'exceljs';
+import type {
+  ProcessExportConfig,
+  ProcessExportMappings,
+  ExportTaskSource,
+  ProcessState,
+  TaskState,
+  FormFieldConfig,
+} from './types';
 
 // Use flexible types to avoid strict type checking issues
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -627,4 +635,346 @@ export function generateReleaseFilename(
   const notaStr = nota ? `_NOTA${nota}` : '';
   
   return `Checklist_Liberacion_${dateStr}${rfcStr}${notaStr}_${safeName}.xlsx`;
+}
+
+// ============================================================================
+// Declarative Export Engine
+// ============================================================================
+// Generic, YAML-driven Excel filler. Reads an ExportPlan (process.export merged
+// with task-level exportConfig overrides) and writes cells into the template
+// according to the mappings. No process-specific logic lives here.
+// ============================================================================
+
+/** Format a Date as date-like token. Supports a few common patterns. */
+function formatDateToken(d: Date, fmt = 'YYYYMMDD'): string {
+  const pad = (n: number, w = 2) => String(n).padStart(w, '0');
+  const map: Record<string, string> = {
+    YYYY: String(d.getFullYear()),
+    MM: pad(d.getMonth() + 1),
+    DD: pad(d.getDate()),
+    HH: pad(d.getHours()),
+    mm: pad(d.getMinutes()),
+    ss: pad(d.getSeconds()),
+  };
+  return fmt.replace(/YYYY|MM|DD|HH|mm|ss/g, (t) => map[t] ?? t);
+}
+
+/** Sanitize a value so it is safe to use as a filename fragment. */
+function sanitizeFilenameFragment(s: string): string {
+  return s.replace(/[^a-zA-Z0-9._-]+/g, '_').replace(/^_+|_+$/g, '');
+}
+
+/**
+ * Interpolates a filename/comment pattern with runtime tokens.
+ * Supported tokens:
+ *   {today}                      -> YYYYMMDD
+ *   {today:YYYY-MM-DD}           -> custom format
+ *   {now:HHmm}                   -> current time with custom format
+ *   {process.id|name|version}    -> process metadata
+ *   {vars.<key>}                 -> capturedVariables[key]
+ *   {fecha}                      -> alias for {today:DDMMYYYY} (ES legacy)
+ *   {rfc}, {notaInstalacion}, …  -> alias for {vars.rfc}, {vars.notaInstalacion}
+ */
+export function interpolateExportTokens(
+  pattern: string,
+  process: ProcessState | ProcessData,
+  opts: { sanitize?: boolean } = {},
+): string {
+  if (!pattern) return '';
+  const vars: Record<string, string> = (process?.capturedVariables as Record<string, string>) || {};
+  const now = new Date();
+
+  return pattern.replace(/\{([^}]+)\}/g, (_match, rawToken: string) => {
+    const token = rawToken.trim();
+    let value = '';
+
+    if (token === 'fecha') {
+      value = formatDateToken(now, 'DDMMYYYY');
+    } else if (token === 'today' || token.startsWith('today:')) {
+      const fmt = token.includes(':') ? token.split(':').slice(1).join(':') : 'YYYYMMDD';
+      value = formatDateToken(now, fmt);
+    } else if (token === 'now' || token.startsWith('now:')) {
+      const fmt = token.includes(':') ? token.split(':').slice(1).join(':') : 'HHmmss';
+      value = formatDateToken(now, fmt);
+    } else if (token.startsWith('process.')) {
+      const key = token.slice('process.'.length);
+      value = String((process as Record<string, unknown>)?.[key] ?? '');
+    } else if (token.startsWith('vars.')) {
+      const key = token.slice('vars.'.length);
+      value = String(vars[key] ?? '');
+    } else if (token in vars) {
+      // Bare variable name shortcut: {rfc} == {vars.rfc}
+      value = String(vars[token] ?? '');
+    } else {
+      // Unknown token -> empty string (keeps filenames clean)
+      value = '';
+    }
+
+    return opts.sanitize ? sanitizeFilenameFragment(value) : value;
+  });
+}
+
+/** Flattens every task in the process (phases.tasks + phases.activities.tasks). */
+export function collectAllTasks(process: ProcessData): TaskState[] {
+  const all: TaskState[] = [];
+  for (const phase of process?.phases ?? []) {
+    for (const t of phase.tasks ?? []) all.push(t);
+    for (const act of phase.activities ?? []) {
+      for (const t of act.tasks ?? []) all.push(t);
+    }
+  }
+  return all;
+}
+
+/** Find a task by id, searching phases and activities. */
+function findTaskById(process: ProcessData, taskId: string): TaskState | undefined {
+  return collectAllTasks(process).find((t) => t.id === taskId);
+}
+
+/** Validate a cell reference like "F85" or "AA10". */
+function isValidCellRef(ref: unknown): ref is string {
+  return typeof ref === 'string' && /^[A-Z]+[0-9]+$/.test(ref);
+}
+
+/** Safely set a cell if the reference is valid and value is not nullish. */
+function setCell(
+  ws: ExcelJS.Worksheet,
+  ref: string | undefined,
+  value: unknown,
+): void {
+  if (!isValidCellRef(ref)) return;
+  if (value === undefined || value === null || value === '') return;
+  ws.getCell(ref).value = value as ExcelJS.CellValue;
+}
+
+/** Resolve the effective export plan from process + triggering task. */
+export function resolveExportPlan(
+  process: ProcessData,
+  triggeringTask?: TaskState,
+): ProcessExportConfig | null {
+  const processExport = (process?.export as ProcessExportConfig | undefined) ?? null;
+  const taskExport = triggeringTask?.exportConfig;
+
+  // Nothing at all -> cannot build a plan
+  if (!processExport && !taskExport) return null;
+
+  // Task can override templatePath / outputFilename / autoDownload and extend mappings
+  const inherit = taskExport?.inherit !== false && !!processExport;
+
+  const base: ProcessExportConfig | null = inherit ? processExport : null;
+  const templatePath = taskExport?.templatePath ?? base?.templatePath ?? '';
+  if (!templatePath) return null;
+
+  const merged: ProcessExportConfig = {
+    templatePath,
+    templateVersion: base?.templateVersion,
+    templateSha256: base?.templateSha256,
+    outputFilename: taskExport?.outputFilename ?? base?.outputFilename,
+    sheet: base?.sheet,
+    autoDownload: taskExport?.autoDownload ?? base?.autoDownload ?? true,
+    mappings: mergeMappings(base?.mappings, taskExport?.mappings),
+  };
+  return merged;
+}
+
+function mergeMappings(
+  base?: ProcessExportMappings,
+  override?: ProcessExportMappings,
+): ProcessExportMappings | undefined {
+  if (!base && !override) return undefined;
+  if (!base) return override;
+  if (!override) return base;
+  return {
+    variables: { ...(base.variables || {}), ...(override.variables || {}) },
+    staticCells: { ...(base.staticCells || {}), ...(override.staticCells || {}) },
+    time: { ...(base.time || {}), ...(override.time || {}) },
+    process: { ...(base.process || {}), ...(override.process || {}) },
+    taskSources: [...(base.taskSources || []), ...(override.taskSources || [])],
+    comments: override.comments ?? base.comments,
+    evidences: override.evidences ?? base.evidences,
+  };
+}
+
+/**
+ * Generic, declarative Excel export.
+ * Fetches the template, applies all mappings declared in `plan`, and returns a Blob.
+ */
+export async function executeExportPlan(
+  plan: ProcessExportConfig,
+  process: ProcessData,
+): Promise<Blob> {
+  if (!plan?.templatePath) {
+    throw new Error('executeExportPlan: missing templatePath');
+  }
+
+  const workbook = new ExcelJS.Workbook();
+  const response = await fetch(plan.templatePath);
+  if (!response.ok) {
+    throw new Error(`Template not found at ${plan.templatePath} (HTTP ${response.status})`);
+  }
+  const arrayBuffer = await response.arrayBuffer();
+  await workbook.xlsx.load(arrayBuffer);
+
+  const targetSheetName = plan.sheet;
+  const worksheet = targetSheetName
+    ? workbook.getWorksheet(targetSheetName) ?? workbook.worksheets[0]
+    : workbook.worksheets[0];
+
+  const m = plan.mappings || {};
+  const vars: Record<string, string> = process?.capturedVariables || {};
+
+  // --- 1) Static cells (literal values) ---
+  if (m.staticCells) {
+    for (const [ref, value] of Object.entries(m.staticCells)) {
+      setCell(worksheet, ref, value);
+    }
+  }
+
+  // --- 2) Variables -> cells ---
+  if (m.variables) {
+    for (const [varKey, ref] of Object.entries(m.variables)) {
+      setCell(worksheet, ref, vars[varKey]);
+    }
+  }
+
+  // --- 3) Process metadata -> cells ---
+  if (m.process) {
+    setCell(worksheet, m.process.id, process?.id);
+    setCell(worksheet, m.process.name, process?.name);
+    setCell(worksheet, m.process.version, process?.version);
+  }
+
+  // --- 4) Time tracking -> cells ---
+  if (m.time) {
+    const tt = process?.timeTracking || {};
+    if (m.time.startedAt) {
+      const started = tt.firstStartedAt || tt.currentSessionStart;
+      setCell(worksheet, m.time.startedAt, started ? new Date(started) : undefined);
+    }
+    if (m.time.completedAt) {
+      setCell(
+        worksheet,
+        m.time.completedAt,
+        process?.completedAt ? new Date(process.completedAt) : new Date(),
+      );
+    }
+    if (m.time.totalElapsedMinutes && typeof tt.totalActiveTime === 'number') {
+      setCell(worksheet, m.time.totalElapsedMinutes, Math.round(tt.totalActiveTime / 60000));
+    }
+    if (m.time.totalElapsedHours && typeof tt.totalActiveTime === 'number') {
+      setCell(worksheet, m.time.totalElapsedHours, Math.round(tt.totalActiveTime / 3600000));
+    }
+    if (m.time.today) {
+      setCell(worksheet, m.time.today, new Date());
+    }
+  }
+
+  // --- 5) Task-driven sources ---
+  for (const src of m.taskSources || []) {
+    applyTaskSource(worksheet, src, process);
+  }
+
+  // --- 6) Comments ---
+  if (m.comments) {
+    const text = m.comments.template
+      ? interpolateExportTokens(m.comments.template, process)
+      : '';
+    if (text) setCell(worksheet, m.comments.cell, text);
+  }
+
+  // --- 7) Evidences sheet ---
+  if (m.evidences) {
+    const evSheet = workbook.getWorksheet(m.evidences.sheet);
+    if (evSheet) {
+      const evTasks = collectAllTasks(process).filter((t) => t.completedAt);
+      const max = m.evidences.maxRows ?? evTasks.length;
+      evTasks.slice(0, max).forEach((t, idx) => {
+        const row = m.evidences!.startRow + idx;
+        setCell(evSheet, `${m.evidences!.dateColumn}${row}`, new Date(t.completedAt!));
+        setCell(evSheet, `${m.evidences!.activityColumn}${row}`, t.name);
+      });
+    }
+  }
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  return new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+}
+
+function applyTaskSource(
+  worksheet: ExcelJS.Worksheet,
+  src: ExportTaskSource,
+  process: ProcessData,
+): void {
+  if (src.kind === 'list') {
+    const task = findTaskById(process, src.sourceTaskId);
+    const items = (task?.listData ?? []).map((it) => it.value);
+    const capacity = src.endRow
+      ? src.endRow - src.startRow + 1
+      : src.maxItems ?? items.length;
+    items.slice(0, capacity).forEach((val, idx) => {
+      setCell(worksheet, `${src.column}${src.startRow + idx}`, val);
+    });
+    return;
+  }
+
+  if (src.kind === 'detail') {
+    const task = findTaskById(process, src.sourceTaskId);
+    const items = (task?.detailData ?? []).map((it) => it.capturedText);
+    for (const sec of src.sections) {
+      const capacity = sec.endRow
+        ? sec.endRow - sec.startRow + 1
+        : sec.maxItems ?? items.length;
+      items.slice(0, capacity).forEach((val, idx) => {
+        setCell(worksheet, `${sec.column}${sec.startRow + idx}`, val);
+      });
+    }
+    return;
+  }
+
+  if (src.kind === 'form') {
+    const task = findTaskById(process, src.sourceTaskId);
+    const fields: FormFieldConfig[] = task?.formConfig?.fields ?? [];
+    const values = new Map((task?.formData ?? []).map((f) => [f.fieldId, f.value]));
+    for (const field of fields) {
+      if (!field.valueCell) continue;
+      if (!values.has(field.id)) continue;
+      setCell(worksheet, field.valueCell, values.get(field.id));
+    }
+    return;
+  }
+
+  if (src.kind === 'checklist') {
+    const pool = src.sourceTaskId
+      ? ([findTaskById(process, src.sourceTaskId)].filter(Boolean) as TaskState[])
+      : collectAllTasks(process);
+    const max = src.maxRows ?? pool.length;
+    pool.slice(0, max).forEach((t, idx) => {
+      const row = src.startRow + idx;
+      if (src.columns.aplica) setCell(worksheet, `${src.columns.aplica}${row}`, true);
+      if (src.columns.validado) setCell(worksheet, `${src.columns.validado}${row}`, !!t.completedAt);
+      if (src.columns.nombre) setCell(worksheet, `${src.columns.nombre}${row}`, t.name);
+      if (src.columns.url) {
+        const url = (t.evidence as { url?: string } | undefined)?.url || '';
+        if (url) setCell(worksheet, `${src.columns.url}${row}`, url);
+      }
+    });
+    return;
+  }
+}
+
+/**
+ * Build a filename from a ProcessExportConfig pattern; falls back to
+ * `${process.name}_${today:YYYYMMDD}.xlsx` when no pattern is provided.
+ * Always sanitizes output and guarantees a `.xlsx` extension.
+ */
+export function buildExportFilename(
+  pattern: string | undefined,
+  process: ProcessData,
+): string {
+  const defaultPattern = '{process.name}_{today:YYYYMMDD}';
+  const raw = interpolateExportTokens(pattern || defaultPattern, process, { sanitize: true });
+  const cleaned = raw.replace(/_+/g, '_').replace(/^_+|_+$/g, '') || 'export';
+  return cleaned.toLowerCase().endsWith('.xlsx') ? cleaned : `${cleaned}.xlsx`;
 }

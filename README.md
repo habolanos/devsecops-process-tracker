@@ -69,7 +69,7 @@ La aplicación estará disponible en `http://localhost:3000`.
 - **Variables Dinámicas**: Auto-fill desde configuración DevOps
 - **Links Dinámicos**: URLs parametrizables con variables del proceso
 - **Timer de Proceso**: Tracking de tiempo con sesiones múltiples
-- **Exportación**: JSON y documentos Word con evidencias
+- **Exportación**: JSON, documentos Word y **reportes Excel declarativos** (motor guiado por YAML `process.export` — agregue procesos con templates propios sin escribir código)
 - **Perfil de Usuario**: Identidad opcional con avatares Marvel (nombre personalizable o superhéroe aleatorio), incluido en exportaciones
 - **Modo Dark/Light**: Toggle de tema con soporte del sistema operativo
 - **Gestión Multi-proceso**: Tabs para trabajar con múltiples procesos simultáneamente
@@ -130,6 +130,7 @@ Guía completa para crear y configurar procesos YAML. Incluye:
 - **Variables de Proceso**: Tipos, configuración y uso
 - **Fases y Actividades**: Organización jerárquica
 - **Tipos de Tareas**: Standard, Check, Multicheck, Export-Excel, Dynamic-List, Detail-List, Form
+- **Export Declarativo (`process.export`)**: Motor genérico que llena templates Excel a partir de mapeos YAML — `variables`, `staticCells`, `time`, `taskSources` (list/detail/form/checklist), `comments`, `evidences` — sin escribir código TypeScript
 - **Subprocesos**: Carga de procesos externos desde GitHub, URL o local
 - **Configuraciones Avanzadas**: Referencias, dependencias, links dinámicos, evidencia
 - **Ejemplo Paso a Paso**: Guía completa para crear un proceso personalizado
