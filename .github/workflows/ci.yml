@@ -20,6 +20,9 @@ on:
     branches: [develop, QA, master]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -181,6 +184,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: read
       security-events: write
     steps:
       - name: Checkout code
@@ -296,6 +300,7 @@ jobs:
     if: github.event_name == 'pull_request'
     permissions:
       contents: read
+      actions: read
       security-events: write
     steps:
       - name: Checkout code
