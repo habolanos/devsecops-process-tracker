@@ -23,6 +23,8 @@ interface ProcessTemplate {
   icon: string;
   file: string;
   version: string;
+  estimatedTime?: string;   // e.g. "45m", "2h", "1h30m"
+  hasVariables?: boolean;   // true if the process declares `variables[]`
 }
 
 export default function HomePage() {

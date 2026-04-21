@@ -1,50 +1,55 @@
 {
   "processes": [
     {
-      "id": "it-security-audit",
+      "id": "it-security-audit-2026",
       "name": "Auditoría de Seguridad IT",
       "description": "Proceso completo de auditoría de seguridad de sistemas de información",
       "category": "security",
       "icon": "shield",
       "file": "it-security-audit.yaml",
-      "version": "1.0.0"
+      "version": "1.0.0",
+      "estimatedTime": "4h"
     },
     {
-      "id": "devops-release",
+      "id": "devops-release-2026",
       "name": "Release DevOps",
       "description": "Proceso de liberación de software con validaciones de calidad y seguridad",
       "category": "devops",
       "icon": "rocket",
       "file": "devops-release.yaml",
-      "version": "1.0.0"
+      "version": "1.0.0",
+      "estimatedTime": "2h"
     },
     {
-      "id": "incident-response",
+      "id": "incident-response-2026",
       "name": "Respuesta a Incidentes",
       "description": "Procedimiento de respuesta ante incidentes de seguridad",
       "category": "security",
       "icon": "alert-triangle",
       "file": "incident-response.yaml",
-      "version": "1.0.0"
+      "version": "1.0.0",
+      "estimatedTime": "3h"
     },
     {
-      "id": "devops-pipeline",
+      "id": "devops-pipeline-2026",
       "name": "Pipeline DevOps (Links Dinámicos)",
       "description": "Proceso de release con variables parametrizables y links dinámicos a herramientas DevOps",
       "category": "devops",
       "icon": "rocket",
       "file": "devops-pipeline.yaml",
       "version": "1.0.0",
+      "estimatedTime": "1h30m",
       "hasVariables": true
     },
     {
-      "id": "pull-request-validation",
+      "id": "pull-request-validation-2026",
       "name": "Validación de Pull Request",
       "description": "Proceso completo para aceptación de PR: validación CI/CD, tags, breakers y despliegue",
       "category": "devops",
       "icon": "git-pull-request",
       "file": "pull-request-validation.yaml",
       "version": "1.0.0",
+      "estimatedTime": "45m",
       "hasVariables": true
     },
     {
@@ -55,6 +60,7 @@
       "icon": "file-spreadsheet",
       "file": "release-checklist.yaml",
       "version": "1.0.0",
+      "estimatedTime": "45m",
       "hasVariables": true
     }
   ]
