@@ -85,7 +85,6 @@ export default function ProcessPage() {
     activeTrayId, 
     updateSnapshot, 
     completeProcess: completeProcessInTray,
-    switchToProcess: switchProcessInTray,
   } = useSessionStore();
 
   // Sync process changes to session store

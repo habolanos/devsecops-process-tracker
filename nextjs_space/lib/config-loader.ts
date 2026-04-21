@@ -254,7 +254,7 @@ type ConfigTemplate = {
  */
 export function generateConfigTemplate(
   variables: { key: string; label: string; type: string; options?: string[] }[],
-  processName: string
+  _processName: string
 ): ConfigTemplate {
   const variableKeys = variables.map(v => v.key.toLowerCase());
   

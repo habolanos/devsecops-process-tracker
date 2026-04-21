@@ -1,6 +1,5 @@
 'use client';
 
-import { ProcessState } from './types';
 import { toast } from 'sonner';
 
 // ============================================

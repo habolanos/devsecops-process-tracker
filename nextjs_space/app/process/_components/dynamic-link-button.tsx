@@ -21,7 +21,7 @@ function hasUnresolvedVariables(url: string): boolean {
   return /\{(\w+)\}/.test(url);
 }
 
-export default function DynamicLinkButton({ link, taskId, phaseId }: DynamicLinkButtonProps) {
+export default function DynamicLinkButton({ link, taskId: _taskId, phaseId: _phaseId }: DynamicLinkButtonProps) {
   const process = useProcessStore((state) => state?.process);
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
   const [isHovered, setIsHovered] = useState(false);

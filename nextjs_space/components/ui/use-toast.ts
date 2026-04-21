@@ -15,6 +15,10 @@ type ToasterToast = ToastProps & {
   action?: ToastActionElement;
 };
 
+// Canonical shadcn/ui use-toast pattern: `actionTypes` is the runtime source
+// of truth that the `ActionType` below derives via `typeof actionTypes`.
+// Keeping the declaration intact avoids diverging from the upstream template.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const actionTypes = {
   ADD_TOAST: 'ADD_TOAST',
   UPDATE_TOAST: 'UPDATE_TOAST',

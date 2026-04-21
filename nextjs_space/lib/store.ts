@@ -99,27 +99,27 @@ export const useProcessStore = create<ProcessStore>()(persist(
     },
 
     setCurrentPhase: (phaseId) => {
-      set((state) => ({
+      set({
         currentPhaseId: phaseId,
         currentActivityId: null,
         currentTaskId: null,
-        hasStartedInteraction: true // Mark interaction on phase change
-      }));
+        hasStartedInteraction: true, // Mark interaction on phase change
+      });
     },
 
     setCurrentActivity: (activityId) => {
-      set((state) => ({
+      set({
         currentActivityId: activityId,
         currentTaskId: null,
-        hasStartedInteraction: true // Mark interaction on activity change
-      }));
+        hasStartedInteraction: true, // Mark interaction on activity change
+      });
     },
 
     setCurrentTask: (taskId) => {
-      set((state) => ({
+      set({
         currentTaskId: taskId,
-        hasStartedInteraction: true // Mark interaction on task selection
-      }));
+        hasStartedInteraction: true, // Mark interaction on task selection
+      });
     },
 
     markInteractionStarted: () => {
