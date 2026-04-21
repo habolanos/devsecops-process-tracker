@@ -137,10 +137,13 @@ export function CommandPalette({ language = 'es' }: CommandPaletteProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, filteredProcesses, selectedIndex, handleOpen, handleClose, handleSwitchProcess]);
 
-  // Reset selection when search changes
-  useEffect(() => {
+  // Reset selection when search changes — tracked during render rather than
+  // in an effect so React applies the reset in the same commit.
+  const [trackedSearch, setTrackedSearch] = useState(search);
+  if (search !== trackedSearch) {
+    setTrackedSearch(search);
     setSelectedIndex(0);
-  }, [search]);
+  }
 
   if (!isOpen) return null;
 

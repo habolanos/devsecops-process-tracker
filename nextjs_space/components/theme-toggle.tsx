@@ -2,7 +2,7 @@
 
 import { Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { useEffect, useState } from 'react';
+import { useIsClient } from '@/lib/use-is-client';
 
 interface ThemeToggleProps {
   language?: 'es' | 'en';
@@ -10,13 +10,9 @@ interface ThemeToggleProps {
 
 export function ThemeToggle({ language = 'es' }: ThemeToggleProps) {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const isClient = useIsClient();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
+  if (!isClient) {
     return (
       <button className="flex items-center gap-2 px-3 py-2 bg-secondary border border-border rounded-lg">
         <div className="w-4 h-4" />

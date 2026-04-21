@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useProcessStore } from '@/lib/store';
 import { formatDuration, formatDurationLong, getTimeStatus } from '@/lib/helpers';
 import { useI18n } from '@/lib/i18n-context';
+import { useIsClient } from '@/lib/use-is-client';
 import { Play, Pause, Timer, AlertTriangle } from 'lucide-react';
 
 export default function ProcessTimer() {
@@ -14,8 +15,12 @@ export default function ProcessTimer() {
   const getElapsedTime = useProcessStore((state) => state.getElapsedTime);
   const hasStartedInteraction = useProcessStore((state) => state.hasStartedInteraction);
   
-  const [displayTime, setDisplayTime] = useState(0);
-  const [isClient, setIsClient] = useState(false);
+  const isClient = useIsClient();
+  // Lazy initial value avoids running getElapsedTime() during SSR while still
+  // priming the display before the interval ticks for the first time on the client.
+  const [displayTime, setDisplayTime] = useState<number>(() =>
+    typeof window === 'undefined' ? 0 : getElapsedTime(),
+  );
   const hasAutoStarted = useRef(false);
 
   const timeTracking = process?.timeTracking;
@@ -77,11 +82,6 @@ export default function ProcessTimer() {
     }
   };
 
-  // Hydration fix
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
   // Auto-start timer on first interaction (only once)
   useEffect(() => {
     if (isClient && hasStartedInteraction && !hasAutoStarted.current && (isIdle || isPaused)) {
@@ -95,16 +95,13 @@ export default function ProcessTimer() {
     setDisplayTime(getElapsedTime());
   }, [getElapsedTime]);
 
-  // Timer interval for running state
+  // Timer interval for running state.
+  // The first display value is seeded by the lazy initializer above; the effect
+  // only owns the interval lifecycle, so it does not call setState synchronously.
   useEffect(() => {
-    if (!isClient) return;
-    
-    updateDisplayTime();
-    
-    if (isRunning) {
-      const interval = setInterval(updateDisplayTime, 1000);
-      return () => clearInterval(interval);
-    }
+    if (!isClient || !isRunning) return;
+    const interval = setInterval(updateDisplayTime, 1000);
+    return () => clearInterval(interval);
   }, [isClient, isRunning, updateDisplayTime]);
 
   const handleStart = () => {
