@@ -36,11 +36,12 @@ export default function ProcessPage() {
   const router = useRouter();
   const { t, language, setLanguage } = useI18n();
   // Optimized selectors with shallow compare to prevent unnecessary re-renders
-  const { process, currentPhaseId, currentTaskId } = useProcessStore(
+  const { process, currentPhaseId, currentTaskId, hasHydrated } = useProcessStore(
     useShallow((state) => ({
       process: state?.process,
       currentPhaseId: state?.currentPhaseId,
       currentTaskId: state?.currentTaskId,
+      hasHydrated: state?.hasHydrated ?? false,
     }))
   );
   
@@ -105,10 +106,27 @@ export default function ProcessPage() {
   }, []);
 
   useEffect(() => {
-    if (!process) {
+    // Wait for persist + YAML rehydrate to settle before concluding that
+    // there is no active process; otherwise a direct reload to /process
+    // would bounce to home before the asynchronous YAML re-fetch finishes.
+    if (hasHydrated && !process) {
       router.push('/');
     }
-  }, [process, router]);
+  }, [process, router, hasHydrated]);
+
+  if (!hasHydrated) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3 text-muted-foreground">
+          <div
+            className="h-8 w-8 rounded-full border-2 border-current border-t-transparent animate-spin"
+            aria-hidden="true"
+          />
+          <p className="text-sm">Restaurando proceso…</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!process) return null;
 
