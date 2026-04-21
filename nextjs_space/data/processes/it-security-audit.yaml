@@ -25,6 +25,12 @@ process:
             required: true
             description: "Documento de alcance firmado y diagrama de arquitectura"
           dependencies: []
+          completionAlert:
+            severity: "critical"
+            title: "Confirmar si existe documento de alcance"
+            description: "Es necesario contar con el documento de alcance, debe estar firmado?"
+            confirmLabel: "Sí, lo tengo"
+            cancelLabel: "Cancelar"
 
         - id: "task-1-2"
           name: "Recopilar Información de Sistemas"

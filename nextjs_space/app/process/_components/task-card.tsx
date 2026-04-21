@@ -43,6 +43,7 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
     updateListData: state?.updateListData,
     updateDetailData: state?.updateDetailData,
     updateFormData: state?.updateFormData,
+    markInteractionStarted: state?.markInteractionStarted,
   })));
 
   const taskType = task?.type || 'standard';
@@ -54,16 +55,19 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
 
   // Handle list data changes for dynamic-list tasks
   const handleListDataChange = (items: ListItem[]) => {
+    storeActions.markInteractionStarted?.();
     storeActions.updateListData?.(phaseId, task.id, items, activityId);
   };
 
   // Handle detail data changes for detail-list tasks
   const handleDetailDataChange = (detailData: DetailItem[]) => {
+    storeActions.markInteractionStarted?.();
     storeActions.updateDetailData?.(phaseId, task.id, detailData, activityId);
   };
 
   // Handle form data changes for form tasks
   const handleFormDataChange = (formData: FormFieldValue[]) => {
+    storeActions.markInteractionStarted?.();
     storeActions.updateFormData?.(phaseId, task.id, formData, activityId);
   };
 
@@ -147,6 +151,7 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
 
   // Handle save progress - open dialog for image evidence, just toast otherwise
   const handleSaveProgress = () => {
+    storeActions.markInteractionStarted?.();
     if (requiresImageEvidence) {
       onViewEvidence();
     } else {
@@ -245,6 +250,7 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
   };
 
   const handleToggleComplete = async () => {
+    storeActions.markInteractionStarted?.();
     if (task?.completed) {
       storeActions.uncompleteTask?.(phaseId, task.id, activityId);
       toast.info(t('task.uncompleted'));
@@ -288,6 +294,7 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
     // `completionAlert`, show the modal and defer the actual completion
     // until the user confirms.
     if (task?.completionAlert) {
+      console.log('[TaskCard] Showing completionAlert for task:', task.id, task.completionAlert);
       setAlertOpen(true);
       return;
     }
@@ -297,6 +304,7 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
 
   const handleToggleCheckItem = (checkItemId: string) => {
     if (task?.completed || task?.isBlocked) return;
+    storeActions.markInteractionStarted?.();
     storeActions.toggleCheckItem?.(phaseId, task.id, checkItemId, activityId);
   };
 
