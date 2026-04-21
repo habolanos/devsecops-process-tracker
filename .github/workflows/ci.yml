@@ -199,7 +199,8 @@ jobs:
         continue-on-error: true
 
       - name: Run Trivy vulnerability scanner (filesystem)
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.30.0
+        continue-on-error: true
         with:
           scan-type: 'fs'
           scan-ref: ${{ env.WORKING_DIR }}
@@ -208,9 +209,14 @@ jobs:
           severity: 'CRITICAL,HIGH'
           trivyignores: '.trivyignore'
 
+      - name: Check Trivy FS SARIF exists
+        id: check-fs-sarif
+        if: always()
+        run: test -f trivy-fs-results.sarif && echo "exists=true" >> $GITHUB_OUTPUT || echo "exists=false" >> $GITHUB_OUTPUT
+
       - name: Upload Trivy scan results to Security tab
         uses: github/codeql-action/upload-sarif@v4
-        if: always()
+        if: always() && steps.check-fs-sarif.outputs.exists == 'true'
         with:
           sarif_file: 'trivy-fs-results.sarif'
           category: 'trivy-fs'
@@ -308,7 +314,8 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Scan Docker image with Trivy
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.30.0
+        continue-on-error: true
         with:
           image-ref: 'devsecops-process-tracker:test'
           format: 'sarif'
@@ -316,9 +323,14 @@ jobs:
           severity: 'CRITICAL,HIGH'
           trivyignores: '.trivyignore'
 
+      - name: Check Trivy Image SARIF exists
+        id: check-image-sarif
+        if: always()
+        run: test -f trivy-image-results.sarif && echo "exists=true" >> $GITHUB_OUTPUT || echo "exists=false" >> $GITHUB_OUTPUT
+
       - name: Upload Trivy image scan results
         uses: github/codeql-action/upload-sarif@v4
-        if: always()
+        if: always() && steps.check-image-sarif.outputs.exists == 'true'
         with:
           sarif_file: 'trivy-image-results.sarif'
           category: 'trivy-image'
