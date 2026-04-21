@@ -7,6 +7,8 @@ import { ProcessState, TaskEvidence, CapturedVariables, WorkSession, ListItem, D
 import { updateProgress, updateTaskBlockedStatus, getAllDependentTasks } from './helpers';
 import { createCompressedStorage } from './persist-storage';
 import { useUserProfileStore } from './user-profile-store';
+import { extractProgress, mergeProgressIntoFresh } from './process-merge';
+import { parseYAMLToProcess } from './yaml-parser';
 
 interface ProcessStore {
   process: ProcessState | null;
@@ -17,6 +19,14 @@ interface ProcessStore {
   
   // Actions
   loadProcess: (process: ProcessState) => void;
+  /**
+   * Re-parse the YAML source of truth and overlay the current in-memory
+   * progress on top of the fresh structure. Used after Zustand rehydrates a
+   * persisted snapshot that may be missing new YAML fields (e.g. a newly
+   * added `completionAlert`). Returns true on success, false if parsing
+   * failed or there is no current process to refresh.
+   */
+  refreshFromYAML: (yamlContent: string) => boolean;
   clearProcess: () => void;
   setCurrentPhase: (phaseId: string) => void;
   setCurrentActivity: (activityId: string | null) => void;
@@ -86,6 +96,35 @@ export const useProcessStore = create<ProcessStore>()(persist(
         currentTaskId: null,
         hasStartedInteraction: false // Reset interaction flag on new process load
       });
+    },
+
+    refreshFromYAML: (yamlContent) => {
+      const current = get().process;
+      if (!current) return false;
+      let fresh: ProcessState;
+      try {
+        fresh = parseYAMLToProcess(yamlContent);
+      } catch (err) {
+        console.error('[refreshFromYAML] Failed to parse YAML:', err);
+        return false;
+      }
+      if (fresh.id !== current.id) {
+        console.warn(
+          `[refreshFromYAML] id mismatch (fresh='${fresh.id}', current='${current.id}') - aborting merge`,
+        );
+        return false;
+      }
+      const progress = extractProgress(current);
+      const merged = updateTaskBlockedStatus(updateProgress(mergeProgressIntoFresh(fresh, progress)));
+      set((state) => ({
+        process: merged,
+        // Clamp current selection to ids that still exist in the fresh structure
+        currentPhaseId:
+          state.currentPhaseId && merged.phases.some((p) => p.id === state.currentPhaseId)
+            ? state.currentPhaseId
+            : merged.phases[0]?.id ?? null,
+      }));
+      return true;
     },
 
     clearProcess: () => {
@@ -702,5 +741,26 @@ export const useProcessStore = create<ProcessStore>()(persist(
   {
     name: 'process-tracker-storage',
     storage: createCompressedStorage<ProcessStore>(),
+    onRehydrateStorage: () => (state) => {
+      // After Zustand rehydrates from localStorage, ensure the process
+      // structure reflects the latest YAML source of truth. This picks up
+      // new fields (e.g. completionAlert, new tasks, renamed labels) that
+      // the persisted snapshot predates, while preserving user progress.
+      if (typeof window === 'undefined') return;
+      const processId = state?.process?.id;
+      if (!processId) return;
+      void (async () => {
+        try {
+          const res = await fetch(`/api/processes/${encodeURIComponent(processId)}`);
+          if (!res.ok) return;
+          const data: { content?: string } = await res.json();
+          if (typeof data.content !== 'string') return;
+          useProcessStore.getState().refreshFromYAML(data.content);
+        } catch (err) {
+          // Non-fatal: the persisted snapshot remains usable.
+          console.warn('[process-store] YAML refresh on rehydrate failed:', err);
+        }
+      })();
+    },
   }
 ));
