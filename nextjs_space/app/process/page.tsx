@@ -65,13 +65,15 @@ export default function ProcessPage() {
   
   const [isExporting, setIsExporting] = useState(false);
   const [showEvidenceModal, setShowEvidenceModal] = useState(false);
+  const [completionAlertAlreadyConfirmed, setCompletionAlertAlreadyConfirmed] = useState(false);
   const [showVariablesForm, setShowVariablesForm] = useState(false);
   const [showConfigUpload, setShowConfigUpload] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'bpmn'>('list');
   
   // Stable callback for viewing evidence to prevent memo breaking
-  const handleViewEvidence = useCallback((taskId: string) => {
+  const handleViewEvidence = useCallback((taskId: string, alertAlreadyConfirmed?: boolean) => {
     setCurrentTask?.(taskId);
+    setCompletionAlertAlreadyConfirmed(!!alertAlreadyConfirmed);
     setShowEvidenceModal(true);
   }, [setCurrentTask]);
 
@@ -421,7 +423,7 @@ export default function ProcessPage() {
                           key={activity.id}
                           activity={activity}
                           phaseId={currentPhaseId ?? ''}
-                          onViewEvidence={(task) => handleViewEvidence(task?.id ?? '')}
+                          onViewEvidence={(task, alertAlreadyConfirmed) => handleViewEvidence(task?.id ?? '', alertAlreadyConfirmed)}
                         />
                       ))
                     ) : (
@@ -431,7 +433,7 @@ export default function ProcessPage() {
                           key={task?.id}
                           task={task}
                           phaseId={currentPhaseId ?? ''}
-                          onViewEvidence={() => handleViewEvidence(task?.id ?? '')}
+                          onViewEvidence={(alertAlreadyConfirmed) => handleViewEvidence(task?.id ?? '', alertAlreadyConfirmed)}
                         />
                       )) ?? null
                     )}
@@ -450,9 +452,11 @@ export default function ProcessPage() {
           <EvidenceModal
             task={currentTask}
             phaseId={currentPhaseId}
+            completionAlertAlreadyConfirmed={completionAlertAlreadyConfirmed}
             onClose={() => {
               setShowEvidenceModal(false);
               setCurrentTask?.(null);
+              setCompletionAlertAlreadyConfirmed(false);
             }}
           />
         </Suspense>

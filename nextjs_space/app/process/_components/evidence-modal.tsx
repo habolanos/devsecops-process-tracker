@@ -16,9 +16,12 @@ interface EvidenceModalProps {
   phaseId: string;
   activityId?: string;
   onClose: () => void;
+  /** If true, the completionAlert was already confirmed upstream (e.g. from
+   *  TaskCard) and should NOT be shown again when finishing from this modal. */
+  completionAlertAlreadyConfirmed?: boolean;
 }
 
-export default function EvidenceModal({ task, phaseId, activityId, onClose }: EvidenceModalProps) {
+export default function EvidenceModal({ task, phaseId, activityId, onClose, completionAlertAlreadyConfirmed }: EvidenceModalProps) {
   const { t } = useI18n();
   const updateTaskEvidence = useProcessStore((state) => state?.updateTaskEvidence);
   const completeTask = useProcessStore((state) => state?.completeTask);
@@ -511,7 +514,8 @@ export default function EvidenceModal({ task, phaseId, activityId, onClose }: Ev
                   }
                   
                   // Check for completionAlert before completing
-                  if (task?.completionAlert) {
+                  // Skip if the alert was already confirmed upstream (e.g. from TaskCard)
+                  if (task?.completionAlert && !completionAlertAlreadyConfirmed) {
                     setAlertOpen(true);
                     return;
                   }

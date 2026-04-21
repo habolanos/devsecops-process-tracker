@@ -29,7 +29,7 @@ interface TaskCardProps {
   task: TaskState;
   phaseId: string;
   activityId?: string;
-  onViewEvidence: () => void;
+  onViewEvidence: (completionAlertAlreadyConfirmed?: boolean) => void;
 }
 
 function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) {
@@ -220,6 +220,9 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
   // complete, the dialog is shown first. Cancel keeps the task pending;
   // confirm runs the original completion flow (`performComplete`).
   const [alertOpen, setAlertOpen] = useState(false);
+  // Tracks whether the completionAlert was already confirmed by the user
+  // so the evidence modal does not show it a second time.
+  const [alertAlreadyConfirmed, setAlertAlreadyConfirmed] = useState(false);
 
   // Executes the actual completion side-effects. Split from
   // `handleToggleComplete` so it can be invoked either directly (no alert)
@@ -235,7 +238,9 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
 
     // If task requires evidence (text, image, or both), open evidence modal
     if (requiresEvidence) {
-      onViewEvidence();
+      // Pass flag so the evidence modal knows the alert was already confirmed
+      // and does not show it again.
+      onViewEvidence(alertAlreadyConfirmed);
       return;
     }
 
@@ -435,7 +440,7 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
             </button>
           ) : !isDynamicListType && !isCheckType && (
             <button
-              onClick={onViewEvidence}
+              onClick={() => onViewEvidence()}
               disabled={isBlocked}
               data-testid="view-evidence-btn"
               className={`px-3 py-1.5 rounded-lg transition-colors text-sm font-medium ${
@@ -715,6 +720,7 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
           taskName={task.name}
           onConfirm={() => {
             setAlertOpen(false);
+            setAlertAlreadyConfirmed(true);
             void performComplete();
           }}
         />
