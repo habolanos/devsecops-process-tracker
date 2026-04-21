@@ -92,6 +92,23 @@ export interface SubprocessSource {
   ref?: string;                         // Tag/branch for github
 }
 
+export type CompletionAlertSeverity = 'info' | 'warning' | 'critical';
+
+/**
+ * Optional confirmation dialog shown before a task is finalized.
+ * When a task declares `completionAlert`, clicking to complete opens a modal
+ * asking the user to confirm. Cancel keeps the task in its previous state.
+ * The severity drives the icon, color palette and visual emphasis.
+ * See docs/features/completion-alerts-and-decision-tasks.md.
+ */
+export interface CompletionAlertConfig {
+  severity?: CompletionAlertSeverity;   // Default: 'info'
+  title?: string;                       // Default: `Confirmar: ${task.name}`
+  description: string;                  // REQUIRED: main alert body
+  confirmLabel?: string;                // Default: i18n 'common.confirm'
+  cancelLabel?: string;                 // Default: i18n 'common.cancel'
+}
+
 export interface TaskYAML {
   id: string;
   name: string;
@@ -108,6 +125,7 @@ export interface TaskYAML {
   listConfig?: DynamicListConfig;       // For type='dynamic-list'
   detailConfig?: DetailListConfig;      // For type='detail-list'
   formConfig?: FormConfig;              // For type='form'
+  completionAlert?: CompletionAlertConfig;  // Optional confirmation dialog before finalize
 }
 
 export interface ExportExcelConfig {
@@ -417,6 +435,7 @@ export interface TaskState {
   detailData?: DetailItem[];        // Captured detail items for 'detail-list'
   formConfig?: FormConfig;          // For type='form'
   formData?: FormFieldValue[];      // Captured form field values for 'form'
+  completionAlert?: CompletionAlertConfig;  // Optional confirmation dialog before finalize
 }
 
 export interface CheckItemState {

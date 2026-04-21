@@ -445,7 +445,26 @@
         "dynamicLinks": {
           "type": "array",
           "items": { "$ref": "#/$defs/DynamicLink" }
-        }
+        },
+        "completionAlert": { "$ref": "#/$defs/CompletionAlert" }
+      }
+    },
+
+    "CompletionAlert": {
+      "type": "object",
+      "description": "Optional confirmation dialog shown before finalizing the task.",
+      "required": ["description"],
+      "additionalProperties": false,
+      "properties": {
+        "severity": {
+          "enum": ["info", "warning", "critical"],
+          "default": "info",
+          "description": "Drives icon, color palette and visual emphasis."
+        },
+        "title":        { "type": "string", "minLength": 1 },
+        "description":  { "type": "string", "minLength": 1 },
+        "confirmLabel": { "type": "string", "minLength": 1 },
+        "cancelLabel":  { "type": "string", "minLength": 1 }
       }
     },
 

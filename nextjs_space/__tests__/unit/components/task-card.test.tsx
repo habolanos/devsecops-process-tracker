@@ -1210,4 +1210,92 @@ describe('TaskCard - General Functionality', () => {
       expect(screen.getByText('Task with Safe References')).toBeInTheDocument();
     });
   });
+
+  describe('Completion alert', () => {
+    const baseTask: TaskState = {
+      id: 'task-alert',
+      name: 'Task with alert',
+      description: 'desc',
+      order: 1,
+      type: 'standard',
+      completed: false,
+      isBlocked: false,
+      evidenceConfig: { type: 'text', required: false },
+      evidence: { text: '', images: [] },
+      dependencies: [],
+      checkItems: [],
+      dynamicLinks: [],
+      references: [],
+    };
+
+    it('does NOT open the dialog when the task has no completionAlert', () => {
+      render(<TaskCard task={baseTask} phaseId={phaseId} onViewEvidence={mockViewEvidence} />);
+      fireEvent.click(screen.getByTestId('task-checkbox'));
+      expect(screen.queryByTestId('completion-alert-dialog')).not.toBeInTheDocument();
+      expect(mockProcessState.completeTask).toHaveBeenCalledWith(phaseId, 'task-alert', undefined);
+    });
+
+    it('opens the dialog before completing when completionAlert is declared', () => {
+      const task = {
+        ...baseTask,
+        completionAlert: {
+          severity: 'warning' as const,
+          description: 'Confirm please',
+        },
+      };
+      render(<TaskCard task={task} phaseId={phaseId} onViewEvidence={mockViewEvidence} />);
+      fireEvent.click(screen.getByTestId('task-checkbox'));
+
+      expect(screen.getByTestId('completion-alert-dialog')).toBeInTheDocument();
+      expect(screen.getByTestId('completion-alert-dialog')).toHaveAttribute('data-severity', 'warning');
+      expect(screen.getByText('Confirm please')).toBeInTheDocument();
+      expect(mockProcessState.completeTask).not.toHaveBeenCalled();
+    });
+
+    it('calls completeTask when the user confirms in the dialog', () => {
+      const task = {
+        ...baseTask,
+        completionAlert: {
+          severity: 'critical' as const,
+          description: 'Critical action',
+        },
+      };
+      render(<TaskCard task={task} phaseId={phaseId} onViewEvidence={mockViewEvidence} />);
+      fireEvent.click(screen.getByTestId('task-checkbox'));
+      fireEvent.click(screen.getByTestId('completion-alert-confirm'));
+
+      expect(mockProcessState.completeTask).toHaveBeenCalledWith(phaseId, 'task-alert', undefined);
+    });
+
+    it('does NOT call completeTask when the user cancels the dialog', () => {
+      const task = {
+        ...baseTask,
+        completionAlert: {
+          severity: 'info' as const,
+          description: 'Just confirm',
+        },
+      };
+      render(<TaskCard task={task} phaseId={phaseId} onViewEvidence={mockViewEvidence} />);
+      fireEvent.click(screen.getByTestId('task-checkbox'));
+      fireEvent.click(screen.getByTestId('completion-alert-cancel'));
+
+      expect(mockProcessState.completeTask).not.toHaveBeenCalled();
+    });
+
+    it('does NOT open the dialog when uncompleting an already completed task', () => {
+      const task = {
+        ...baseTask,
+        completed: true,
+        completionAlert: {
+          severity: 'critical' as const,
+          description: 'critical',
+        },
+      };
+      render(<TaskCard task={task} phaseId={phaseId} onViewEvidence={mockViewEvidence} />);
+      fireEvent.click(screen.getByTestId('task-checkbox'));
+
+      expect(screen.queryByTestId('completion-alert-dialog')).not.toBeInTheDocument();
+      expect(mockProcessState.uncompleteTask).toHaveBeenCalledWith(phaseId, 'task-alert', undefined);
+    });
+  });
 });
