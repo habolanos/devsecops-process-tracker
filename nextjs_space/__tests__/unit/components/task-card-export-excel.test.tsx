@@ -52,12 +52,16 @@ vi.mock('sonner', () => ({
   }
 }));
 
-// Mock Excel generator
+// Mock Excel generator (legacy + v2.1.0 declarative API)
 vi.mock('@/lib/excel-generator', () => ({
   generateReleaseExcel: vi.fn().mockResolvedValue(new Blob(['test'], { type: 'application/xlsx' })),
   processToReleaseReport: vi.fn().mockReturnValue({}),
   downloadExcel: vi.fn(),
-  generateReleaseFilename: vi.fn().mockReturnValue('test-report.xlsx')
+  generateReleaseFilename: vi.fn().mockReturnValue('test-report.xlsx'),
+  // Declarative engine (process.export) — null plan forces fallback to the legacy path.
+  resolveExportPlan: vi.fn().mockReturnValue(null),
+  executeExportPlan: vi.fn().mockResolvedValue(new Blob(['test'], { type: 'application/xlsx' })),
+  buildExportFilename: vi.fn().mockReturnValue('test-report.xlsx'),
 }));
 
 describe('TaskCard - Export Excel Type', () => {
@@ -176,7 +180,10 @@ describe('TaskCard - Export Excel Type', () => {
     fireEvent.click(checkbox);
 
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith('Error al generar el reporte Excel');
+      expect(toast.error).toHaveBeenCalledWith(
+        'Error al generar el reporte Excel',
+        { description: 'Generation failed' }
+      );
     });
   });
 
