@@ -36,8 +36,9 @@ export default function ProcessPage() {
   const router = useRouter();
   const { t, language, setLanguage } = useI18n();
   // Track if component has mounted on client to avoid hydration mismatch
-  const [mounted, setMounted] = useState(false);
+  const [mounted, setMounted] = useState(() => typeof window !== 'undefined');
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mounted flag only runs once on client
     setMounted(true);
   }, []);
   
