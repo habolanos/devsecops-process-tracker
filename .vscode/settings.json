@@ -7,13 +7,17 @@
       "nextjs_space/__tests__/fixtures/complex-dependencies.yaml",
       "nextjs_space/__tests__/fixtures/process-with-activities.yaml",
       "nextjs_space/__tests__/fixtures/process-with-task-types.yaml"
+    ],
+    "https://raw.githubusercontent.com/microsoft/azure-pipelines-vscode/main/service-schema.json": [
+      "azure-pipelines.yml",
+      "azure-pipelines.yaml"
     ]
   },
   "yaml.validate": true,
   "yaml.completion": true,
   "yaml.hover": true,
   "yaml.format.enable": true,
-  "yaml.schemaStore.enable": true,
+  "yaml.schemaStore.enable": false,
   "[yaml]": {
     "editor.insertSpaces": true,
     "editor.tabSize": 2,
