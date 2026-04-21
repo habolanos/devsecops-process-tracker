@@ -35,6 +35,12 @@ const BpmnViewer = dynamic(() => import('./_components/bpmn-viewer'), { ssr: fal
 export default function ProcessPage() {
   const router = useRouter();
   const { t, language, setLanguage } = useI18n();
+  // Track if component has mounted on client to avoid hydration mismatch
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
   // Optimized selectors with shallow compare to prevent unnecessary re-renders
   const { process, currentPhaseId, currentTaskId, hasHydrated } = useProcessStore(
     useShallow((state) => ({
@@ -114,9 +120,10 @@ export default function ProcessPage() {
     }
   }, [process, router, hasHydrated]);
 
-  if (!hasHydrated) {
+  // Show loading state only after client-side mount to avoid hydration mismatch
+  if (!mounted || !hasHydrated) {
     return (
-      <div className="h-screen flex items-center justify-center bg-background">
+      <div className="h-screen flex items-center justify-center bg-background" suppressHydrationWarning>
         <div className="flex flex-col items-center gap-3 text-muted-foreground">
           <div
             className="h-8 w-8 rounded-full border-2 border-current border-t-transparent animate-spin"
