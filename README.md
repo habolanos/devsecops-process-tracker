@@ -306,7 +306,11 @@ Overrides explícitos de dependencias transitivas vulnerables en `package.json` 
 **GNU General Public License v3.0** — Software libre para uso educativo y comercial. Consulte [LICENSE](LICENSE).
 
 ---
+## Visits
 
+[![Visit tracker](https://clustrmaps.com/map_v2.png?cl=ffffff&w=300&t=tt&d=2IMzz90NUzGxjVLJ385PGzeVLOoAvDNxc7El0ESQzbw&co=2d78ad&ct=ffffff)](https://clustrmaps.com/site/1c9qy)
+
+---
 ## Autor
 
 **Harold Adrian** — [LinkedIn](https://www.linkedin.com/in/habolanos) · [GitHub](https://github.com/habolanos)
