@@ -35,6 +35,11 @@ process:
       type: "text"
       required: false
       placeholder: "ej: DEVOPS-123"
+    - key: "jiraHost"
+      label: "Host de Jira"
+      type: "text"
+      required: false
+      placeholder: "ej: miempresa.atlassian.net"
 
   phases:
     - id: "phase-1-preparation"
@@ -48,10 +53,10 @@ process:
           newTab: true
           requiresVariables: ["organization", "repository"]
         - label: "Jira Board"
-          urlTemplate: "https://jira.atlassian.net/browse/{ticketId}"
+          urlTemplate: "https://{jiraHost}/browse/{ticketId}"
           behavior: "click"
           newTab: true
-          requiresVariables: ["ticketId"]
+          requiresVariables: ["jiraHost", "ticketId"]
       tasks:
         - id: "task-1-1"
           name: "Verificar Branch y Commits"
@@ -64,8 +69,7 @@ process:
               requiresVariables: ["organization", "repository"]
             - label: "Pull Requests"
               urlTemplate: "https://github.com/{organization}/{repository}/pulls"
-              behavior: "auto"
-              delay: 1
+              behavior: "click"
               requiresVariables: ["organization", "repository"]
           evidence:
             type: "both"
@@ -190,6 +194,12 @@ process:
             required: true
             description: "Log del despliegue exitoso"
           dependencies: ["task-2-2", "task-2-3"]
+          completionAlert:
+            severity: "critical"
+            title: "Confirmar despliegue a {environment}"
+            description: "Vas a promover el build actual al ambiente {environment}. Verifica que tests, análisis estático y dependencias están en verde antes de continuar. Esta acción no se puede deshacer automáticamente."
+            confirmLabel: "Sí, desplegar"
+            cancelLabel: "Cancelar"
 
         - id: "task-3-2"
           name: "Verificación Post-Deploy"
@@ -212,10 +222,10 @@ process:
           description: "Cerrar ticket de Jira y actualizar documentación de release"
           order: 3
           dynamicLinks:
-            - label: "Cerrar Ticket"
-              urlTemplate: "https://jira.atlassian.net/browse/{ticketId}"
+            - label: "Abrir Ticket en Jira"
+              urlTemplate: "https://{jiraHost}/browse/{ticketId}"
               behavior: "click"
-              requiresVariables: ["ticketId"]
+              requiresVariables: ["jiraHost", "ticketId"]
             - label: "Release Notes"
               urlTemplate: "https://github.com/{organization}/{repository}/releases/new"
               behavior: "click"
