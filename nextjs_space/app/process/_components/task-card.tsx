@@ -294,7 +294,6 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
     // `completionAlert`, show the modal and defer the actual completion
     // until the user confirms.
     if (task?.completionAlert) {
-      console.log('[TaskCard] Showing completionAlert for task:', task.id, task.completionAlert);
       setAlertOpen(true);
       return;
     }
