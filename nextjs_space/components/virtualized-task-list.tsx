@@ -4,6 +4,7 @@
 // this component — the ESLint rule react-hooks/incompatible-library honors
 // the directive and silences the informational warning.
 // eslint-disable-next-line react-hooks/incompatible-library
+// codeql[js/unknown-directive] suppress: React Compiler experimental directive
 'use no memo';
 
 import { useRef, useCallback } from 'react';
