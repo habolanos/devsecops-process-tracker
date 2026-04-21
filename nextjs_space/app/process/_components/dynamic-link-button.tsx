@@ -29,6 +29,15 @@ export default function DynamicLinkButton({ link, taskId, phaseId }: DynamicLink
   const capturedVariables = process?.capturedVariables || {};
   const interpolatedUrl = interpolateUrl(link.urlTemplate, capturedVariables);
   const isActive = !hasUnresolvedVariables(interpolatedUrl);
+
+  // Reset auto-open state when the resolved URL changes (variables updated).
+  // Done with the "previous value tracking" pattern instead of an effect so
+  // React processes the reset in the same render that observes the new URL.
+  const [trackedUrl, setTrackedUrl] = useState(interpolatedUrl);
+  if (interpolatedUrl !== trackedUrl) {
+    setTrackedUrl(interpolatedUrl);
+    setHasAutoOpened(false);
+  }
   
   // Check if specific required variables are filled
   const requiredVarsFilled = link.requiresVariables 
@@ -55,11 +64,6 @@ export default function DynamicLinkButton({ link, taskId, phaseId }: DynamicLink
     const cleanup = handleAutoOpen();
     return cleanup;
   }, [handleAutoOpen]);
-
-  // Reset auto-open state when URL changes (variables updated)
-  useEffect(() => {
-    setHasAutoOpened(false);
-  }, [interpolatedUrl]);
 
   const handleClick = () => {
     if (!canActivate) return;

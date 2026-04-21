@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useProcessStore } from '@/lib/store';
 import { useConfigStore } from '@/lib/config-store';
 import { ProcessVariableYAML, CapturedVariables } from '@/lib/types';
@@ -28,11 +28,17 @@ export default function VariablesForm({ isOpen, onClose }: VariablesFormProps) {
   const [hasChanges, setHasChanges] = useState(false);
   const [autoFilledKeys, setAutoFilledKeys] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    if (process?.capturedVariables) {
-      setLocalVariables({ ...process.capturedVariables });
+  // Mirror captured variables from the store into local state without an
+  // effect: track the last observed reference and reset when it changes,
+  // so the new values are visible in the same render cycle.
+  const capturedVariables = process?.capturedVariables;
+  const [trackedCapturedVariables, setTrackedCapturedVariables] = useState(capturedVariables);
+  if (capturedVariables !== trackedCapturedVariables) {
+    setTrackedCapturedVariables(capturedVariables);
+    if (capturedVariables) {
+      setLocalVariables({ ...capturedVariables });
     }
-  }, [process?.capturedVariables]);
+  }
 
   // Auto-fill desde configuración DevOps cuando se abre el formulario
   const handleAutoFill = () => {

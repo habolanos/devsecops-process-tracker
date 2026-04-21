@@ -28,11 +28,15 @@ export function UserProfilePopover({ language = 'es' }: UserProfilePopoverProps)
     initProfile();
   }, [initProfile]);
 
-  useEffect(() => {
+  // Sync editName from the latest profile snapshot using the previous-value
+  // tracking pattern instead of an effect (avoids cascading re-renders).
+  const [trackedProfile, setTrackedProfile] = useState(profile);
+  if (profile !== trackedProfile) {
+    setTrackedProfile(profile);
     if (profile) {
       setEditName(profile.isCustom ? profile.name : '');
     }
-  }, [profile]);
+  }
 
   if (!profile) return null;
 
