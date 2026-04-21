@@ -55,7 +55,7 @@ const STYLES: Record<CompletionAlertSeverity, SeverityStyles> = {
   critical: {
     Icon: AlertOctagon,
     iconClass: 'text-red-600',
-    containerClass: 'border-red-500 border-2 bg-white',
+    containerClass: 'border-red-500 border-2 bg-white/60',
     confirmButtonClass: 'bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500',
     flashAnimationClass: 'animate-pulse-strong',
     ariaRole: 'alertdialog',
