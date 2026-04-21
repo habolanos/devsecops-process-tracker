@@ -420,11 +420,17 @@ export default function EvidenceModal({ task, phaseId, activityId, onClose }: Ev
                       className="relative group aspect-square bg-gray-100 rounded-lg overflow-hidden"
                     >
                       {img?.url && (
-                        <img
-                          src={img.url.startsWith('data:') ? img.url : sanitizeUrl(img.url) || ''}
-                          alt={sanitizeFilename(img?.name) || 'evidence'}
-                          className="w-full h-full object-cover"
-                        />
+                        <>
+                          {/* Evidence images are user-uploaded and frequently arrive as
+                              `data:` URIs from a local FileReader, which next/image cannot
+                              serve through its image optimization pipeline. */}
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={img.url.startsWith('data:') ? img.url : sanitizeUrl(img.url) || ''}
+                            alt={sanitizeFilename(img?.name) || 'evidence'}
+                            className="w-full h-full object-cover"
+                          />
+                        </>
                       )}
                       <button
                         onClick={() => handleDeleteImage(img?.id ?? '', img?.cloudStoragePath ?? '')}

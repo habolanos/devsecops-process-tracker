@@ -12,7 +12,7 @@ interface LoadingStore {
   clearAll: () => void;
 }
 
-export const useLoadingStore = create<LoadingStore>((set, get) => ({
+export const useLoadingStore = create<LoadingStore>((set) => ({
   activeOperations: new Set<string>(),
   isLoading: false,
   

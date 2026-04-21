@@ -29,7 +29,6 @@ export default function ProcessTimer() {
   const isRunning = status === 'running';
   const isPaused = status === 'paused';
   const isIdle = status === 'idle';
-  const sessionsCount = timeTracking?.sessions?.length || 0;
 
   // Calculate time status for semaphore colors
   const timeStatus = getTimeStatus(displayTime, estimatedTime || 0);

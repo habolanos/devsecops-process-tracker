@@ -91,23 +91,6 @@ export function FormRenderer({ config, data, onDataChange, disabled, templatePat
     setErrors((prev) => ({ ...prev, [fieldId]: error }));
   };
 
-  const validateForm = () => {
-    let isValid = true;
-    const newErrors: Record<string, string> = {};
-
-    processedConfig.fields.forEach((field) => {
-      const fieldValue = data.find((d) => d.fieldId === field.id)?.value;
-
-      if (field.required && (!fieldValue || (Array.isArray(fieldValue) && fieldValue.length === 0))) {
-        newErrors[field.id] = 'Este campo es requerido';
-        isValid = false;
-      }
-    });
-
-    setErrors(newErrors);
-    return isValid;
-  };
-
   const isFormValid = () => {
     const requiredFields = processedConfig.fields.filter((f) => f.required);
     const filledRequired = requiredFields.filter((f) => {

@@ -332,7 +332,6 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
               disabled={isBlocked}
               data-testid="task-checkbox"
               aria-label={`${isCompleted ? t('task.unmark') : t('task.mark')}: ${task?.name}`}
-              aria-pressed={isCompleted}
               aria-disabled={isBlocked}
               role="checkbox"
               aria-checked={isCompleted}
