@@ -111,6 +111,12 @@ const Carousel = React.forwardRef<
         return;
       }
 
+      // Prime the canScrollPrev/canScrollNext flags from the current Embla
+      // state and subscribe to subsequent updates. This matches the upstream
+      // shadcn/ui template exactly; replacing it with useSyncExternalStore
+      // would diverge from the published recipe and is not worth the maintenance
+      // cost for this vendored UI primitive.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       onSelect(api);
       api.on('reInit', onSelect);
       api.on('select', onSelect);

@@ -41,9 +41,11 @@ export interface ProcessYAML {
     name: string;
     description: string;
     version: string;
+    estimatedTime?: string;             // Human-readable duration ("45m", "1h30m", "4h")
     variables?: ProcessVariableYAML[];  // Global process variables
     phases: PhaseYAML[];
     subprocesses?: SubprocessYAML[];    // External process references (optional)
+    export?: ProcessExportConfig;       // Declarative Excel export configuration
   };
 }
 
@@ -90,6 +92,23 @@ export interface SubprocessSource {
   ref?: string;                         // Tag/branch for github
 }
 
+export type CompletionAlertSeverity = 'info' | 'warning' | 'critical';
+
+/**
+ * Optional confirmation dialog shown before a task is finalized.
+ * When a task declares `completionAlert`, clicking to complete opens a modal
+ * asking the user to confirm. Cancel keeps the task in its previous state.
+ * The severity drives the icon, color palette and visual emphasis.
+ * See docs/features/completion-alerts-and-decision-tasks.md.
+ */
+export interface CompletionAlertConfig {
+  severity?: CompletionAlertSeverity;   // Default: 'info'
+  title?: string;                       // Default: `Confirmar: ${task.name}`
+  description: string;                  // REQUIRED: main alert body
+  confirmLabel?: string;                // Default: i18n 'common.confirm'
+  cancelLabel?: string;                 // Default: i18n 'common.cancel'
+}
+
 export interface TaskYAML {
   id: string;
   name: string;
@@ -106,12 +125,112 @@ export interface TaskYAML {
   listConfig?: DynamicListConfig;       // For type='dynamic-list'
   detailConfig?: DetailListConfig;      // For type='detail-list'
   formConfig?: FormConfig;              // For type='form'
+  completionAlert?: CompletionAlertConfig;  // Optional confirmation dialog before finalize
 }
 
 export interface ExportExcelConfig {
-  templatePath: string;                 // Path to Excel template
-  outputFilename?: string;              // Custom filename pattern
+  templatePath?: string;                // Path to Excel template (optional if process.export is defined)
+  outputFilename?: string;              // Custom filename pattern (supports {today:FMT}, {process.name}, {vars.xxx})
   autoDownload?: boolean;               // Auto-download on task completion (default: true)
+  mappings?: ProcessExportMappings;     // Optional task-level override of declarative mappings
+  inherit?: boolean;                    // If true, inherit from process.export (default: true when process.export exists)
+}
+
+// ============================================
+// Declarative Export Engine (process.export)
+// ============================================
+
+// Generic cell reference (e.g., "F85", "AA10")
+export type CellRef = string;
+
+export interface ExportTaskListSource {
+  kind: 'list';
+  sourceTaskId: string;               // id of a dynamic-list task
+  column: string;                     // e.g., "F"
+  startRow: number;
+  endRow?: number;                    // optional; if omitted uses maxItems
+  maxItems?: number;
+}
+
+export interface ExportTaskDetailSource {
+  kind: 'detail';
+  sourceTaskId: string;               // id of a detail-list task
+  sections: Array<{
+    column: string;
+    startRow: number;
+    endRow?: number;
+    maxItems?: number;
+  }>;
+}
+
+export interface ExportTaskFormSource {
+  kind: 'form';
+  sourceTaskId: string;               // id of a form task; uses each field.valueCell
+}
+
+export interface ExportTaskChecklistSource {
+  kind: 'checklist';
+  sourceTaskId?: string;              // if omitted, collects all tasks in process
+  startRow: number;
+  maxRows?: number;
+  columns: {
+    aplica?: string;
+    validado?: string;
+    url?: string;
+    nombre?: string;
+  };
+}
+
+export type ExportTaskSource =
+  | ExportTaskListSource
+  | ExportTaskDetailSource
+  | ExportTaskFormSource
+  | ExportTaskChecklistSource;
+
+export interface ProcessExportMappings {
+  // Variable key (from capturedVariables) -> cell reference
+  variables?: Record<string, CellRef>;
+  // Absolute cell -> literal value (string | number | boolean)
+  staticCells?: Record<CellRef, string | number | boolean>;
+  // Time-tracking related cells
+  time?: {
+    startedAt?: CellRef;
+    completedAt?: CellRef;
+    totalElapsedMinutes?: CellRef;
+    totalElapsedHours?: CellRef;
+    today?: CellRef;                  // current date at export time
+  };
+  // Process metadata cells
+  process?: {
+    id?: CellRef;
+    name?: CellRef;
+    version?: CellRef;
+  };
+  // Task-driven sources
+  taskSources?: ExportTaskSource[];
+  // Free-form comments with template support
+  comments?: {
+    cell: CellRef;
+    template?: string;                // supports tokens like {process.name}, {vars.xxx}
+  };
+  // Optional evidences sheet
+  evidences?: {
+    sheet: string;
+    startRow: number;
+    dateColumn: string;
+    activityColumn: string;
+    maxRows?: number;
+  };
+}
+
+export interface ProcessExportConfig {
+  templatePath: string;               // URL to template (e.g. "/templates/foo.xlsx")
+  templateVersion?: string;
+  templateSha256?: string;            // optional integrity hash
+  outputFilename?: string;            // token-interpolated pattern
+  sheet?: string;                     // target worksheet name (default: first)
+  autoDownload?: boolean;             // default true
+  mappings?: ProcessExportMappings;
 }
 
 export interface DynamicListConfig {
@@ -227,6 +346,17 @@ export interface ProcessTimeTracking {
 }
 
 // ============================================
+// Process Author (User Identity)
+// ============================================
+
+export interface ProcessAuthor {
+  name: string;           // Hero name or custom name
+  avatarId: string;      // Marvel hero ID (e.g. 'iron-man')
+  isCustom: boolean;     // true = user entered custom name, false = random hero
+  capturedAt: string;    // ISO timestamp when author was captured
+}
+
+// ============================================
 // Runtime State Types
 // ============================================
 
@@ -245,6 +375,8 @@ export interface ProcessState {
   variableDefinitions: ProcessVariableYAML[];  // Variable definitions from YAML
   capturedVariables: CapturedVariables;        // User-captured values
   timeTracking: ProcessTimeTracking;           // Process time tracking
+  author?: ProcessAuthor;                       // Optional: who executed the process
+  export?: ProcessExportConfig;                 // Declarative Excel export configuration
 }
 
 export interface PhaseState {
@@ -303,6 +435,7 @@ export interface TaskState {
   detailData?: DetailItem[];        // Captured detail items for 'detail-list'
   formConfig?: FormConfig;          // For type='form'
   formData?: FormFieldValue[];      // Captured form field values for 'form'
+  completionAlert?: CompletionAlertConfig;  // Optional confirmation dialog before finalize
 }
 
 export interface CheckItemState {
@@ -339,6 +472,7 @@ export interface ProcessExportJSON {
     exportedAt: string;
     completedAt?: string;
     progress: number;
+    author?: ProcessAuthor;      // Optional: who executed the process
     phases: PhaseExport[];
   };
 }

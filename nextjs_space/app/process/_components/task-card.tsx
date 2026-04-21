@@ -1,6 +1,6 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { TaskState } from '@/lib/types';
 import { useProcessStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
@@ -13,7 +13,16 @@ import { DynamicLinksList } from './dynamic-link-button';
 import { DynamicListInput } from './dynamic-list-input';
 import { DetailListInput } from './detail-list-input';
 import { FormRenderer } from './form-renderer';
-import { generateReleaseExcel, processToReleaseReport, downloadExcel, generateReleaseFilename } from '@/lib/excel-generator';
+import { CompletionAlertDialog } from './completion-alert-dialog';
+import {
+  generateReleaseExcel,
+  processToReleaseReport,
+  downloadExcel,
+  generateReleaseFilename,
+  executeExportPlan,
+  resolveExportPlan,
+  buildExportFilename,
+} from '@/lib/excel-generator';
 import { ListItem, DetailItem, FormFieldValue } from '@/lib/types';
 
 interface TaskCardProps {
@@ -101,16 +110,23 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
     return filledRequired.length === requiredFields.length;
   };
 
-  // Get templatePath from export-excel task for token replacement in form labels
+  // Resolve the Excel templatePath used for token replacement in form labels.
+  // Preference order:
+  //   1. process.export.templatePath (declarative, global)
+  //   2. An export-excel task in the same phase/activity that declares templatePath
   const getTemplatePath = (): string | undefined => {
     if (!process) return undefined;
+
+    // 1) Global process-level declarative config
+    const fromProcess = process.export?.templatePath;
+    if (fromProcess) return fromProcess;
+
+    // 2) Local export-excel task in same phase/activity
     const phases = process.phases || [];
-    
-    // Find the export-excel task in the same phase/activity
-    const allTasks = activityId 
+    const allTasks = activityId
       ? phases.find(p => p.id === phaseId)?.activities?.find(a => a.id === activityId)?.tasks || []
       : phases.find(p => p.id === phaseId)?.tasks || [];
-      
+
     const exportTask = allTasks.find(t => t.type === 'export-excel' && t.exportConfig);
     return exportTask?.exportConfig?.templatePath;
   };
@@ -138,32 +154,93 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
     }
   };
 
-  // Handle Excel export for export-excel task type
+  // Handle Excel export for export-excel task type.
+  // Prefers the declarative engine (process.export + task.exportConfig merge).
+  // Falls back to the legacy release-specific generator only if the task
+  // explicitly declares a templatePath and no declarative plan is resolvable.
   const handleExportExcel = async () => {
     try {
       const process = useProcessStore.getState().process;
       if (!process) return;
-      
+
+      // 1) Try the declarative engine first
+      const plan = resolveExportPlan(process, task);
+      if (plan) {
+        const blob = await executeExportPlan(plan, process);
+        const filename = buildExportFilename(plan.outputFilename, process);
+        downloadExcel(blob, filename);
+        if (!task.completed) {
+          storeActions.completeTask?.(phaseId, task.id, activityId);
+        }
+        toast.success('Reporte Excel generado y tarea completada');
+        return;
+      }
+
+      // 2) Legacy path (release-checklist-specific) — requires explicit templatePath.
+      //    We intentionally do NOT default to a hardcoded template path anymore.
+      const templatePath = task.exportConfig?.templatePath;
+      if (!templatePath) {
+        toast.error('Falta configuración de exportación (templatePath)', {
+          description:
+            'Declare process.export.templatePath o task.exportConfig.templatePath en el YAML.',
+        });
+        return;
+      }
+
       const reportData = processToReleaseReport(process);
       const variables = process.capturedVariables || {};
-      const templatePath = task.exportConfig?.templatePath || '/templates/TEMPLATE_Checklist_Liberacion.xlsx';
-      
       const blob = await generateReleaseExcel(templatePath, reportData);
-      const filename = generateReleaseFilename(
-        process.name || 'process',
-        variables.rfc,
-        variables.notaInstalacion
-      );
+      const filename = task.exportConfig?.outputFilename
+        ? buildExportFilename(task.exportConfig.outputFilename, process)
+        : generateReleaseFilename(
+            process.name || 'process',
+            variables.rfc,
+            variables.notaInstalacion,
+          );
       downloadExcel(blob, filename);
-      
-      // Auto-complete task after successful Excel generation
+
       if (!task.completed) {
         storeActions.completeTask?.(phaseId, task.id, activityId);
       }
       toast.success('Reporte Excel generado y tarea completada');
     } catch (error) {
       console.error('Excel export error:', error);
-      toast.error('Error al generar el reporte Excel');
+      const message = error instanceof Error ? error.message : 'Error desconocido';
+      toast.error('Error al generar el reporte Excel', { description: message });
+    }
+  };
+
+  // Controls the optional completion-alert confirmation dialog.
+  // When `task.completionAlert` is declared and the user attempts to
+  // complete, the dialog is shown first. Cancel keeps the task pending;
+  // confirm runs the original completion flow (`performComplete`).
+  const [alertOpen, setAlertOpen] = useState(false);
+
+  // Executes the actual completion side-effects. Split from
+  // `handleToggleComplete` so it can be invoked either directly (no alert)
+  // or as the `onConfirm` callback of the CompletionAlertDialog.
+  const performComplete = async () => {
+    // For export-excel tasks, generate Excel on completion
+    if (isExportExcelType) {
+      await handleExportExcel();
+      storeActions.completeTask?.(phaseId, task.id, activityId);
+      toast.success(t('task.completed'));
+      return;
+    }
+
+    // If task requires evidence (text, image, or both), open evidence modal
+    if (requiresEvidence) {
+      onViewEvidence();
+      return;
+    }
+
+    if (canCompleteTask(task)) {
+      storeActions.completeTask?.(phaseId, task.id, activityId);
+      toast.success(t('task.completed'));
+    } else {
+      toast.warning(t('evidence.required'), {
+        description: t('evidence.required.description'),
+      });
     }
   };
 
@@ -171,62 +248,51 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
     if (task?.completed) {
       storeActions.uncompleteTask?.(phaseId, task.id, activityId);
       toast.info(t('task.uncompleted'));
-    } else {
-      // For check/multicheck tasks, verify all required items are checked
-      if (isCheckType && !storeActions.canCompleteCheckTask?.(phaseId, task.id, activityId)) {
-        toast.warning(t('task.checkItems.required'), {
-          description: t('task.checkItems.required.description'),
-        });
-        return;
-      }
-      
-      // For dynamic-list tasks, verify minimum items
-      if (isDynamicListType && !isListMinMet) {
-        toast.warning('Lista incompleta', {
-          description: `Se requieren al menos ${listMinItems} item(s). Actualmente hay ${currentListItems}.`,
-        });
-        return;
-      }
-      
-      // For detail-list tasks, verify minimum details
-      if (isDetailListType && !isDetailMinMet) {
-        toast.warning('Detalles incompletos', {
-          description: `Complete todos los detalles (${currentDetailItems}/${detailMinItems}).`,
-        });
-        return;
-      }
-      
-      // For form tasks, verify all required fields are filled
-      if (isFormType && !isFormValid()) {
-        toast.warning('Formulario incompleto', {
-          description: 'Complete todos los campos requeridos del formulario',
-        });
-        return;
-      }
-      
-      // For export-excel tasks, generate Excel on completion
-      if (isExportExcelType) {
-        await handleExportExcel();
-        storeActions.completeTask?.(phaseId, task.id, activityId);
-        toast.success(t('task.completed'));
-        return;
-      }
-      
-      // If task requires evidence (text, image, or both), open evidence modal
-      if (requiresEvidence) {
-        onViewEvidence();
-        return;
-      }
-      
-      if (canCompleteTask(task)) {
-        storeActions.completeTask?.(phaseId, task.id, activityId);
-        toast.success(t('task.completed'));
-      } else {
-        toast.warning(t('evidence.required'), {
-          description: t('evidence.required.description'),
-        });
-      }
+      return;
     }
+
+    // For check/multicheck tasks, verify all required items are checked
+    if (isCheckType && !storeActions.canCompleteCheckTask?.(phaseId, task.id, activityId)) {
+      toast.warning(t('task.checkItems.required'), {
+        description: t('task.checkItems.required.description'),
+      });
+      return;
+    }
+
+    // For dynamic-list tasks, verify minimum items
+    if (isDynamicListType && !isListMinMet) {
+      toast.warning('Lista incompleta', {
+        description: `Se requieren al menos ${listMinItems} item(s). Actualmente hay ${currentListItems}.`,
+      });
+      return;
+    }
+
+    // For detail-list tasks, verify minimum details
+    if (isDetailListType && !isDetailMinMet) {
+      toast.warning('Detalles incompletos', {
+        description: `Complete todos los detalles (${currentDetailItems}/${detailMinItems}).`,
+      });
+      return;
+    }
+
+    // For form tasks, verify all required fields are filled
+    if (isFormType && !isFormValid()) {
+      toast.warning('Formulario incompleto', {
+        description: 'Complete todos los campos requeridos del formulario',
+      });
+      return;
+    }
+
+    // Optional confirmation dialog gate (feature: completion alert).
+    // Only for transitions pending -> completed. If the task declares
+    // `completionAlert`, show the modal and defer the actual completion
+    // until the user confirms.
+    if (task?.completionAlert) {
+      setAlertOpen(true);
+      return;
+    }
+
+    await performComplete();
   };
 
   const handleToggleCheckItem = (checkItemId: string) => {
@@ -266,7 +332,6 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
               disabled={isBlocked}
               data-testid="task-checkbox"
               aria-label={`${isCompleted ? t('task.unmark') : t('task.mark')}: ${task?.name}`}
-              aria-pressed={isCompleted}
               aria-disabled={isBlocked}
               role="checkbox"
               aria-checked={isCompleted}
@@ -634,6 +699,19 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
           </div>
         )}
       </div>
+
+      {task?.completionAlert && (
+        <CompletionAlertDialog
+          open={alertOpen}
+          onOpenChange={setAlertOpen}
+          alert={task.completionAlert}
+          taskName={task.name}
+          onConfirm={() => {
+            setAlertOpen(false);
+            void performComplete();
+          }}
+        />
+      )}
     </div>
   );
 }

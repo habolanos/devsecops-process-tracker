@@ -6,6 +6,7 @@ import { produce } from 'immer';
 import { ProcessState, TaskEvidence, CapturedVariables, WorkSession, ListItem, DetailItem, FormFieldValue } from './types';
 import { updateProgress, updateTaskBlockedStatus, getAllDependentTasks } from './helpers';
 import { createCompressedStorage } from './persist-storage';
+import { useUserProfileStore } from './user-profile-store';
 
 interface ProcessStore {
   process: ProcessState | null;
@@ -64,6 +65,20 @@ export const useProcessStore = create<ProcessStore>()(persist(
 
     loadProcess: (process) => {
       const updated = updateTaskBlockedStatus(updateProgress(process));
+
+      // Capture author from user profile only if process doesn't already have one
+      if (!updated.author) {
+        const userProfile = useUserProfileStore.getState().profile;
+        if (userProfile) {
+          updated.author = {
+            name: userProfile.name,
+            avatarId: userProfile.avatarId,
+            isCustom: userProfile.isCustom,
+            capturedAt: new Date().toISOString(),
+          };
+        }
+      }
+
       set({
         process: updated,
         currentPhaseId: updated.phases?.[0]?.id ?? null,
@@ -84,27 +99,27 @@ export const useProcessStore = create<ProcessStore>()(persist(
     },
 
     setCurrentPhase: (phaseId) => {
-      set((state) => ({
+      set({
         currentPhaseId: phaseId,
         currentActivityId: null,
         currentTaskId: null,
-        hasStartedInteraction: true // Mark interaction on phase change
-      }));
+        hasStartedInteraction: true, // Mark interaction on phase change
+      });
     },
 
     setCurrentActivity: (activityId) => {
-      set((state) => ({
+      set({
         currentActivityId: activityId,
         currentTaskId: null,
-        hasStartedInteraction: true // Mark interaction on activity change
-      }));
+        hasStartedInteraction: true, // Mark interaction on activity change
+      });
     },
 
     setCurrentTask: (taskId) => {
-      set((state) => ({
+      set({
         currentTaskId: taskId,
-        hasStartedInteraction: true // Mark interaction on task selection
-      }));
+        hasStartedInteraction: true, // Mark interaction on task selection
+      });
     },
 
     markInteractionStarted: () => {

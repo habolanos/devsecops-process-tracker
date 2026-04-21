@@ -22,18 +22,29 @@ export function FormRenderer({ config, data, onDataChange, disabled, templatePat
   const columns = layout.columns || 2;
   const gapClass = layout.gap === 'small' ? 'gap-2' : layout.gap === 'large' ? 'gap-6' : 'gap-4';
 
-  // Replace cell tokens in labels when templatePath is provided
+  // Whenever the inputs change, snap processedConfig back to the raw config
+  // synchronously (during render). The async token-resolver below will then
+  // overwrite it once the resolved values arrive. The previous-value tracking
+  // avoids a setState-in-effect cascade for the synchronous path.
+  const [trackedDeps, setTrackedDeps] = useState<{ config: FormConfig; templatePath?: string }>({
+    config,
+    templatePath,
+  });
+  if (trackedDeps.config !== config || trackedDeps.templatePath !== templatePath) {
+    setTrackedDeps({ config, templatePath });
+    setProcessedConfig(config);
+  }
+
+  // Async token replacement for labels that reference Excel template cells.
+  // Promise callbacks are not synchronous in-effect setState calls, so they
+  // are exempt from the react-hooks/set-state-in-effect rule.
   useEffect(() => {
-    if (templatePath) {
-      replaceFormConfigTokens(config, templatePath)
-        .then(setProcessedConfig)
-        .catch((err) => {
-          console.error('Error replacing cell tokens:', err);
-          setProcessedConfig(config); // Fallback to original config
-        });
-    } else {
-      setProcessedConfig(config);
-    }
+    if (!templatePath) return;
+    replaceFormConfigTokens(config, templatePath)
+      .then(setProcessedConfig)
+      .catch((err) => {
+        console.error('Error replacing cell tokens:', err);
+      });
   }, [config, templatePath]);
 
   const updateFieldValue = (fieldId: string, value: any) => {
@@ -78,23 +89,6 @@ export function FormRenderer({ config, data, onDataChange, disabled, templatePat
     }
 
     setErrors((prev) => ({ ...prev, [fieldId]: error }));
-  };
-
-  const validateForm = () => {
-    let isValid = true;
-    const newErrors: Record<string, string> = {};
-
-    processedConfig.fields.forEach((field) => {
-      const fieldValue = data.find((d) => d.fieldId === field.id)?.value;
-
-      if (field.required && (!fieldValue || (Array.isArray(fieldValue) && fieldValue.length === 0))) {
-        newErrors[field.id] = 'Este campo es requerido';
-        isValid = false;
-      }
-    });
-
-    setErrors(newErrors);
-    return isValid;
   };
 
   const isFormValid = () => {

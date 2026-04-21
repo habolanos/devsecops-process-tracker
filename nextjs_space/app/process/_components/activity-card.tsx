@@ -117,6 +117,10 @@ function ActivityCard({ activity, phaseId, onViewEvidence }: ActivityCardProps) 
                     }}
                     className="aspect-video bg-gray-200 rounded-lg overflow-hidden hover:ring-2 hover:ring-indigo-400 transition-all"
                   >
+                    {/* User-supplied illustration URLs come from arbitrary hosts
+                        (or data/blob URIs) so next/image's remotePatterns model
+                        does not apply here. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={sanitizeUrl(img.url) || ''}
                       alt={sanitizeText(img.name) || `Image ${idx + 1}`}
@@ -160,6 +164,8 @@ function ActivityCard({ activity, phaseId, onViewEvidence }: ActivityCardProps) 
           onClick={() => setShowImageModal(null)}
         >
           <div className="max-w-4xl max-h-[90vh] overflow-auto">
+            {/* Zoomed view of the same user-supplied illustration — see above. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={sanitizeUrl(showImageModal) || ''}
               alt="Activity illustration"

@@ -1,0 +1,313 @@
+{
+  "Process skeleton": {
+    "scope": "yaml",
+    "prefix": "process-skeleton",
+    "description": "Starter skeleton for a new DevSecOps process YAML.",
+    "body": [
+      "# yaml-language-server: $schema=../../../schemas/process.schema.json",
+      "process:",
+      "  id: \"${1:process-id}\"",
+      "  name: \"${2:Human readable name}\"",
+      "  description: \"${3:One-line description}\"",
+      "  version: \"${4:1.0.0}\"",
+      "  estimatedTime: \"${5:45m}\"",
+      "  phases:",
+      "    - id: \"phase-1\"",
+      "      name: \"${6:Phase name}\"",
+      "      description: \"${7:Phase description}\"",
+      "      order: 1",
+      "      tasks:",
+      "        - id: \"task-1-1\"",
+      "          name: \"${8:Task name}\"",
+      "          order: 1",
+      "          evidence:",
+      "            type: \"text\"",
+      "            required: false",
+      "$0"
+    ]
+  },
+
+  "Phase block": {
+    "scope": "yaml",
+    "prefix": "phase",
+    "description": "A phase with at least one task.",
+    "body": [
+      "- id: \"${1:phase-id}\"",
+      "  name: \"${2:Phase name}\"",
+      "  description: \"${3:Phase description}\"",
+      "  order: ${4:1}",
+      "  tasks:",
+      "    - id: \"${5:task-id}\"",
+      "      name: \"${6:Task name}\"",
+      "      order: 1",
+      "      evidence:",
+      "        type: \"${7|text,image,both,form,none|}\"",
+      "        required: ${8|false,true|}",
+      "$0"
+    ]
+  },
+
+  "Activity block": {
+    "scope": "yaml",
+    "prefix": "activity",
+    "description": "An intermediate activity grouping tasks inside a phase.",
+    "body": [
+      "- id: \"${1:activity-id}\"",
+      "  name: \"${2:Activity name}\"",
+      "  description: \"${3:Activity description}\"",
+      "  order: ${4:1}",
+      "  tasks:",
+      "    - id: \"${5:task-id}\"",
+      "      name: \"${6:Task name}\"",
+      "      order: 1",
+      "      evidence:",
+      "        type: \"text\"",
+      "        required: false",
+      "$0"
+    ]
+  },
+
+  "Task: standard": {
+    "scope": "yaml",
+    "prefix": "task-standard",
+    "description": "Free-form task with evidence.",
+    "body": [
+      "- id: \"${1:task-id}\"",
+      "  name: \"${2:Task name}\"",
+      "  description: \"${3:Task description}\"",
+      "  order: ${4:1}",
+      "  type: \"standard\"",
+      "  evidence:",
+      "    type: \"${5|text,image,both,none|}\"",
+      "    required: ${6|false,true|}",
+      "$0"
+    ]
+  },
+
+  "Task: check": {
+    "scope": "yaml",
+    "prefix": "task-check",
+    "description": "Single checkbox task (type=check).",
+    "body": [
+      "- id: \"${1:task-id}\"",
+      "  name: \"${2:Task name}\"",
+      "  order: ${3:1}",
+      "  type: \"check\"",
+      "  checkItem:",
+      "    description: \"${4:What the user confirms}\"",
+      "    required: true",
+      "  evidence:",
+      "    type: \"${5|text,none|}\"",
+      "    required: false",
+      "$0"
+    ]
+  },
+
+  "Task: multicheck": {
+    "scope": "yaml",
+    "prefix": "task-multicheck",
+    "description": "Multiple checkboxes task (type=multicheck).",
+    "body": [
+      "- id: \"${1:task-id}\"",
+      "  name: \"${2:Task name}\"",
+      "  order: ${3:1}",
+      "  type: \"multicheck\"",
+      "  checkItems:",
+      "    - id: \"${4:check-1}\"",
+      "      description: \"${5:First check}\"",
+      "      required: true",
+      "    - id: \"${6:check-2}\"",
+      "      description: \"${7:Second check}\"",
+      "      required: false",
+      "  evidence:",
+      "    type: \"${8|text,image,both,none|}\"",
+      "    required: false",
+      "$0"
+    ]
+  },
+
+  "Task: dynamic-list": {
+    "scope": "yaml",
+    "prefix": "task-dynamic-list",
+    "description": "User provides a dynamic list of items.",
+    "body": [
+      "- id: \"${1:task-id}\"",
+      "  name: \"${2:Task name}\"",
+      "  order: ${3:1}",
+      "  type: \"dynamic-list\"",
+      "  listConfig:",
+      "    label: \"${4:Item label}\"",
+      "    placeholder: \"${5:Enter items separated by comma}\"",
+      "    minItems: 1",
+      "    separators: [\",\", \";\", \"\\n\"]",
+      "    trimItems: true",
+      "  evidence:",
+      "    type: \"text\"",
+      "    required: false",
+      "$0"
+    ]
+  },
+
+  "Task: detail-list": {
+    "scope": "yaml",
+    "prefix": "task-detail-list",
+    "description": "Captures details for each item from a dynamic-list task.",
+    "body": [
+      "- id: \"${1:task-id}\"",
+      "  name: \"${2:Task name}\"",
+      "  order: ${3:1}",
+      "  type: \"detail-list\"",
+      "  detailConfig:",
+      "    sourceTaskId: \"${4:source-list-task-id}\"",
+      "    placeholder: \"Details for {item}\"",
+      "    maxLength: 200",
+      "  evidence:",
+      "    type: \"text\"",
+      "    required: false",
+      "  dependencies: [\"${4:source-list-task-id}\"]",
+      "$0"
+    ]
+  },
+
+  "Task: form": {
+    "scope": "yaml",
+    "prefix": "task-form",
+    "description": "Multi-field form task.",
+    "body": [
+      "- id: \"${1:task-id}\"",
+      "  name: \"${2:Task name}\"",
+      "  order: ${3:1}",
+      "  type: \"form\"",
+      "  formConfig:",
+      "    layout:",
+      "      type: \"${4|vertical,grid|}\"",
+      "      columns: 2",
+      "      gap: \"medium\"",
+      "    fields:",
+      "      - id: \"${5:field-1}\"",
+      "        label: \"${6:Field label}\"",
+      "        type: \"${7|text,number,email,date,time,datetime,boolean,textarea,image,select|}\"",
+      "        required: ${8|false,true|}",
+      "  evidence:",
+      "    type: \"form\"",
+      "    required: false",
+      "$0"
+    ]
+  },
+
+  "Task: export-excel": {
+    "scope": "yaml",
+    "prefix": "task-export-excel",
+    "description": "Exports the process to an Excel template. Relies on process.export by default.",
+    "body": [
+      "- id: \"${1:task-id}\"",
+      "  name: \"${2:Generate Report}\"",
+      "  order: ${3:1}",
+      "  type: \"export-excel\"",
+      "  # By default inherits process.export; override only if needed.",
+      "  exportConfig:",
+      "    inherit: true",
+      "    autoDownload: true",
+      "  evidence:",
+      "    type: \"none\"",
+      "    required: false",
+      "$0"
+    ]
+  },
+
+  "process.export block": {
+    "scope": "yaml",
+    "prefix": "process-export",
+    "description": "Declarative Excel export configuration (top-level process.export).",
+    "body": [
+      "export:",
+      "  templatePath: \"${1:/templates/TEMPLATE_Report.xlsx}\"",
+      "  templateVersion: \"${2:1.0.0}\"",
+      "  outputFilename: \"${3:Report_{today:DDMMYYYY}_{process.name}}\"",
+      "  sheet: \"${4:Sheet1}\"",
+      "  autoDownload: true",
+      "  mappings:",
+      "    variables:",
+      "      ${5:myVar}: \"${6:A1}\"",
+      "    staticCells:",
+      "      ${7:B1}: \"${8:Static value}\"",
+      "    time:",
+      "      startedAt: \"${9:C1}\"",
+      "      completedAt: \"${10:D1}\"",
+      "    process:",
+      "      name: \"${11:E1}\"",
+      "      version: \"${12:F1}\"",
+      "$0"
+    ]
+  },
+
+  "Variable: text": {
+    "scope": "yaml",
+    "prefix": "var-text",
+    "description": "Text process variable.",
+    "body": [
+      "- key: \"${1:variableKey}\"",
+      "  label: \"${2:User-facing label}\"",
+      "  type: \"text\"",
+      "  required: ${3|false,true|}",
+      "  placeholder: \"${4:Hint...}\"",
+      "$0"
+    ]
+  },
+
+  "Variable: select": {
+    "scope": "yaml",
+    "prefix": "var-select",
+    "description": "Select process variable with options.",
+    "body": [
+      "- key: \"${1:variableKey}\"",
+      "  label: \"${2:User-facing label}\"",
+      "  type: \"select\"",
+      "  required: true",
+      "  options:",
+      "    - \"${3:Option A}\"",
+      "    - \"${4:Option B}\"",
+      "$0"
+    ]
+  },
+
+  "Dynamic link": {
+    "scope": "yaml",
+    "prefix": "dynamic-link",
+    "description": "A parametrized URL with behavior.",
+    "body": [
+      "- label: \"${1:Link label}\"",
+      "  urlTemplate: \"${2:https://example.com/{variable}}\"",
+      "  behavior: \"${3|auto,click|}\"",
+      "  newTab: true",
+      "$0"
+    ]
+  },
+
+  "Completion alert": {
+    "scope": "yaml",
+    "prefix": "completion-alert",
+    "description": "Optional confirmation dialog shown before a task is finalized.",
+    "body": [
+      "completionAlert:",
+      "  severity: \"${1|info,warning,critical|}\"",
+      "  title: \"${2:Confirmar finalización}\"",
+      "  description: |",
+      "    ${3:Esta acción marcará la tarea como completada. Verifica...}",
+      "  confirmLabel: \"${4:Finalizar}\"",
+      "  cancelLabel: \"${5:Cancelar}\"",
+      "$0"
+    ]
+  },
+
+  "Reference": {
+    "scope": "yaml",
+    "prefix": "reference",
+    "description": "Documentation reference.",
+    "body": [
+      "- label: \"${1:Reference label}\"",
+      "  url: \"${2:https://docs.example.com}\"",
+      "$0"
+    ]
+  }
+}

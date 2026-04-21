@@ -1,4 +1,9 @@
 'use client';
+// TanStack Virtual's useVirtualizer exposes functions that React Compiler
+// cannot safely memoize (stale UI risk). Opt out of auto-memoization for
+// this component — the ESLint rule react-hooks/incompatible-library honors
+// the directive and silences the informational warning.
+'use no memo';
 
 import { useRef, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';

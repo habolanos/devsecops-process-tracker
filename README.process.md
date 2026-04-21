@@ -24,6 +24,7 @@ Esta guía proporciona una documentación exhaustiva sobre cómo crear y configu
   - [Dependencias](#dependencias)
   - [Links Dinámicos](#links-dinámicos)
   - [Evidencia](#evidencia)
+  - [Confirmación de cierre (completionAlert)](#confirmación-de-cierre-completionalert)
 - [Ejemplo Paso a Paso](#ejemplo-paso-a-paso)
 - [Buenas Prácticas](#buenas-prácticas)
 - [Referencias de Archivos Existentes](#referencias-de-archivos-existentes)
@@ -90,29 +91,39 @@ process:
 
 ### Versión
 
-Formato semántico (MAJOR.MINOR.PATCH):
+Formato semántico (MAJOR.MINOR.PATCH), con soporte opcional de pre-release y build metadata:
 
 ```yaml
 process:
   version: "1.2.3"
+  # También válidos:
+  # version: "2.0.0-rc.1"
+  # version: "1.0.0+build.5"
 ```
 
-- **MAJOR**: Cambios incompatibles en estructura
-- **MINOR**: Nuevas funcionalidades compatibles
-- **PATCH**: Correcciones de errores
+- **MAJOR**: Cambios incompatibles en estructura.
+- **MINOR**: Nuevas funcionalidades compatibles.
+- **PATCH**: Correcciones de errores.
+- **Pre-release / build**: identificadores separados por `-` o `+` (`rc.1`, `beta.2`, `build.42`).
+
+> El patrón se valida contra el JSON Schema **v1.1.0** (`schemas/process.schema.json`) con la expresión `^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$`.
 
 ### Tiempo Estimado
 
-Formato legible para humanos:
+Formato legible para humanos, compuesto por segmentos `h` (horas), `m` (minutos) o `s` (segundos). Se admiten decimales. Los segmentos son aditivos.
 
 ```yaml
 process:
-  estimatedTime: "1h30m"  # 1 hora y 30 minutos
-  # Otros ejemplos:
-  # "45m"  # 45 minutos
-  # "2h"   # 2 horas
-  # "3h15m" # 3 horas y 15 minutos
+  estimatedTime: "1h30m"   # 1 hora y 30 minutos
+  # Otros ejemplos válidos:
+  # "45m"     # 45 minutos
+  # "2h"      # 2 horas
+  # "1.5h"    # 1.5 horas (decimal admitido)
+  # "3h15m"   # 3 horas y 15 minutos
+  # "30s"     # 30 segundos
 ```
+
+> El parser (`parseTimeString` en `lib/helpers.ts`) **no soporta días (`d`)**. Use horas (`24h` = 1 día).
 
 ---
 
@@ -539,39 +550,187 @@ Tarea con múltiples checkboxes de verificación.
 
 ### Export-Excel
 
-Genera un reporte Excel basado en un template.
+Dispara la generación de un reporte Excel a partir de un template `.xlsx`. Desde la v2.1.0 la configuración de exportación es **declarativa a nivel de proceso** (`process.export`) y la tarea `export-excel` es apenas el **gatillo**.
+
+#### 1) Estructura mínima de la tarea
+
+La tarea solo necesita declarar su tipo; el template y los mapeos se heredan de `process.export` (sección siguiente):
 
 ```yaml
-- id: "task-4-1"
+- id: "task-gen-excel"
   name: "Generar Reporte Excel"
-  description: "Crear reporte en formato Excel"
-  order: 1
+  description: "Genera el reporte final en formato Excel"
+  order: 3
   type: "export-excel"
-  exportConfig:
-    templatePath: "templates/release-report.xlsx"
-    outputFilename: "release-report-{torre}-{fecha}.xlsx"
-    mappings:
-      - cell: "B5"
-        source: "variable:torre"
-      - cell: "B6"
-        source: "variable:fecha"
-      - cell: "F5"
-        source: "task:task-1-1.evidence.text"
-      - cell: "F6"
-        source: "task:task-2-1.checkItems.0.checked"
+  evidence:
+    type: "text"
+    required: false
+  dependencies: ["task-previa"]
 ```
 
-**Campos específicos:**
-- `templatePath`: Ruta al archivo Excel template
-- `outputFilename`: Nombre del archivo generado (soporta variables)
-- `mappings`: Mapeo de celdas a fuentes de datos
+#### 2) Overrides a nivel de tarea (opcional)
 
-**Fuentes de datos:**
-- `variable:nombre`: Variable del proceso
-- `task:taskId.evidence.text`: Evidencia de texto
-- `task:taskId.checkItems.N.checked`: Estado de checkbox
-- `task:taskId.listData`: Lista de items (dynamic-list)
-- `task:taskId.formData`: Datos de formulario
+Si una tarea concreta debe usar un template distinto o un nombre de archivo distinto al declarado en `process.export`, puede sobrescribirlo:
+
+```yaml
+- id: "task-gen-excel"
+  type: "export-excel"
+  exportConfig:
+    templatePath: "/templates/OTRO_TEMPLATE.xlsx"   # opcional: sobreescribe process.export.templatePath
+    outputFilename: "Reporte_{today:YYYYMMDD}"      # opcional: sobreescribe outputFilename
+    autoDownload: true                               # opcional: default true
+    inherit: true                                    # default true; pon false para ignorar process.export
+    mappings: { ... }                                # opcional: se FUSIONA con process.export.mappings
+```
+
+**Comportamiento del merge**:
+
+- `templatePath` y `outputFilename` de la tarea **ganan** sobre `process.export` si se declaran.
+- `mappings.variables`, `mappings.staticCells`, `mappings.time`, `mappings.process` se **combinan** (override por llave).
+- `mappings.taskSources` se **concatena** (base + override).
+- `mappings.comments` y `mappings.evidences` se **reemplazan** completos si el override los declara.
+- `inherit: false` desactiva por completo la herencia del `process.export`.
+
+#### 3) Validación
+
+- Una tarea `export-excel` **requiere** que haya un `templatePath` alcanzable (propio o heredado); si no, el YAML falla al cargar con un mensaje explícito.
+- Todas las referencias de celda deben cumplir el formato `^[A-Z]+[0-9]+$` (ej. `F85`, `AA10`). Se validan en `yaml-parser.ts` antes de ejecutar.
+- Ya **no** existe un fallback silencioso a un template por defecto: la falta de `templatePath` muestra un toast de error al usuario.
+
+#### 4) Interpolación en `outputFilename` y `comments.template`
+
+Tokens soportados:
+
+| Token | Significado | Ejemplo |
+|-------|-------------|---------|
+| `{today}` | Fecha actual (`YYYYMMDD`) | `20260419` |
+| `{today:YYYY-MM-DD}` | Fecha con formato custom | `2026-04-19` |
+| `{now:HHmm}` | Hora actual | `2235` |
+| `{fecha}` | Alias legacy (`DDMMYYYY`) | `19042026` |
+| `{process.name}` | Metadato del proceso | `Checklist de Liberación` |
+| `{process.id}` / `{process.version}` | Metadato del proceso | `release-checklist-2026` |
+| `{vars.<key>}` | Variable capturada | `{vars.rfc}` → `RFC123456` |
+| `{<key>}` | Atajo: variable capturada directa | `{rfc}` → `RFC123456` |
+
+En `outputFilename` los valores se **sanean** automáticamente (caracteres inválidos de Windows/Linux) y se garantiza la extensión `.xlsx`.
+
+---
+
+### Export Declarativo (`process.export`)
+
+Bloque **a nivel de proceso** que define cómo se llena el Excel. El motor genérico (`executeExportPlan`) lee este bloque y escribe celdas sin código TypeScript específico del proceso.
+
+```yaml
+process:
+  id: "mi-proceso"
+  # ...
+
+  export:
+    templatePath: "/templates/MI_TEMPLATE.xlsx"        # obligatorio
+    templateVersion: "1.0.0"                           # opcional, informativo
+    templateSha256: "..."                              # opcional, integridad
+    outputFilename: "Reporte_{today:YYYYMMDD}_{vars.rfc}"
+    sheet: "Checklist"                                 # opcional: hoja objetivo (default: primera)
+    autoDownload: true
+
+    mappings:
+      # 1) Celdas estáticas (valor literal)
+      staticCells:
+        A1: "DevSecOps Process Tracker"
+        Z99: 42
+
+      # 2) Variables del proceso (capturedVariables) -> celdas
+      variables:
+        torre: "F3"
+        rfc: "F9"
+        desarrollador: "W12"
+
+      # 3) Metadato del proceso -> celdas
+      process:
+        id: "F84"
+        name: "F2"
+        version: "Z2"
+
+      # 4) Time tracking -> celdas (Date values)
+      time:
+        today: "W3"                 # fecha de generación
+        startedAt: "W85"             # firstStartedAt del proceso
+        completedAt: "W86"           # completedAt o fecha actual
+        totalElapsedMinutes: "Z10"   # tiempo total activo, en minutos
+        totalElapsedHours: "Z11"
+
+      # 5) Fuentes basadas en tareas
+      taskSources:
+        # 5.a) Lista dinámica -> rango vertical
+        - kind: list
+          sourceTaskId: task-1-2     # id de una tarea type=dynamic-list
+          column: F
+          startRow: 5
+          endRow: 13                  # (o usa maxItems)
+
+        # 5.b) Detail list -> una o varias secciones repetidas
+        - kind: detail
+          sourceTaskId: task-1-2b    # id de una tarea type=detail-list
+          sections:
+            - { column: B, startRow: 47, endRow: 56 }
+            - { column: B, startRow: 60, endRow: 69 }
+
+        # 5.c) Form -> usa field.valueCell de cada campo del form
+        - kind: form
+          sourceTaskId: task-7-1b    # id de una tarea type=form
+
+        # 5.d) Checklist -> una fila por tarea con estado aplica/validado/url
+        - kind: checklist
+          # sourceTaskId: "task-x"   # opcional; si se omite recorre TODAS las tareas
+          startRow: 18
+          maxRows: 20
+          columns:
+            aplica: T
+            validado: U
+            url: V
+            nombre: B                 # opcional
+
+      # 6) Celda de comentarios con template interpolable
+      comments:
+        cell: "B100"
+        template: "Proceso: {process.name}\nRFC: {vars.rfc}"
+
+      # 7) Hoja de evidencias (tareas completadas con timestamp)
+      evidences:
+        sheet: "Evidencias"
+        startRow: 3
+        dateColumn: B
+        activityColumn: C
+        maxRows: 200                 # opcional
+```
+
+#### Tipos de `taskSources`
+
+| `kind` | Requiere | Qué escribe |
+|--------|----------|-------------|
+| `list` | `sourceTaskId` (dynamic-list), `column`, `startRow`, (`endRow` o `maxItems`) | Cada item en `{column}{startRow+i}` |
+| `detail` | `sourceTaskId` (detail-list), `sections[]` | Replica los textos en cada sección |
+| `form` | `sourceTaskId` (form) | Cada `field.valueCell` del form recibe su valor |
+| `checklist` | `startRow`, `columns` (al menos una) | Una fila por tarea: `aplica=true`, `validado=bool`, `url`, `nombre` |
+
+#### Agregar un proceso nuevo con template
+
+Sin tocar código TypeScript:
+
+1. Coloque el archivo `.xlsx` en `nextjs_space/public/templates/<nombre>.xlsx`.
+2. Declare `process.export` en el YAML del proceso con los `mappings` correspondientes.
+3. Anote `valueCell` en los campos `form` que deban volcar datos al Excel.
+4. Registre el proceso en `nextjs_space/data/processes/index.json`.
+
+#### Errores de validación comunes
+
+| Mensaje | Causa |
+|---------|-------|
+| `process.export: 'templatePath' is required` | Falta `templatePath` a nivel proceso |
+| `Task '<id>' (type=export-excel) ... requires ... templatePath` | Tarea sin heredar y sin `templatePath` propio |
+| `Invalid cell reference "..." in process.export.mappings.variables['xxx']` | Valor no cumple `^[A-Z]+[0-9]+$` |
+| `...taskSources[i]: 'sourceTaskId' required for kind=list` | Falta `sourceTaskId` en una source `list`/`detail`/`form` |
+| `...taskSources[i]: unknown kind 'xyz'` | `kind` distinto a `list`/`detail`/`form`/`checklist` |
 
 ---
 
@@ -833,6 +992,52 @@ evidence:
   required: true
   description: "Complete los campos del formulario"
 ```
+
+---
+
+### Confirmación de cierre (completionAlert)
+
+Cualquier tarea puede declarar un bloque opcional `completionAlert` que muestra un modal de confirmación **antes** de finalizar la tarea. Si el usuario cancela, el estado previo se preserva.
+
+```yaml
+tasks:
+  - id: "deploy-to-prod"
+    name: "Promover release a producción"
+    type: standard
+    evidence:
+      type: text
+      required: true
+    completionAlert:
+      severity: "critical"                  # info | warning | critical (default: info)
+      title: "Confirmar despliegue a producción"
+      description: "Esta acción promueve el build actual a producción y no se puede deshacer. ¿Continuar?"
+      confirmLabel: "Sí, promover"          # opcional: default i18n 'common.confirm'
+      cancelLabel: "Cancelar"               # opcional: default i18n 'common.cancel'
+```
+
+**Campos:**
+
+| Campo | Requerido | Descripción |
+|-------|-----------|-------------|
+| `description` | sí | Cuerpo principal del modal. |
+| `severity` | no | `info` (default, azul), `warning` (ámbar) o `critical` (rojo con pulse animado). |
+| `title` | no | Encabezado del modal. Default: `alert.completion.defaultTitle` i18n. |
+| `confirmLabel` | no | Texto del botón primario. |
+| `cancelLabel` | no | Texto del botón secundario. |
+
+**Comportamiento:**
+
+- El modal se renderiza con `CompletionAlertDialog` (ver `app/process/_components/completion-alert-dialog.tsx`).
+- Los estilos derivan de `lib/alert-feedback.ts` (paleta + icono por severidad).
+- Respeta `prefers-reduced-motion`: desactiva las animaciones `pulse-once`/`pulse-strong`.
+- No se muestra al **desmarcar** una tarea ya completada; solo al cerrar.
+- Internacionalizado (ES/EN) via `lib/i18n-context.tsx`.
+
+**Cuándo usarlo:**
+
+- Acciones irreversibles (despliegues a producción, borrado de datos).
+- Pasos con implicaciones de compliance o auditoría.
+- Tareas con efectos colaterales en sistemas externos (notificaciones, webhooks, pipelines).
 
 ---
 
@@ -1186,8 +1391,10 @@ process:
 
 ### release-checklist.yaml
 - **Complejidad:** Alta
-- **Características:** Variables, dynamic-list, detail-list, form, export-excel
-- **Casos de uso:** Proceso de release completo con generación de reporte
+- **Características:** Variables, dynamic-list, detail-list, form, export-excel + **`process.export` declarativo** (desde v2.1.0)
+- **Casos de uso:** Proceso de release completo con generación de reporte Excel
+- **Template:** `public/templates/TEMPLATE_Checklist_Liberacion.xlsx`
+- **Referencia canónica** del bloque `process.export` con `variables`, `time`, `comments`, `taskSources` (list/detail/form) y `evidences`
 
 ### pull-request-validation.yaml
 - **Complejidad:** Alta
@@ -1235,5 +1442,6 @@ Para preguntas o problemas con la creación de procesos:
 
 ---
 
-**Última actualización:** 2026-04-07
-**Versión de la guía:** 1.0.0
+**Última actualización:** 2026-04-21
+**Versión de la guía:** 1.2.0
+**Schema:** `schemas/process.schema.json` v1.1.0

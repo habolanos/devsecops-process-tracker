@@ -572,3 +572,131 @@ process:
     expect(result.error).toBeDefined();
   });
 });
+
+describe('parseYAMLToProcess - completionAlert', () => {
+  const wrap = (taskBlock: string) => `
+process:
+  id: p
+  name: P
+  phases:
+    - id: ph1
+      name: Ph1
+      tasks:
+${taskBlock}
+`;
+
+  it('parses a completionAlert block with all fields', () => {
+    const result = parseYAMLToProcess(
+      wrap(`        - id: t1
+          name: T1
+          evidence:
+            type: text
+            required: false
+          completionAlert:
+            severity: critical
+            title: Confirm deploy
+            description: This will deploy to prod.
+            confirmLabel: Deploy
+            cancelLabel: Abort
+`),
+    );
+    const alert = result.phases[0].tasks[0].completionAlert;
+    expect(alert).toEqual({
+      severity: 'critical',
+      title: 'Confirm deploy',
+      description: 'This will deploy to prod.',
+      confirmLabel: 'Deploy',
+      cancelLabel: 'Abort',
+    });
+  });
+
+  it('defaults severity to info when omitted', () => {
+    const result = parseYAMLToProcess(
+      wrap(`        - id: t1
+          name: T1
+          evidence:
+            type: text
+            required: false
+          completionAlert:
+            description: Just confirm.
+`),
+    );
+    const alert = result.phases[0].tasks[0].completionAlert;
+    expect(alert?.severity).toBe('info');
+    expect(alert?.description).toBe('Just confirm.');
+    expect(alert?.title).toBeUndefined();
+  });
+
+  it('leaves completionAlert undefined when the block is absent', () => {
+    const result = parseYAMLToProcess(
+      wrap(`        - id: t1
+          name: T1
+          evidence:
+            type: text
+            required: false
+`),
+    );
+    expect(result.phases[0].tasks[0].completionAlert).toBeUndefined();
+  });
+
+  it('rejects an invalid severity value', () => {
+    expect(() =>
+      parseYAMLToProcess(
+        wrap(`        - id: t1
+          name: T1
+          evidence:
+            type: text
+            required: false
+          completionAlert:
+            severity: loud
+            description: X
+`),
+      ),
+    ).toThrow(/severity.*info\|warning\|critical/);
+  });
+
+  it('rejects a missing or empty description', () => {
+    expect(() =>
+      parseYAMLToProcess(
+        wrap(`        - id: t1
+          name: T1
+          evidence:
+            type: text
+            required: false
+          completionAlert:
+            severity: warning
+`),
+      ),
+    ).toThrow(/description.*required/);
+
+    expect(() =>
+      parseYAMLToProcess(
+        wrap(`        - id: t1
+          name: T1
+          evidence:
+            type: text
+            required: false
+          completionAlert:
+            severity: warning
+            description: "   "
+`),
+      ),
+    ).toThrow(/description.*required/);
+  });
+
+  it('rejects non-string optional fields when provided', () => {
+    expect(() =>
+      parseYAMLToProcess(
+        wrap(`        - id: t1
+          name: T1
+          evidence:
+            type: text
+            required: false
+          completionAlert:
+            description: X
+            title: 42
+`),
+      ),
+    ).toThrow(/completionAlert.title.*string/);
+  });
+});

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { parseYAMLToProcess } from '@/lib/yaml-parser';
 import { importProcessFromJSON, exportProcessToJSON, downloadJSON } from '@/lib/json-utils';
@@ -12,6 +12,7 @@ import { Upload, FileText, Globe, Shield, Rocket, AlertTriangle, FolderOpen, Git
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useLoadingStore } from '@/lib/loading-store';
 import { ProcessTabs } from '@/components/process-tabs';
+import { UserProfilePopover } from '@/components/user-profile-popover';
 import { toast } from 'sonner';
 
 interface ProcessTemplate {
@@ -22,6 +23,8 @@ interface ProcessTemplate {
   icon: string;
   file: string;
   version: string;
+  estimatedTime?: string;   // e.g. "45m", "2h", "1h30m"
+  hasVariables?: boolean;   // true if the process declares `variables[]`
 }
 
 export default function HomePage() {
@@ -186,6 +189,7 @@ export default function HomePage() {
             </h1>
           </div>
           <div className="flex items-center gap-2">
+            <UserProfilePopover language={language} />
             <ThemeToggle language={language} />
             <button
               onClick={() => setLanguage?.(language === 'es' ? 'en' : 'es')}
@@ -553,6 +557,9 @@ export default function HomePage() {
       <footer className="mt-20 py-8 border-t border-border bg-background">
         <div className="max-w-7xl mx-auto px-6 flex flex-col items-center gap-3">
           <div className="flex items-center gap-3">
+            {/* External badge from badgen.net — next/image requires remotePatterns config and
+                provides no optimization benefit for a 6px-tall SVG badge. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="https://badgen.net/badge/Open%20Source%20%3F/Yes%21/green?icon=github" alt={t('footer.opensource')} className="h-6" />
             <a href="https://github.com/habolanos/devsecops-process-tracker" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border bg-card text-foreground hover:bg-accent hover:border-foreground/20 transition-all shadow-sm">
               <Github className="w-4 h-4" />

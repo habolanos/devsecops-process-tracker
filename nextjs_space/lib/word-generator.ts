@@ -1,6 +1,6 @@
 'use client';
 
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun, BorderStyle } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun } from 'docx';
 import { ProcessState } from './types';
 import { formatDurationLong } from './helpers';
 import { replaceFormConfigTokens } from './excel-template-helper';
@@ -96,6 +96,40 @@ export async function generateWordDocument(process: ProcessState): Promise<Blob>
           new TextRun(new Date(process.completedAt).toLocaleString('es-ES'))
         ],
         spacing: { after: 400 }
+      })
+    );
+  }
+
+  // Author Information Section
+  if (process?.author) {
+    sections.push(
+      new Paragraph({
+        text: 'Información del Ejecutor',
+        heading: HeadingLevel.HEADING_2,
+        spacing: { before: 400, after: 200 }
+      })
+    );
+
+    sections.push(
+      new Paragraph({
+        children: [
+          new TextRun({ text: 'Nombre: ', bold: true }),
+          new TextRun(process.author.name),
+          ...(process.author.isCustom
+            ? []
+            : [new TextRun({ text: ' (asignado automáticamente)', italics: true, color: '666666' })])
+        ],
+        spacing: { after: 100 }
+      })
+    );
+
+    sections.push(
+      new Paragraph({
+        children: [
+          new TextRun({ text: 'Fecha de registro: ', bold: true }),
+          new TextRun(new Date(process.author.capturedAt).toLocaleString('es-ES'))
+        ],
+        spacing: { after: 300 }
       })
     );
   }
