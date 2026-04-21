@@ -199,7 +199,7 @@ jobs:
         continue-on-error: true
 
       - name: Run Trivy vulnerability scanner (filesystem)
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@0.35.0
         continue-on-error: true
         with:
           scan-type: 'fs'
@@ -314,7 +314,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Scan Docker image with Trivy
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@0.35.0
         continue-on-error: true
         with:
           image-ref: 'devsecops-process-tracker:test'
