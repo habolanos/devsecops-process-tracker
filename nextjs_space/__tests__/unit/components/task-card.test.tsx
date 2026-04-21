@@ -24,6 +24,7 @@ const mockProcessState = {
   updateListData: vi.fn(),
   updateDetailData: vi.fn(),
   updateFormData: vi.fn(),
+  markInteractionStarted: vi.fn(),
 };
 
 vi.mock('@/lib/store', () => {
@@ -1296,6 +1297,55 @@ describe('TaskCard - General Functionality', () => {
 
       expect(screen.queryByTestId('completion-alert-dialog')).not.toBeInTheDocument();
       expect(mockProcessState.uncompleteTask).toHaveBeenCalledWith(phaseId, 'task-alert', undefined);
+    });
+
+    it('passes completionAlertAlreadyConfirmed=true to onViewEvidence after confirming alert', () => {
+      const task: TaskState = {
+        ...baseTask,
+        evidenceConfig: { type: 'text', required: true },
+        completionAlert: {
+          severity: 'critical' as const,
+          description: 'Critical action',
+        },
+      };
+      render(<TaskCard task={task} phaseId={phaseId} onViewEvidence={mockViewEvidence} />);
+      fireEvent.click(screen.getByTestId('task-checkbox'));
+
+      // Alert dialog should be open
+      expect(screen.getByTestId('completion-alert-dialog')).toBeInTheDocument();
+
+      // Confirm the alert
+      fireEvent.click(screen.getByTestId('completion-alert-confirm'));
+
+      // onViewEvidence should be called with true (alert already confirmed)
+      expect(mockViewEvidence).toHaveBeenCalledWith(true);
+    });
+
+    it('passes completionAlertAlreadyConfirmed=false to onViewEvidence when alert was NOT shown', () => {
+      const task: TaskState = {
+        ...baseTask,
+        evidenceConfig: { type: 'text', required: true },
+        // No completionAlert
+      };
+      render(<TaskCard task={task} phaseId={phaseId} onViewEvidence={mockViewEvidence} />);
+      fireEvent.click(screen.getByTestId('task-checkbox'));
+
+      // onViewEvidence should be called without the flag (undefined -> false)
+      expect(mockViewEvidence).toHaveBeenCalledWith(false);
+    });
+
+    it('calls markInteractionStarted when clicking the checkbox', () => {
+      const task: TaskState = {
+        ...baseTask,
+        completionAlert: {
+          severity: 'info' as const,
+          description: 'Info alert',
+        },
+      };
+      render(<TaskCard task={task} phaseId={phaseId} onViewEvidence={mockViewEvidence} />);
+      fireEvent.click(screen.getByTestId('task-checkbox'));
+
+      expect(mockProcessState.markInteractionStarted).toHaveBeenCalled();
     });
   });
 });
