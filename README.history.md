@@ -6,6 +6,7 @@ Historial completo de versiones y cambios del DevSecOps Process Tracker.
 
 | Fecha | Versión | Descripción |
 |-------|---------|-------------|
+| 2026-04-21 | **Unreleased** | **Confirmación de cierre + consolidación documental**. *Feature:* bloque opcional `completionAlert` en cualquier tarea (`severity: info|warning|critical`, `title`, `description`, `confirmLabel`, `cancelLabel`), renderizado mediante `CompletionAlertDialog` con estilos derivados de `lib/alert-feedback.ts` (animaciones `pulse-once`/`pulse-strong`, respeto de `prefers-reduced-motion`, i18n `common.confirm` / `alert.completion.defaultTitle`). Integrado en `TaskCard` como gate previo al cierre; cancelar preserva el estado anterior. *Schema:* `schemas/process.schema.json` bump a **v1.1.0** (`$id` versionado, `$comment` con fecha de sync, patrón `Duration` alineado con `parseTimeString` — añade decimales y `s`, elimina `d` no soportado, patrón `Process.version` con SemVer completo incluyendo pre-release/build). *Datos:* armonización de IDs entre `data/processes/index.json` y YAMLs internos (sufijo `-2026`), propagación de `estimatedTime` y `hasVariables` a todas las entradas del catálogo, interfaces `ProcessTemplate` extendidas en `app/page.tsx` y `app/api/processes/route.ts`. *Docs:* reescritura integral de `README.md`, `README.dockerhub.md`, `README.process.md` y `README.bpmn.md`; nuevo diagrama **C4** (`docs/diagrams/c4-model.md`) con tres niveles (Context / Container / Component); reescritura de `arquitectura-sistema.md`, `flujo-proceso.md` y `flujo-datos.md`. *Testing:* 529+ tests unitarios pasando en 26 archivos (nuevos suites `yaml-parser completionAlert`, `alert-feedback`, `task-card completion alert`); `npm run validate:processes` valida los 10 YAMLs (6 productivos + 4 fixtures). |
 | 2026-04-19 | **2.1.0** | **Motor Declarativo de Exportación Excel**: Nueva sección `process.export` a nivel de proceso YAML que define declarativamente cómo llenar un template `.xlsx` sin necesidad de código TypeScript específico. Permite agregar procesos con templates propios solo editando YAML. Componentes nuevos en `lib/excel-generator.ts`: `executeExportPlan` (motor genérico), `resolveExportPlan` (fusiona `process.export` con overrides de `task.exportConfig`), `interpolateExportTokens` (tokens `{today:FMT}`, `{now:FMT}`, `{process.*}`, `{vars.*}`, `{fecha}` legacy), `buildExportFilename` (sanea y garantiza `.xlsx`). Nuevos tipos en `lib/types.ts`: `ProcessExportConfig`, `ProcessExportMappings`, `ExportTaskSource` (kinds: `list`/`detail`/`form`/`checklist`). `yaml-parser.ts` valida `process.export`, referencias de celda (`^[A-Z]+[0-9]+$`) y que toda tarea `export-excel` tenga `templatePath` (propio o heredado). **Bugfixes**: `outputFilename` del YAML ahora se respeta (antes se ignoraba); eliminado el fallback silencioso hardcoded a `/templates/TEMPLATE_Checklist_Liberacion.xlsx` en `task-card.tsx`; falta de templatePath produce toast de error explícito. `release-checklist.yaml` migrado al nuevo formato como referencia canónica. Flujo legacy (`generateReleaseExcel` + `processToReleaseReport` + `EXCEL_CELL_MAP`) mantenido por compatibilidad con tests. `ExportExcelConfig` retro-compatible: `templatePath` ahora opcional, admite `mappings` e `inherit`. |
 | 2026-04-17 | 2.0.5 | **User Profile & Author Identity**: Perfil de usuario opcional con avatares Marvel (10 superhéroes SVG inline: Iron Man, Spider-Man, Capitán América, Thor, Hulk, Black Widow, Doctor Strange, Black Panther, Capitana Marvel, Wolverine). Nombre aleatorio por defecto, personalizable vía popover en header. Store `user-profile-store.ts` con persistencia comprimida. `ProcessAuthor` en `ProcessState` capturado al cargar proceso. Export JSON incluye autor, import preserva autor original. Sección "Información del Ejecutor" en documento Word. Componentes: `marvel-avatars.tsx`, `user-profile-popover.tsx`. Integrado en headers de home y process page. |
 | 2026-04-15 | 2.0.4 | **Footer Open Source + Links**: Badge "Código Abierto/Open Source" verde en footer con links al repositorio GitHub (`habolanos/devsecops-process-tracker`) y LinkedIn (`/in/habolanos`). Íconos `Github` y `Linkedin` de lucide-react. Traducciones i18n para footer. Footer rediseñado con layout flex responsive. |
@@ -55,11 +56,12 @@ Historial completo de versiones y cambios del DevSecOps Process Tracker.
 
 ## 📈 Estadísticas de Versiones
 
-- **Total de versiones**: 43+
-- **Última versión**: 2.0.4
+- **Total de versiones**: 44+
+- **Última release**: 2.1.0 (2026-04-19)
+- **Próxima (Unreleased)**: confirmación de cierre + consolidación documental (2026-04-21)
 - **Primer lanzamiento**: 1.0.0 (2026-03-01)
-- **Periodo de desarrollo**: ~38 días
-- **Promedio de versiones por semana**: ~7-8
+- **Periodo de desarrollo**: ~51 días
+- **Promedio de versiones por semana**: ~6
 
 ---
 
@@ -119,9 +121,9 @@ Historial completo de versiones y cambios del DevSecOps Process Tracker.
 ## 📊 Métricas de Calidad
 
 ### Cobertura de Tests
-- **Tests Unitarios**: 127+ (Vitest)
-- **Tests E2E**: 6+ (Playwright)
-- **Cobertura**: ~67%
+- **Tests Unitarios**: 529+ en 26 archivos (Vitest 4)
+- **Tests E2E**: 3 spec files (Playwright 1.59)
+- **Validación de YAMLs**: 10/10 pasando contra `schemas/process.schema.json` (Ajv 8)
 
 ### Dependencias
 - **Total de dependencias**: 50+
@@ -136,6 +138,12 @@ Historial completo de versiones y cambios del DevSecOps Process Tracker.
 ---
 
 ## 📝 Notas de Lanzamiento
+
+### Versiones Mayores (2.x.y)
+- 2.0.0: Visor BPMN 2.0 interactivo
+- 2.0.1–2.0.5: Fixes Vercel/Docker + User Profile
+- 2.1.0: Motor declarativo de export Excel
+- Unreleased: completionAlert + schema v1.1.0 + docs overhaul + C4
 
 ### Versiones Mayores (1.x.0)
 - 1.0.0: Versión inicial
@@ -182,5 +190,5 @@ Historial completo de versiones y cambios del DevSecOps Process Tracker.
 
 ---
 
-**Última actualización:** 2026-04-07
-**Versión del documento:** 1.0.0
+**Última actualización:** 2026-04-21
+**Versión del documento:** 1.1.0

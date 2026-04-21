@@ -24,6 +24,7 @@ Esta guía proporciona una documentación exhaustiva sobre cómo crear y configu
   - [Dependencias](#dependencias)
   - [Links Dinámicos](#links-dinámicos)
   - [Evidencia](#evidencia)
+  - [Confirmación de cierre (completionAlert)](#confirmación-de-cierre-completionalert)
 - [Ejemplo Paso a Paso](#ejemplo-paso-a-paso)
 - [Buenas Prácticas](#buenas-prácticas)
 - [Referencias de Archivos Existentes](#referencias-de-archivos-existentes)
@@ -90,29 +91,39 @@ process:
 
 ### Versión
 
-Formato semántico (MAJOR.MINOR.PATCH):
+Formato semántico (MAJOR.MINOR.PATCH), con soporte opcional de pre-release y build metadata:
 
 ```yaml
 process:
   version: "1.2.3"
+  # También válidos:
+  # version: "2.0.0-rc.1"
+  # version: "1.0.0+build.5"
 ```
 
-- **MAJOR**: Cambios incompatibles en estructura
-- **MINOR**: Nuevas funcionalidades compatibles
-- **PATCH**: Correcciones de errores
+- **MAJOR**: Cambios incompatibles en estructura.
+- **MINOR**: Nuevas funcionalidades compatibles.
+- **PATCH**: Correcciones de errores.
+- **Pre-release / build**: identificadores separados por `-` o `+` (`rc.1`, `beta.2`, `build.42`).
+
+> El patrón se valida contra el JSON Schema **v1.1.0** (`schemas/process.schema.json`) con la expresión `^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$`.
 
 ### Tiempo Estimado
 
-Formato legible para humanos:
+Formato legible para humanos, compuesto por segmentos `h` (horas), `m` (minutos) o `s` (segundos). Se admiten decimales. Los segmentos son aditivos.
 
 ```yaml
 process:
-  estimatedTime: "1h30m"  # 1 hora y 30 minutos
-  # Otros ejemplos:
-  # "45m"  # 45 minutos
-  # "2h"   # 2 horas
-  # "3h15m" # 3 horas y 15 minutos
+  estimatedTime: "1h30m"   # 1 hora y 30 minutos
+  # Otros ejemplos válidos:
+  # "45m"     # 45 minutos
+  # "2h"      # 2 horas
+  # "1.5h"    # 1.5 horas (decimal admitido)
+  # "3h15m"   # 3 horas y 15 minutos
+  # "30s"     # 30 segundos
 ```
+
+> El parser (`parseTimeString` en `lib/helpers.ts`) **no soporta días (`d`)**. Use horas (`24h` = 1 día).
 
 ---
 
@@ -984,6 +995,52 @@ evidence:
 
 ---
 
+### Confirmación de cierre (completionAlert)
+
+Cualquier tarea puede declarar un bloque opcional `completionAlert` que muestra un modal de confirmación **antes** de finalizar la tarea. Si el usuario cancela, el estado previo se preserva.
+
+```yaml
+tasks:
+  - id: "deploy-to-prod"
+    name: "Promover release a producción"
+    type: standard
+    evidence:
+      type: text
+      required: true
+    completionAlert:
+      severity: "critical"                  # info | warning | critical (default: info)
+      title: "Confirmar despliegue a producción"
+      description: "Esta acción promueve el build actual a producción y no se puede deshacer. ¿Continuar?"
+      confirmLabel: "Sí, promover"          # opcional: default i18n 'common.confirm'
+      cancelLabel: "Cancelar"               # opcional: default i18n 'common.cancel'
+```
+
+**Campos:**
+
+| Campo | Requerido | Descripción |
+|-------|-----------|-------------|
+| `description` | sí | Cuerpo principal del modal. |
+| `severity` | no | `info` (default, azul), `warning` (ámbar) o `critical` (rojo con pulse animado). |
+| `title` | no | Encabezado del modal. Default: `alert.completion.defaultTitle` i18n. |
+| `confirmLabel` | no | Texto del botón primario. |
+| `cancelLabel` | no | Texto del botón secundario. |
+
+**Comportamiento:**
+
+- El modal se renderiza con `CompletionAlertDialog` (ver `app/process/_components/completion-alert-dialog.tsx`).
+- Los estilos derivan de `lib/alert-feedback.ts` (paleta + icono por severidad).
+- Respeta `prefers-reduced-motion`: desactiva las animaciones `pulse-once`/`pulse-strong`.
+- No se muestra al **desmarcar** una tarea ya completada; solo al cerrar.
+- Internacionalizado (ES/EN) via `lib/i18n-context.tsx`.
+
+**Cuándo usarlo:**
+
+- Acciones irreversibles (despliegues a producción, borrado de datos).
+- Pasos con implicaciones de compliance o auditoría.
+- Tareas con efectos colaterales en sistemas externos (notificaciones, webhooks, pipelines).
+
+---
+
 ## Ejemplo Paso a Paso
 
 ### Paso 1: Definir el proceso base
@@ -1385,5 +1442,6 @@ Para preguntas o problemas con la creación de procesos:
 
 ---
 
-**Última actualización:** 2026-04-07
-**Versión de la guía:** 1.0.0
+**Última actualización:** 2026-04-21
+**Versión de la guía:** 1.2.0
+**Schema:** `schemas/process.schema.json` v1.1.0

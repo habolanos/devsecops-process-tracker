@@ -3,1249 +3,318 @@
 [![GitHub stars](https://img.shields.io/github/stars/habolanos/devsecops-process-tracker?style=social)](https://github.com/habolanos/devsecops-process-tracker/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/habolanos/devsecops-process-tracker?style=social)](https://github.com/habolanos/devsecops-process-tracker/network/members)
 [![Open Source](https://badgen.net/badge/Open%20Source/Yes/green?icon=github)](https://github.com/habolanos/devsecops-process-tracker)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-> **Aplicación web profesional para gestión y seguimiento de procesos DevSecOps** con soporte completo para evidencias, dependencias entre tareas, links dinámicos, y múltiples formatos de exportación (Word, Excel, JSON, BPMN 2.0).
->
-> Ideal para equipos de **DevOps, Seguridad, Auditoría y Compliance** que necesitan estandarizar procesos y mantener trazabilidad completa.
+> **Plataforma profesional para ejecutar, auditar y exportar procesos DevSecOps.** Define procesos en YAML, captura evidencias con trazabilidad completa y genera reportes Word, Excel (declarativo), JSON y diagramas BPMN 2.0 — todo sin escribir código TypeScript.
 
-**[🚀 Demo en Vivo](https://devsecops-process-tracker.vercel.app)** • **[📖 Guía YAML](README.process.md)** • **[🔄 BPMN 2.0](README.bpmn.md)** • **[🐳 Docker Hub](README.dockerhub.md)**
+Pensado para equipos de **DevOps, Seguridad, Auditoría y Compliance** que necesitan estandarizar procedimientos, controlar dependencias entre tareas y mantener un registro auditable de cada ejecución.
 
----
-
-## 📋 Tabla de Contenidos
-
-1. [Inicio Rápido](#-inicio-rápido) - Ejecutar en 30 segundos con Docker
-2. [Características](#-características-principales) - Todo lo que puedes hacer
-3. [Arquitectura](#-arquitectura) - Cómo está construido
-4. [Guía de Uso](#-guía-de-uso) - Cómo usar la aplicación
-5. [Desarrollo](#-desarrollo) - Contribuir al proyecto
-6. [CI/CD](#-cicd-pipelines) - Pipelines disponibles
-7. [Historial](#-historial-de-cambios) - Changelog
-8. [Licencia](#-licencia) - GPL-3.0
+**Documentación relacionada:**
+[Guía YAML](README.process.md) · [Visor BPMN 2.0](README.bpmn.md) · [Docker Hub](README.dockerhub.md) · [Historial](README.history.md) · [Diagramas](docs/diagrams/) · [Modelo C4](docs/diagrams/c4-model.md)
 
 ---
 
-## 🚀 Inicio Rápido
+## Tabla de contenidos
 
-### Opción 1: Docker (30 segundos ⏱️)
+1. [Inicio rápido](#inicio-rápido)
+2. [Características principales](#características-principales)
+3. [Stack tecnológico](#stack-tecnológico)
+4. [Arquitectura](#arquitectura)
+5. [Catálogo de procesos](#catálogo-de-procesos)
+6. [Tipos de tareas](#tipos-de-tareas)
+7. [Exportación declarativa a Excel](#exportación-declarativa-a-excel)
+8. [Evidencias y almacenamiento](#evidencias-y-almacenamiento)
+9. [Desarrollo](#desarrollo)
+10. [Testing](#testing)
+11. [Docker](#docker)
+12. [CI/CD](#cicd)
+13. [Seguridad](#seguridad)
+14. [Licencia](#licencia)
+
+---
+
+## Inicio rápido
+
+### Docker (30 segundos)
 
 ```bash
-# Ejecutar última versión estable
 docker run -d -p 3000:3000 habolanos/devsecops-process-tracker:latest
-
-# Ver en: http://localhost:3000
 ```
 
-**[📖 Ver opciones avanzadas de Docker →](#-docker)**
+Abra [http://localhost:3000](http://localhost:3000). Consulte [README.dockerhub.md](README.dockerhub.md) para volúmenes, variables de entorno y verificación Cosign.
 
-### Opción 2: Desarrollo Local
+### Desarrollo local
 
 ```bash
-# 1. Clonar
 git clone https://github.com/habolanos/devsecops-process-tracker.git
 cd devsecops-process-tracker/nextjs_space
-
-# 2. Instalar dependencias
 npm install
-
-# 3. Iniciar servidor de desarrollo
 npm run dev
 ```
 
-La aplicación estará disponible en `http://localhost:3000`.
-
-### Opción 3: Deploy en Vercel
+### Deploy en Vercel
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/habolanos/devsecops-process-tracker&root-directory=nextjs_space)
 
 ---
 
-## ✨ Características Principales
+## Características principales
 
-- **Gestión de Procesos**: Carga de plantillas YAML, JSON importado o procesos personalizados
-- **Tipos de Tareas**: Standard, Check (checkbox individual), Multicheck (múltiples checkboxes), Dynamic-list (listas de items), Detail-list (detalles por item de lista), Form (formularios con layout de columnas), Export-excel
-- **Sistema de Dependencias**: Bloqueo automático de tareas hasta completar dependencias
-- **Evidencias**: Texto e imágenes (upload a S3 o modo local Base64)
-- **Variables Dinámicas**: Auto-fill desde configuración DevOps
-- **Links Dinámicos**: URLs parametrizables con variables del proceso
-- **Timer de Proceso**: Tracking de tiempo con sesiones múltiples
-- **Exportación**: JSON, documentos Word y **reportes Excel declarativos** (motor guiado por YAML `process.export` — agregue procesos con templates propios sin escribir código)
-- **Perfil de Usuario**: Identidad opcional con avatares Marvel (nombre personalizable o superhéroe aleatorio), incluido en exportaciones
-- **Modo Dark/Light**: Toggle de tema con soporte del sistema operativo
-- **Gestión Multi-proceso**: Tabs para trabajar con múltiples procesos simultáneamente
-- **Visualización BPMN 2.0**: Diagramas interactivos con navegación por click
-- **Persistencia**: Estado guardado en localStorage con compresión
-- **i18n**: Soporte para español e inglés
+- **Procesos declarativos en YAML** validados contra `schemas/process.schema.json` (JSON Schema Draft 2020-12).
+- **7 tipos de tareas**: `standard`, `check`, `multicheck`, `dynamic-list`, `detail-list`, `form`, `export-excel`.
+- **Confirmación previa al cierre** (`completionAlert`): diálogo opcional con severidad (`info` / `warning` / `critical`) antes de finalizar tareas críticas.
+- **Dependencias entre tareas** con bloqueo/desbloqueo automático y visualización de estado.
+- **Variables de proceso** parametrizables (texto, select, número) con autofill desde configuración DevOps JSON.
+- **Links dinámicos** con plantillas `{variable}` y dos modos (`auto` / `click`).
+- **Timer de proceso** multi-sesión con semáforo visual (verde/ámbar/rojo) contra `estimatedTime`.
+- **Bandeja multi-proceso** (`Ctrl+P`) con tabs, estados (activo/pausa/completado/cancelado) y persistencia comprimida.
+- **Visor BPMN 2.0 interactivo** (`bpmn-js`) generado automáticamente desde el estado del proceso. Ver [README.bpmn.md](README.bpmn.md).
+- **Exportación declarativa a Excel**: motor genérico `process.export` que llena templates `.xlsx` sin escribir código. Ver [sección](#exportación-declarativa-a-excel).
+- **Exportación a Word, JSON y XML BPMN** con fidelidad completa (evidencias, tiempos, autor, variables).
+- **Perfil de usuario opcional** con avatares Marvel inline (o nombre personalizado) incluido en exportaciones.
+- **Evidencias**: texto, imágenes (archivo, URL o `Ctrl+V` desde portapapeles), sanitización XSS y soporte S3/Azure Blob o modo local Base64.
+- **Subprocesos externos** desde GitHub, URL o archivos locales, con propagación de variables.
+- **i18n** (ES/EN) y **tema claro/oscuro** con detección del sistema.
 
-## 📊 Diagramas
+---
 
-La documentación visual de la aplicación está organizada en diagramas detallados que ilustran diferentes aspectos del sistema. Cada diagrama incluye contexto, descripción y explicaciones complementarias.
+## Stack tecnológico
 
-### 📋 [Flujo del Proceso de la Aplicación](docs/diagrams/flujo-proceso.md)
+| Tecnología | Versión | Rol |
+|------------|---------|-----|
+| **Next.js** | 16.2 (App Router, Turbopack) | Framework React SSR/SPA |
+| **React** | 18.3 | UI library |
+| **TypeScript** | 5.2 | Tipado estático |
+| **Tailwind CSS** | 3.3 + shadcn/ui (Radix) | Estilos y componentes |
+| **Zustand** | 5.0 | 5 stores con persistencia selectiva |
+| **Immer** | 11 | Mutaciones inmutables eficientes |
+| **Framer Motion** | — | Animaciones accesibles |
+| **Lucide React** | 0.446 | Iconografía |
+| **js-yaml** | 4.1 | Parseo YAML |
+| **Ajv** | 8.17 | Validación JSON Schema |
+| **ExcelJS** | 4.4 | Exportación Excel declarativa |
+| **docx** | 9.6 | Generación Word |
+| **bpmn-js** | 18.14 | Visor BPMN 2.0 (lazy) |
+| **Vitest** | 4.1 | Tests unitarios (529+ pasando) |
+| **Playwright** | 1.59 | Tests E2E |
+| **NextAuth** | 4.24 (opcional) | Autenticación |
+| **AWS SDK v3** | — (opcional) | Integración S3 |
+| **lz-string** | — | Compresión de estado persistido |
 
-Diagrama de flujo completo que muestra la interacción del usuario con la aplicación desde el inicio hasta la exportación de resultados. Incluye:
+Consulte el [`package.json`](nextjs_space/package.json) para la lista completa de dependencias y overrides de seguridad.
 
-- **Selección de origen**: Templates, YAML personalizado o JSON exportado
-- **Gestión de dependencias**: Sistema de bloqueo/desbloqueo de tareas
-- **Evidencias**: Upload a S3 o modo local con Base64
-- **Variables dinámicas**: Auto-fill desde configuración DevOps
-- **Exportación**: Generación de JSON y documentos Word
+---
 
-**[Ver diagrama completo →](docs/diagrams/flujo-proceso.md)**
+## Arquitectura
 
-### 🏗️ [Arquitectura del Sistema](docs/diagrams/arquitectura-sistema.md)
+El sistema sigue una arquitectura en capas con lógica de negocio pura (`lib/`), estado cliente reactivo (Zustand), UI server-first con islas cliente (Next.js App Router) y validación estricta en el borde (Ajv + Zod).
 
-Diagrama de arquitectura en capas que detalla la estructura completa de la aplicación. Muestra:
+**Cinco stores Zustand** con responsabilidades separadas:
 
-- **Frontend Layer**: Next.js 15, React, Tailwind CSS, shadcn/ui
-- **State Management**: Zustand con persistencia localStorage
-- **Business Logic**: Parsers, helpers, utils y generadores
-- **API Routes**: Endpoints REST para templates y uploads
-- **Data Sources**: Templates YAML y configuraciones DevOps
-- **External Services**: S3, NextAuth, Prisma (opcionales)
-- **Testing**: Vitest (51 tests unitarios) + Playwright (E2E)
+- **`store.ts`** — proceso activo (fases, actividades, tareas, timer, variables, evidencias).
+- **`session-store.ts`** — bandeja multi-proceso con snapshots comprimidos.
+- **`config-store.ts`** — configuración DevOps JSON para autofill de variables.
+- **`loading-store.ts`** — operaciones async globales con progress bar tipo GitHub.
+- **`user-profile-store.ts`** — identidad del operador (avatares Marvel + nombre).
 
-**[Ver diagrama completo →](docs/diagrams/arquitectura-sistema.md)**
+**28 módulos de lógica** en `lib/` (parser YAML, generadores Excel/Word/BPMN, helpers de progreso y dependencias, sanitización, subprocess-loader, i18n, rate-limit, alert-feedback, etc.), todos puros y testables.
 
-### 🔄 [Flujo de Datos](docs/diagrams/flujo-datos.md)
+### Diagramas
 
-Diagrama de secuencia que ilustra las interacciones temporales entre componentes durante operaciones clave:
+- [Contexto · Contenedores · Componentes (modelo C4)](docs/diagrams/c4-model.md)
+- [Arquitectura del sistema](docs/diagrams/arquitectura-sistema.md)
+- [Flujo del proceso](docs/diagrams/flujo-proceso.md)
+- [Secuencias de datos](docs/diagrams/flujo-datos.md)
 
-- **Carga de proceso**: Desde selección de template hasta renderizado
-- **Gestión de evidencias**: Upload con S3 vs modo local Base64
-- **Actualización de estado**: Progreso, dependencias y persistencia
-- **Exportación**: Serialización y descarga de resultados
+---
 
-**[Ver diagrama completo →](docs/diagrams/flujo-datos.md)**
+## Catálogo de procesos
 
-## � Documentación Adicional
+Seis plantillas productivas en `nextjs_space/data/processes/`, todas validadas por `npm run validate:processes`:
 
-Documentación especializada para diferentes aspectos del proyecto:
+| Proceso | Archivo | Tiempo estimado | Características |
+|---------|---------|-----------------|-----------------|
+| Auditoría de Seguridad IT | `it-security-audit.yaml` | 4h | Checklists de seguridad |
+| Release DevOps | `devops-release.yaml` | 2h | Validaciones calidad + seguridad |
+| Respuesta a Incidentes | `incident-response.yaml` | 3h | Flujo estructurado |
+| Pipeline DevOps | `devops-pipeline.yaml` | 1h 30m | Variables + links dinámicos |
+| Validación de Pull Request | `pull-request-validation.yaml` | 45m | 6 fases, 21 tareas, 8 variables |
+| Checklist de Liberación | `release-checklist.yaml` | 45m | Export Excel declarativo completo |
 
-### 📝 [Guía de Procesos YAML](README.process.md)
+Para crear procesos propios consulte la [Guía YAML](README.process.md).
 
-Guía completa para crear y configurar procesos YAML. Incluye:
+---
 
-- **Estructura General**: Campos obligatorios y opcionales
-- **Variables de Proceso**: Tipos, configuración y uso
-- **Fases y Actividades**: Organización jerárquica
-- **Tipos de Tareas**: Standard, Check, Multicheck, Export-Excel, Dynamic-List, Detail-List, Form
-- **Export Declarativo (`process.export`)**: Motor genérico que llena templates Excel a partir de mapeos YAML — `variables`, `staticCells`, `time`, `taskSources` (list/detail/form/checklist), `comments`, `evidences` — sin escribir código TypeScript
-- **Subprocesos**: Carga de procesos externos desde GitHub, URL o local
-- **Configuraciones Avanzadas**: Referencias, dependencias, links dinámicos, evidencia
-- **Ejemplo Paso a Paso**: Guía completa para crear un proceso personalizado
-- **Buenas Prácticas**: Nomenclatura, estructura, validación, mantenimiento
+## Tipos de tareas
 
-**[Ver guía completa →](README.process.md)**
+| Tipo | Propósito | Configuración clave |
+|------|-----------|---------------------|
+| `standard` | Tarea abierta con evidencia libre | `evidence` |
+| `check` | Una única verificación binaria | `checkItem` |
+| `multicheck` | Lista de verificaciones | `checkItems[]` |
+| `dynamic-list` | Captura de N items (repos, URLs…) | `listConfig` |
+| `detail-list` | Detalle por item de una `dynamic-list` | `detailConfig.sourceTaskId` |
+| `form` | Formulario con layout grid 1-4 cols | `formConfig.layout` + `fields[]` |
+| `export-excel` | Descarga de reporte `.xlsx` | `exportConfig` / hereda de `process.export` |
 
-### 🐳 [Docker Hub](README.dockerhub.md)
+Cualquier tarea admite opcionalmente `completionAlert` para mostrar un modal de confirmación antes del cierre, con severidad configurable (`info`, `warning`, `critical`).
 
-Documentación específica para la imagen Docker en Docker Hub. Incluye:
+---
 
-- **Descripción del Proyecto**: Resumen para el repositorio Docker Hub
-- **Características**: Lista de funcionalidades principales
-- **Uso**: Comandos para ejecutar la imagen Docker
-- **Configuración**: Variables de entorno y volúmenes
-- **Autor y Licencia**: Información del autor y licencia GPL-3.0
+## Exportación declarativa a Excel
 
-**[Ver documentación Docker →](README.dockerhub.md)**
+El motor genérico `executeExportPlan` (en `lib/excel-generator.ts`) lee el bloque `process.export` del YAML y llena un template `.xlsx` sin necesidad de escribir código TypeScript por proceso. Permite:
 
-### 🔄 [Visualización BPMN 2.0](README.bpmn.md)
+- **Mapeo de variables** a celdas (`variables: { org: "F3" }`).
+- **Celdas estáticas** con literales (`staticCells: { A1: "Reporte" }`).
+- **Metadatos de tiempo** (`time.startedAt`, `time.totalElapsedHours`, `time.today`).
+- **Metadatos de proceso** (`process.id`, `process.name`, `process.version`).
+- **Fuentes de tareas** (`taskSources`): `kind: list | detail | form | checklist`.
+- **Comentarios con templating** de tokens (`{process.name}`, `{vars.xxx}`, `{today:FMT}`).
+- **Hoja de evidencias** con fecha y actividad por fila.
+- **Overrides por tarea** (`task.exportConfig` con `inherit: true`).
 
-Documentación completa de la funcionalidad de diagramas BPMN interactivos (v2.0.0). Incluye:
+Ejemplo canónico: `data/processes/release-checklist.yaml`. Detalles completos en [README.process.md](README.process.md#export-excel).
 
-- **Arquitectura**: Generador XML BPMN, visor interactivo con bpmn-js
-- **Layout Manual**: Algoritmo de coordenadas optimizado sin dependencias externas
-- **Estados Visuales**: Código de colores por estado de tarea (completada, pendiente, bloqueada, seleccionada)
-- **Interacción**: Click en tareas para navegación directa
-- **Optimizaciones**: Lazy loading, SSR-safe, bundle splitting
-- **API Reference**: Funciones exportadas y props del componente
-- **Testing**: 39 tests unitarios con cobertura completa
-- **Troubleshooting**: Solución de problemas comunes
+---
 
-**[Ver documentación BPMN completa →](README.bpmn.md)**
+## Evidencias y almacenamiento
 
-## 🔧 Stack Tecnológico
+| Tipo | Modo S3 / Azure Blob | Modo local |
+|------|----------------------|------------|
+| **Texto** | JSON + localStorage | localStorage |
+| **Imagen (archivo)** | Upload con presigned URL | Base64 en localStorage |
+| **Imagen (URL)** | Descarga → upload | Descarga → Base64 |
+| **Clipboard (`Ctrl+V`)** | Upload con presigned URL | Base64 en localStorage |
 
-| Tecnología | Versión | Descripción |
-|------------|---------|-------------|
-| **Next.js** | 15.5.14 | Framework React con App Router |
-| **TypeScript** | 5.2.2 | Tipado estático |
-| **Tailwind CSS** | 3.3.3 + shadcn/ui | Estilos y componentes UI |
-| **Zustand** | 5.0.12 | Estado global con persistencia localStorage |
-| **Immer** | ^10.1.0 | Mutaciones inmutables eficientes |
-| **Vitest** | 4.1.2 | Tests unitarios |
-| **Playwright** | 1.40.0 | Tests E2E |
-| **Vite** | 6.4.1 | Build tool y dev server para tests |
-| **AWS SDK** | 3.1019.0 | Integración S3 (opcional) |
-| **next-auth** | 4.24.13 | Autenticación (opcional) |
-| **Prisma** | 6.7.0 | ORM para base de datos (opcional) |
-| **js-yaml** | 4.1.1 | Parseo de YAML |
-| **docx** | 9.6.1 | Generación de documentos Word |
-| **Lucide React** | 0.446.0 | Iconos |
-| **lodash** | 4.17.23 | Utilidades JavaScript |
-| **webpack** | 5.105.4 | Bundler (usado por Next.js) |
-| **bpmn-js** | ^18.14.0 | Visualización de diagramas BPMN 2.0 interactivos |
+El modo local funciona offline, sin costos de nube y es totalmente portable. Todas las entradas de texto pasan por `lib/sanitize.ts` (`escapeHtml`, `sanitizeUrl`, `sanitizeFilename`).
 
-## 📁 Estructura del Proyecto
+---
 
+## Desarrollo
+
+```bash
+cd nextjs_space
+
+npm install                    # Instalar dependencias
+npm run dev                    # Servidor desarrollo (http://localhost:3000)
+npm run build                  # Build producción
+npm run start                  # Servir build
+npm run lint                   # ESLint
+npm run validate:processes     # Validar YAMLs vs JSON Schema (Ajv)
 ```
-nextjs_space/
-├── app/                          # Next.js App Router
-│   ├── page.tsx                 # Página principal - selección de plantillas
-│   ├── layout.tsx               # Layout raíz con providers
-│   ├── globals.css              # Estilos globales + Tailwind
-│   ├── process/                 # Página de proceso activo
-│   │   ├── page.tsx            # Vista principal del proceso
-│   │   └── _components/        # Componentes específicos del proceso
-│   │       ├── task-card.tsx       # Tarjeta de tarea individual
-│   │       ├── activity-card.tsx   # Tarjeta de actividad con tareas
-│   │       ├── dynamic-list-input.tsx # Input para listas dinámicas
-│   │       ├── process-sidebar.tsx # Sidebar de navegación de fases
-│   │       ├── progress-bar.tsx    # Barra de progreso visual
-│   │       ├── evidence-modal.tsx  # Modal de gestión de evidencias
-│   │       ├── variables-form.tsx  # Formulario de variables dinámicas
-│   │       ├── config-upload.tsx   # Upload de configuración DevOps
-│   │       ├── dynamic-link-button.tsx # Botones con URLs dinámicas
-│   │       ├── process-timer.tsx   # Timer de proceso (Start/Pause)
-│   │       └── bpmn-viewer.tsx     # Visor BPMN 2.0 interactivo (lazy load)
-│   └── api/                     # API Routes (Next.js)
-│       ├── processes/          # GET /api/processes - listar plantillas
-│       │   └── [id]/          # GET /api/processes/[id] - detalle
-│       └── upload/             # Gestión de uploads
-│           ├── presigned/     # POST - URL prefirmada S3 o modo local
-│           ├── complete/      # POST - URL final del archivo
-│           └── delete/        # POST - eliminar de S3
-│
-├── components/                  # Componentes UI reutilizables (50+ de shadcn)
-│   ├── ui/                     # Botones, inputs, modals, etc.
-│   ├── marvel-avatars.tsx       # SVG avatares de 10 superhéroes Marvel
-│   └── user-profile-popover.tsx # Popover de perfil de usuario con avatar
-│
-├── lib/                         # Lógica de negocio central
-│   ├── types.ts                # Tipos TypeScript principales
-│   ├── store.ts                # Zustand store - proceso actual
-│   ├── bpmn-generator.ts       # Generador XML BPMN 2.0 desde ProcessState
-│   ├── session-store.ts        # Zustand store - gestión multi-proceso
-│   ├── loading-store.ts        # Zustand store - tracking de operaciones
-│   ├── config-store.ts         # Zustand store - config DevOps
-│   ├── user-profile-store.ts   # Zustand store - perfil de usuario con avatares
-│   ├── persist-storage.ts      # Storage comprimido con debounce
-│   ├── helpers.ts              # Funciones: progreso, dependencias, validación
-│   ├── yaml-parser.ts          # Parser YAML → ProcessState
-│   ├── json-utils.ts           # Import/Export JSON con evidencias
-│   ├── word-generator.ts       # Generador de documentos Word
-│   ├── excel-generator.ts      # Generador de reportes Excel
-│   ├── i18n-context.tsx        # Contexto de internacionalización (ES/EN)
-│   ├── sanitize.ts             # Sanitización XSS
-│   ├── aws-config.ts           # Config AWS S3 (modo local si no hay credenciales)
-│   ├── s3.ts                   # Utilidades S3 (upload, download, delete)
-│   ├── config-loader.ts        # Carga y parseo de config DevOps
-│   └── devops-config-types.ts  # Tipos para configuración DevOps
-│
-├── data/                        # Datos estáticos
-│   ├── processes/              # Procesos YAML predefinidos
-│   │   ├── index.json         # Catálogo: 6 plantillas
-│   │   ├── it-security-audit.yaml      # 3 fases, 13 tareas
-│   │   ├── devops-release.yaml         # 3 fases, 10 tareas
-│   │   ├── incident-response.yaml        # 4 fases, 12 tareas
-│   │   ├── devops-pipeline.yaml        # Con variables y links dinámicos
-│   │   ├── pull-request-validation.yaml # 6 fases, 21 tareas, 8 variables
-│   │   └── release-checklist.yaml      # Checklist de liberación con dynamic-list
-│   └── process-tracker-config.example.json  # Template de configuración
-│
-├── __tests__/                   # Tests
-│   ├── unit/                   # Tests unitarios
-│   │   ├── lib/               # Tests de lógica de negocio
-│   │   │   ├── helpers.test.ts    # Progreso, dependencias, validación
-│   │   │   ├── yaml-parser.test.ts # Parseo YAML
-│   │   │   ├── json-utils.test.ts  # Import/export JSON
-│   │   │   └── excel-generator.test.ts # Generación Excel
-│   │   └── components/       # Tests de componentes UI
-│   │       └── dynamic-list-input.test.tsx # Input de listas dinámicas
-│   ├── e2e/                   # Tests E2E con Playwright
-│   │   ├── flows/              # Flujos principales
-│   │   │   ├── load-process.spec.ts    # Carga plantillas/YAML/JSON
-│   │   │   ├── dependencies.spec.ts    # Flujo de dependencias
-│   │   │   └── export-results.spec.ts  # Exportación JSON y Word
-│   │   └── release-checklist-export.spec.ts # Export Excel para release checklist
-│   └── fixtures/               # Archivos de prueba
-│       ├── simple-process.yaml
-│       ├── complex-dependencies.yaml
-│       ├── sample-export.json
-│       └── invalid-yaml.yaml
-│
-├── prisma/
-│   └── schema.prisma           # Schema opcional para persistencia
-│
-└── scripts/
-    └── safe-seed.ts            # Seed de datos iniciales
-```
+
+### Variables de entorno
 
 ```env
-# AWS S3 Configuration
-AWS_BUCKET_NAME=tu-bucket-s3
-AWS_FOLDER_PREFIX=process-tracker/
+# Almacenamiento en la nube (opcional; por defecto modo local Base64)
+AWS_BUCKET_NAME=tu-bucket
 AWS_REGION=us-east-1
-AWS_ACCESS_KEY_ID=tu-access-key
-AWS_SECRET_ACCESS_KEY=tu-secret-key
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
 
-# Opcional: NextAuth
-NEXTAUTH_SECRET=tu-secret
+# Autenticación (opcional)
+NEXTAUTH_SECRET=...
 NEXTAUTH_URL=http://localhost:3000
 ```
 
-**Sin configurar S3**: Las imágenes se convierten a base64 y se almacenan en localStorage.
+Sin credenciales, la aplicación opera íntegramente con localStorage comprimido (lz-string).
 
-### Configuración DevOps (JSON)
+---
 
-Template para autocompletado de variables:
+## Testing
 
-```json
-{
-  "version": "1.0.0",
-  "engineer": {
-    "name": "Tu Nombre",
-    "email": "tu.email@empresa.com"
-  },
-  "azureDevOps": {
-    "organization": "mi-org",
-    "projects": ["proyecto-1"],
-    "repositories": ["backend-api"],
-    "environments": ["dev", "staging", "prod"]
-  },
-  "aws": {
-    "regions": ["us-east-1"],
-    "clusters": [{"name": "eks-prod", "region": "us-east-1"}],
-    "s3Buckets": ["artifacts"]
-  },
-  "defaults": {
-    "project": "proyecto-1",
-    "environment": "staging"
-  }
-}
-```
-
-## ✨ Funcionalidades Principales
-
-### 1. Gestión de Procesos
-- **5 Plantillas predefinidas**: Auditoría IT, DevOps Release, Incident Response, Pipeline DevOps, PR Validation
-- **Carga YAML**: Importar procesos personalizados
-- **Importación JSON**: Cargar estado guardado
-- **Progreso visual**: Barras de progreso por fase y global
-
-### 2. Sistema de Tareas
-- **Fases organizadas**: Agrupación lógica de tareas
-- **Dependencias**: Tareas bloqueadas hasta completar dependencias
-- **Evidencias**: Soporte texto + imágenes (archivo, URL o clipboard)
-- **Estados**: Visualización de Completado/Pendiente/Bloqueado
-- **Tipos de tarea**: `standard`, `check` (verificación única), `multicheck` (lista de verificaciones)
-
-#### Tipos de Tareas
-
-| Tipo | Descripción | Uso |
-|------|-------------|-----|
-| `standard` | Tarea tradicional con evidencias | Tareas generales |
-| `check` | Un checkbox de verificación | Confirmaciones simples |
-| `multicheck` | Lista de checkboxes | Listas de verificación |
-
-```yaml
-tasks:
-  # Tarea estándar (default)
-  - id: "task-standard"
-    name: "Documentar cambios"
-    type: standard
-    evidence:
-      type: text
-      required: true
-
-  # Tarea tipo check (verificación única)
-  - id: "task-check"
-    name: "Revisión de seguridad"
-    type: check
-    checkItem:
-      description: "He verificado que no hay vulnerabilidades críticas"
-      required: true
-
-  # Tarea tipo multicheck (lista de verificaciones)
-  - id: "task-multicheck"
-    name: "Checklist de despliegue"
-    type: multicheck
-    checkItems:
-      - description: "Backup de base de datos realizado"
-        required: true
-      - description: "Tests de humo ejecutados"
-        required: true
-      - description: "Notificación a stakeholders"
-        required: false
-```
-
-### 3. Evidencias
-| Tipo | Modo S3 | Modo Local |
-|------|---------|------------|
-| **Texto** | Guardado en JSON | Guardado en localStorage |
-| **Imágenes archivo** | Upload a S3 | Conversión base64 |
-| **Imágenes URL** | Descarga + S3 | Descarga + base64 |
-| **Clipboard (Ctrl+V)** | Upload a S3 | Conversión base64 |
-
-**Ventaja modo local**: Funciona sin internet, sin costos AWS, portable.
-
-#### Clipboard Paste
-- **Atajo**: `Ctrl+V` (Windows/Linux) o `Cmd+V` (Mac) en el modal de evidencias
-- **Formatos**: PNG, JPG, GIF, WebP
-- **Workflow**: Captura de pantalla → Pegar → Auto-upload
-- **Indicador visual**: Badge muestra origen "clipboard" en imágenes pegadas
-
-### 4. Variables y Configuración
-- **Variables dinámicas**: Definidas en YAML (texto, select, número)
-- **Config DevOps**: JSON con datos de entornos, clusters, repositorios
-- **Auto-fill**: Variables se completan automáticamente desde config
-- **Links dinámicos**: URLs con variables interpoladas (ej: `https://github.com/{org}/{repo}`)
-
-### 5. Time Tracking (Process Timer)
-- **Timer de proceso**: Start/Pause manual para controlar tiempo de trabajo
-- **Sesiones múltiples**: Historial de sesiones de trabajo con timestamps
-- **Tiempo activo**: Cálculo automático de tiempo real trabajado (excluyendo pausas)
-- **Persistencia**: Se guarda automáticamente en localStorage
-- **Reporte en Word**: Sección detallada con tiempos de inicio, sesiones y duración total
-
-### 6. Gestión de Procesos Múltiples (Tabs + Command Palette)
-Sistema profesional de gestión de múltiples procesos inspirado en VS Code/Chrome:
-
-#### Process Tabs (Header)
-- **Tabs visuales**: Procesos activos visibles en el header con iconos de estado
-- **Estados con iconografía**:
-  | Estado | Icono | Color | Descripción |
-  |--------|-------|-------|-------------|
-  | ▶️ Activo | `Play` | Verde | Proceso en ejecución actual |
-  | ⏸️ En Pausa | `Pause` | Ámbar | Proceso pausado al cambiar a otro |
-  | ✅ Completado | `CheckCircle2` | Azul | Proceso finalizado exitosamente |
-  | ❌ Cancelado | `XCircle` | Rojo | Proceso cancelado por usuario |
-- **Overflow menu**: Si hay más de 4 procesos, los adicionales aparecen en dropdown
-- **Barra de progreso**: Indicador visual de progreso en cada tab
-- **Cerrar tabs**: Botón X al hacer hover para remover procesos
-
-#### Command Palette (`Ctrl+P` / `⌘P`)
-- **Acceso rápido**: Shortcut de teclado para búsqueda instantánea
-- **Búsqueda fuzzy**: Filtrar procesos por nombre
-- **Navegación con teclado**: ↑↓ para navegar, Enter para seleccionar, Esc para cerrar
-- **Acciones rápidas**: Exportar o eliminar directamente desde el palette
-- **Vista detallada**: Estado, progreso y acciones por proceso
-
-#### Sección "Procesos en Curso" (Home)
-- **Tarjetas visuales**: Grid de procesos con iconos de estado y colores
-- **Barra de progreso**: Indicador visual por proceso
-- **Acciones rápidas**: Reanudar, Exportar JSON, Eliminar
-- **Hint de Ctrl+P**: Recordatorio del atajo de teclado
-
-#### Características Comunes
-- **Cambio automático**: Al iniciar nuevo proceso, el actual se pausa automáticamente
-- **Persistencia de sesión**: Todos los procesos se guardan en localStorage comprimido
-- **Snapshots**: Estado completo guardado para restaurar en cualquier momento
-
-### 7. Modo Dark/Light
-- **Toggle en header**: Botón Sol/Luna para cambiar entre modos
-- **Soporte sistema**: Detecta automáticamente preferencia del sistema operativo
-- **Persistencia**: Guarda preferencia en localStorage
-- **Variables CSS HSL**: Colores semánticos adaptados a cada modo
-- **Componentes**: ThemeProvider (next-themes) + ThemeToggle
-
-### 8. Activities y Subprocesses
-
-#### Jerarquía de Procesos
-```
-Process
-├── phases (obligatorio)
-│   └── phase
-│       ├── activities (opcional) → activity → tasks
-│       └── tasks (directo, legacy)
-│
-└── subprocesses (opcional, al mismo nivel que phases)
-    └── subprocess → referencia externa
-```
-
-#### Activities (Nivel Intermedio)
-- **Propósito**: Agrupar tareas relacionadas dentro de una fase
-- **Opcional**: Las fases pueden tener activities, tasks directos, o ambos
-- **Expandible**: En sidebar, las activities se expanden/colapsan
-- **Progreso**: Cálculo automático por activity y fase
-
-```yaml
-phases:
-  - id: "phase-1"
-    name: "Fase 1"
-    activities:
-      - id: "activity-1-1"
-        name: "Revisión de Código"
-        tasks:
-          - id: "task-1-1-1"
-            name: "Verificar commits"
-```
-
-#### Subprocesses (Referencias Externas)
-- **Propósito**: Reutilizar procesos definidos en otros archivos
-- **Fuentes soportadas**: GitHub, URL directa, archivo local
-- **Opcional**: Pueden marcarse como opcionales (omitibles)
-- **Variables**: Pasan variables del proceso padre al subproceso
-
-```yaml
-subprocesses:
-  - id: "subprocess-security"
-    name: "Validación de Seguridad"
-    order: 2.5  # Se ejecuta entre fases
-    source:
-      type: "github"
-      url: "https://github.com/org/shared-processes/security-scan.yaml"
-    variables:
-      repo: "{repository}"
-    optional: false
-```
-
-**Tipos de fuente:**
-| Tipo | Descripción | Ejemplo |
-|------|-------------|---------|
-| `github` | Archivo en repositorio GitHub | `https://github.com/org/repo/blob/main/process.yaml` |
-| `url` | URL directa a archivo YAML | `https://company.com/processes/security.yaml` |
-| `local` | Archivo local relativo | `./subprocesses/validation.yaml` |
-
-### 9. Exportación
-- **JSON**: Estado completo con evidencias base64 y time tracking (para reanudar)
-- **Word**: Documento formal con portada, registro de tiempo, fases, tareas, evidencias
-
-## 🧪 Testing
-
-El proyecto tiene **77 tests unitarios** (100% pasando) y tests E2E con Playwright.
-
-### Última actualización de cobertura (v1.29.6)
-
-- Se agregaron tests dirigidos para mejorar cobertura en módulos de baja cobertura:
-  - `nextjs_space/__tests__/unit/lib/sanitize.test.ts`
-  - `nextjs_space/__tests__/unit/components/dynamic-link-button.test.tsx`
-  - `nextjs_space/__tests__/unit/components/detail-list-input.test.tsx`
-- Objetivo: cubrir rutas críticas de sanitización, links dinámicos y captura de detalles por item.
-
-### Tests Unitarios (Vitest)
+El proyecto cuenta con **529+ tests unitarios** (Vitest) en 26 archivos y **tests E2E** con Playwright sobre los flujos críticos.
 
 ```bash
-npm run test              # Modo watch interactivo
-npm run test:run          # Ejecutar una vez
-npm run test:coverage     # Con reporte de cobertura
+npm run test                # Modo watch
+npm run test:run            # Una sola corrida
+npm run test:coverage       # Con reporte de cobertura
+npm run test:e2e            # E2E Playwright (levanta servidor)
+npm run test:e2e:ui         # UI interactiva de Playwright
+npm run test:all            # Unitarios + E2E
 ```
 
-**Cobertura de Tests**:
-- ✅ **77 tests** pasando en 4 archivos
-- Cálculo de progreso (`calculateTaskProgress`, `calculatePhaseProgress`, `calculateProcessProgress`)
-- Gestión de dependencias (`checkTaskDependencies`, `updateTaskBlockedStatus`)
-- Validación de evidencias (`validateTaskEvidence`, `canCompleteTask`)
-- Parseo de YAML (`parseYAMLToProcess`) - 25 tests (incluye task types)
-- Import/Export JSON (`importProcessFromJSON`, `exportProcessToJSON`) - 6 tests
-- Helpers de proceso (`updateProgress`) - 31 tests
-- Store actions (`toggleCheckItem`, `canCompleteCheckTask`) - 15 tests
+**Cobertura principal:**
 
-**Ubicación**: `__tests__/unit/lib/`
+- Parser YAML (`yaml-parser.test.ts`) — validación de los 7 tipos de tarea, `completionAlert`, `process.export` y referencias de celda.
+- Generadores (`excel-generator.test.ts`, `word-generator.test.ts`, `bpmn-generator.test.ts` — 39 tests).
+- Stores Zustand (`store`, `session-store`, `config-store`, `user-profile-store`).
+- Componentes clave (`task-card`, `evidence-modal`, `completion-alert-dialog`, `bpmn-viewer`, `variables-form`, `form-renderer`).
+- Utilidades críticas (`sanitize`, `helpers`, `alert-feedback`, `rate-limit`, `persist-storage`).
 
-### Tests E2E (Playwright)
+**E2E** cubren: carga de plantillas/YAML/JSON, cadenas de dependencias y exportación de resultados.
 
-#### Preparación
-```bash
-# Instalar navegadores de Playwright (solo primera vez)
-npx playwright install chromium
-```
+---
 
-#### Ejecución
-
-**Opción A - Automático** (Playwright levanta el servidor):
-```bash
-npm run test:e2e          # Ejecutar todos los tests E2E
-npm run test:e2e:ui       # Modo UI interactivo
-```
-
-**Opción B - Manual** (mejor para debugging):
-```bash
-# Terminal 1: Servidor de desarrollo
-npm run dev
-
-# Terminal 2: Ejecutar tests
-npx playwright test --project=chromium
-npx playwright test --headed              # Ver navegador
-npx playwright test --ui                  # Modo UI
-npx playwright test load-process          # Test específico
-```
-
-#### Flujos E2E Cubiertos
-
-1. **Load Process** (`load-process.spec.ts`):
-   - Carga desde plantillas predefinidas
-   - Upload de archivos YAML
-   - Importación de JSON exportado
-   - Validación de errores en YAML inválido
-
-2. **Dependencies** (`dependencies.spec.ts`):
-   - Bloqueo de tareas con dependencias
-   - Desbloqueo al completar dependencias
-   - Cadenas de dependencias múltiples
-
-3. **Export Results** (`export-results.spec.ts`):
-   - Exportación a JSON con evidencias
-   - Generación de documentos Word
-   - Verificación de contenido exportado
-
-#### Selectores data-testid
-
-Componentes con selectores estables para tests:
-- `app-header` - Header principal
-- `process-template` - Cards de plantillas
-- `process-sidebar` - Navegación de fases
-- `task-card-{id}` - Tarjetas de tareas
-- `task-checkbox` - Checkbox de completado
-- `progress-bar` - Barra de progreso
-- `export-json-btn`, `export-word-btn` - Botones de exportación
-
-#### Reportes y Artefactos
-
-- **HTML Report**: `playwright-report/index.html` (abrir en navegador)
-- **JSON Results**: `test-results.json`
-- **Screenshots**: `test-results/` (solo en fallos)
-- **Videos**: `test-results/` (si está habilitado)
-
-### Ejecutar Todos los Tests
+## Docker
 
 ```bash
-npm run test:all          # Unitarios + E2E en secuencia
-```
-
-## 📚 Estructura de Procesos YAML
-
-```yaml
-process:
-  id: example-process
-  name: Ejemplo de Proceso
-  description: Descripción
-  version: "1.0.0"
-  
-  # Variables globales
-  variables:
-    - key: project
-      label: Proyecto
-      type: text          # text | select | number
-      required: true
-    - key: environment
-      label: Ambiente
-      type: select
-      options: ["dev", "staging", "prod"]
-  
-  phases:
-    - id: phase-1
-      name: Fase Inicial
-      order: 1
-      
-      # Links dinámicos a nivel de fase
-      dynamicLinks:
-        - label: "Dashboard"
-          urlTemplate: "https://dash.com/{project}"
-          behavior: click           # auto | click
-          requiresVariables: ["project"]
-      
-      tasks:
-        - id: task-1
-          name: Primera Tarea
-          order: 1
-          evidence:
-            type: both          # text | image | both
-            required: true
-          references:
-            - text: "Documentación"
-              url: "https://docs.example.com"
-          
-        - id: task-2
-          name: Segunda Tarea
-          order: 2
-          dependencies: ["task-1"]    # Depende de task-1
-          evidence:
-            type: text
-            required: false
-```
-
-### Tipos de Datos TypeScript
-
-**ProcessState** - Estado completo del proceso:
-```typescript
-interface ProcessState {
-  id: string;
-  name: string;
-  description: string;
-  version: string;
-  phases: PhaseState[];
-  progress: number;              # 0.0 - 1.0
-  variableDefinitions: ProcessVariableYAML[];
-  capturedVariables: Record<string, string>;
-  loadedAt?: string;
-  exportedAt?: string;
-  completedAt?: string;
-}
-```
-
-**TaskState** - Tarea individual:
-```typescript
-interface TaskState {
-  id: string;
-  name: string;
-  description: string;
-  completed: boolean;
-  completedAt?: string;
-  evidenceConfig: { type: 'text' | 'image' | 'both'; required: boolean };
-  evidence?: { text?: string; images?: EvidenceImage[] };
-  dependencies: string[];          # IDs de tareas requeridas
-  isBlocked?: boolean;             # Calculado automáticamente
-  dynamicLinks?: DynamicLink[];
-}
-```
-
-**EvidenceImage** - Imagen de evidencia:
-```typescript
-interface EvidenceImage {
-  id: string;
-  name: string;
-  cloudStoragePath?: string;     # Solo modo S3
-  url: string;                   # URL S3 o data URL base64
-  isPublic: boolean;
-  source: 'file' | 'url';
-  originalUrl?: string;          # Para imágenes de URL
-  uploadedAt: string;
-}
-```
-
-## 🔌 API Routes
-
-### GET /api/processes
-Retorna catálogo de plantillas disponibles.
-
-**Response**:
-```json
-{
-  "processes": [
-    {
-      "id": "it-security-audit",
-      "name": "Auditoría de Seguridad IT",
-      "description": "Proceso completo de auditoría...",
-      "category": "security",
-      "icon": "shield",
-      "file": "it-security-audit.yaml",
-      "version": "1.0.0"
-    }
-  ]
-}
-```
-
-### GET /api/processes/[id]
-Retorna contenido YAML de un proceso específico.
-
-### POST /api/upload/presigned
-Genera URL prefirmada para S3 o indica modo local.
-
-**Request**:
-```json
-{
-  "fileName": "imagen.jpg",
-  "contentType": "image/jpeg",
-  "isPublic": false
-}
-```
-
-**Response Modo S3**:
-```json
-{
-  "uploadUrl": "https://s3.amazonaws.com/...",
-  "cloudStoragePath": "uploads/1234567890-imagen.jpg"
-}
-```
-
-**Response Modo Local**:
-```json
-{
-  "localMode": true,
-  "fileName": "imagen.jpg",
-  "contentType": "image/jpeg"
-}
-```
-
-## 🧩 Componentes UI Principales
-
-### TaskCard
-```typescript
-interface TaskCardProps {
-  task: TaskState;
-  phaseId: string;
-  onOpenEvidence: () => void;
-}
-```
-- Checkbox de completado (deshabilitado si bloqueado)
-- Badge de evidencias (texto/imagen)
-- Icono de bloqueo si tiene dependencias
-- Botón "Ver Detalles" para evidencias
-
-### EvidenceModal
-Modal de gestión de evidencias:
-- **Tab Texto**: Textarea para notas
-- **Tab Imágenes**: 
-  - Upload drag & drop de archivos
-  - Input URL para imágenes externas
-  - Grid de previews con botón eliminar
-- Conversión automática a base64 en modo local
-
-### ProcessSidebar
-Sidebar izquierdo:
-- Lista de fases con badge de progreso
-- Navegación por click
-- Resumen de tareas completadas/total
-
-### VariablesForm
-Formulario dinámico:
-- Generado desde `variableDefinitions`
-- Soporte: text, select, number
-- Validación de requeridos
-- Botón "Auto-fill" desde config DevOps
-
-### ConfigUpload
-Upload de configuración:
-- Drag & drop de JSON
-- Validación de estructura
-- Template generator basado en variables del proceso
-
-## 🛠️ Desarrollo
-
-### Comandos Disponibles
-
-```bash
-# Instalación
-npm install              # Instalar todas las dependencias
-
-# Desarrollo
-npm run dev              # Servidor en localhost:3000 (o 3001)
-npm run build            # Build de producción
-npm run start            # Ejecutar build de producción
-npm run lint             # Linting con ESLint
-
-# Testing
-npm run test             # Tests unitarios (modo watch)
-npm run test:run         # Tests unitarios (una vez)
-npm run test:coverage    # Tests con cobertura
-npm run test:e2e         # Tests E2E con Playwright
-npm run test:e2e:ui      # Tests E2E en modo UI
-npm run test:all         # Todos los tests (unitarios + E2E)
-```
-
-### Scripts de Desarrollo
-
-- **dev**: Inicia servidor de desarrollo con hot-reload
-- **build**: Genera build optimizado para producción
-- **start**: Ejecuta la aplicación en modo producción
-- **lint**: Verifica código con ESLint
-- **test**: Ejecuta Vitest en modo watch
-- **test:run**: Ejecuta tests unitarios una sola vez
-- **test:coverage**: Genera reporte de cobertura de código
-- **test:e2e**: Ejecuta tests E2E (levanta servidor automáticamente)
-- **test:e2e:ui**: Abre interfaz interactiva de Playwright
-- **test:all**: Ejecuta todos los tests en secuencia
-
-### Estructura de Desarrollo
-
-```bash
-# Workflow típico de desarrollo
-1. npm install           # Instalar dependencias
-2. npm run dev           # Levantar servidor
-3. npm run test          # Tests en modo watch (opcional)
-4. npm run build         # Verificar build antes de commit
-5. npm run test:all      # Ejecutar todos los tests
-```
-
-## 🐳 Docker
-
-### Opción 1: Ejecutar con Imagen Pre-construida (Recomendado)
-
-Usa esta opción si solo quieres ejecutar la aplicación sin necesidad de compilar código fuente.
-
-#### Paso 1: Descargar la Imagen
-
-```bash
-# Pull la última versión estable
+# Imagen pre-construida (multi-arch amd64/arm64, firmada con Cosign)
 docker pull habolanos/devsecops-process-tracker:latest
+docker run -d -p 3000:3000 --name tracker habolanos/devsecops-process-tracker:latest
 
-# O pull una versión específica (reemplaza X.X.X con el número de versión)
-docker pull habolanos/devsecops-process-tracker:1.20.0
+# Build local
+git clone https://github.com/habolanos/devsecops-process-tracker.git
+cd devsecops-process-tracker
+docker compose up --build -d
 ```
 
-#### Paso 2: Ejecutar el Contenedor
-
-**Opción A - Básica (modo local, datos en localStorage):**
-```bash
-docker run -d \
-  --name devsecops-tracker \
-  -p 3000:3000 \
-  habolanos/devsecops-process-tracker:latest
-```
-
-**Opción B - Con persistencia de datos (volumen Docker):**
-```bash
-# Crear volumen para persistir datos
-docker volume create devsecops-data
-
-# Ejecutar con volumen montado
-docker run -d \
-  --name devsecops-tracker \
-  -p 3000:3000 \
-  -v devsecops-data:/app/data \
-  habolanos/devsecops-process-tracker:latest
-```
-
-**Opción C - Con variables de entorno (S3 opcional):**
-```bash
-docker run -d \
-  --name devsecops-tracker \
-  -p 3000:3000 \
-  -e AWS_BUCKET_NAME=tu-bucket \
-  -e AWS_REGION=us-east-1 \
-  -e AWS_ACCESS_KEY_ID=tu-key \
-  -e AWS_SECRET_ACCESS_KEY=tu-secret \
-  habolanos/devsecops-process-tracker:latest
-```
-
-#### Paso 3: Acceder a la Aplicación
-
-- Abre tu navegador en: `http://localhost:3000`
-- La aplicación estará lista en ~5-10 segundos
-
-#### Paso 4: Comandos Útiles de Gestión
+**Verificación de firma Cosign:**
 
 ```bash
-# Ver logs en tiempo real
-docker logs -f devsecops-tracker
-
-# Detener el contenedor
-docker stop devsecops-tracker
-
-# Iniciar el contenedor (después de detener)
-docker start devsecops-tracker
-
-# Eliminar el contenedor (datos se pierden si no usaste volumen)
-docker rm devsecops-tracker
-
-# Actualizar a nueva versión
-docker pull habolanos/devsecops-process-tracker:latest
-docker stop devsecops-tracker
-docker rm devsecops-tracker
-docker run -d --name devsecops-tracker -p 3000:3000 habolanos/devsecops-process-tracker:latest
-```
-
-#### Verificación de Seguridad (Firma Cosign)
-
-```bash
-# Verificar firma criptográfica de la imagen
 cosign verify habolanos/devsecops-process-tracker:latest \
   --certificate-identity-regexp="https://github.com/habolanos/devsecops-process-tracker/*" \
   --certificate-oidc-issuer="https://token.actions.githubusercontent.com"
 ```
 
----
-
-### Opción 2: Construir y Ejecutar desde Código Fuente
-
-Usa esta opción si necesitas modificar el código, agregar funcionalidades personalizadas, o debuggear.
-
-#### Paso 1: Clonar el Repositorio
-
-```bash
-# Clonar el código fuente
-git clone https://github.com/habolanos/devsecops-process-tracker.git
-
-# Entrar al directorio
-cd devsecops-process-tracker
-```
-
-#### Paso 2: Opciones de Ejecución
-
-**Opción A - Docker Compose (Recomendado para desarrollo):**
-
-```bash
-# Construir y ejecutar con docker-compose
-docker-compose up --build
-
-# Ejecutar en segundo plano
-docker-compose up --build -d
-
-# Ver logs
-docker-compose logs -f
-
-# Detener
-docker-compose down
-```
-
-**Opción B - Docker Build Manual:**
-
-```bash
-# Construir la imagen localmente
-docker build -t devsecops-tracker:local .
-
-# Ejecutar la imagen local
-docker run -d \
-  --name devsecops-tracker-local \
-  -p 3000:3000 \
-  devsecops-tracker:local
-```
-
-**Opción C - Desarrollo con Hot-Reload (volumen montado):**
-
-```bash
-# Ejecutar con código fuente montado (cambios se reflejan inmediatamente)
-docker run -d \
-  --name devsecops-tracker-dev \
-  -p 3000:3000 \
-  -v $(pwd)/nextjs_space:/app \
-  -v /app/node_modules \
-  devsecops-tracker:local
-```
-
-#### Paso 3: Desarrollo Local (Sin Docker)
-
-Si prefieres desarrollar sin Docker:
-
-```bash
-# Entrar al directorio del proyecto Next.js
-cd nextjs_space
-
-# Instalar dependencias
-npm install
-
-# Iniciar servidor de desarrollo
-npm run dev
-
-# Ejecutar tests
-npm run test
-
-# Build de producción
-npm run build
-npm run start
-```
-
-#### Paso 4: Publicar tu Propia Imagen (Opcional)
-
-Si hiciste modificaciones y quieres publicar tu imagen:
-
-```bash
-# Taggear con tu usuario de Docker Hub
-docker tag devsecops-tracker:local tuusuario/devsecops-process-tracker:custom
-
-# Login a Docker Hub
-docker login
-
-# Push a Docker Hub
-docker push tuusuario/devsecops-process-tracker:custom
-```
+Guía completa con opciones de volúmenes, variables de entorno y troubleshooting en [README.dockerhub.md](README.dockerhub.md).
 
 ---
 
-### Resumen de Comparación
+## CI/CD
 
-| Aspecto | Imagen Pre-construida | Construir desde Código |
-|---------|----------------------|------------------------|
-| **Tiempo de inicio** | ~5-10 segundos | ~2-5 minutos (primera vez) |
-| **Requiere código** | No | Sí |
-| **Personalizable** | No | Sí |
-| **Hot-reload** | No | Sí (con volumen) |
-| **Ideal para** | Usuarios finales | Desarrolladores |
-| **Persistencia** | localStorage o S3 | localStorage, S3, o volúmenes |
+Tres plataformas soportadas:
 
-### Troubleshooting Docker
+- **GitHub Actions** (`.github/workflows/`): `ci.yml` (lint, tests, SAST CodeQL, Trivy, build), `release.yml` (semantic-release + changelog), `docker-publish.yml` (multi-arch, Cosign signing, SBOM SPDX+CycloneDX, SLSA Level 3 attestations).
+- **Azure DevOps** (`azure-pipelines.yml`): test, security-scan, build, deploy con aprobación manual.
+- **GitLab CI** (`.gitlab-ci.yml`): install, test, security (Ultimate SAST + Dependency Scanning), build, deploy a staging/producción.
 
-| Problema | Solución |
-|----------|----------|
-| `port 3000 already in use` | Cambiar puerto: `-p 3001:3000` |
-| `permission denied` | Ejecutar con `sudo` (Linux) o verificar Docker Desktop (Windows/Mac) |
-| `image not found` | Ejecutar `docker pull` nuevamente |
-| Datos no persisten | Usar volumen Docker o configurar S3 |
-| Contenedor no inicia | Ver logs: `docker logs devsecops-tracker` |
-
-
-
-## 🚀 CI/CD Pipelines
-
-El proyecto incluye configuraciones de CI/CD para Azure DevOps y GitLab que automatizan el proceso de testing, seguridad, build y deployment.
-
-### Azure DevOps Pipeline
-
-**Archivo:** `azure-pipelines.yml`
-
-El pipeline de Azure DevOps incluye 4 stages principales:
-
-1. **Test Stage**
-   - Tests unitarios con Vitest (51 tests)
-   - Tests E2E con Playwright
-   - Publicación de resultados y cobertura de código
-   - Cache de dependencias npm para optimización
-
-2. **Security Scan Stage**
-   - `npm audit` para vulnerabilidades de dependencias
-   - ESLint para análisis estático de código
-   - Ejecución en paralelo con stage de tests
-
-3. **Build Stage**
-   - Build de producción de Next.js
-   - Generación de artefactos comprimidos
-   - Solo se ejecuta en branch `main`
-
-4. **Deploy Stage**
-   - Deployment a Azure App Service
-   - Ambiente de producción con aprobación manual
-   - Configuración de runtime Node.js 20 LTS
-
-**Variables requeridas:**
-- `azureSubscription`: Conexión de servicio de Azure
-- `webAppName`: Nombre del Azure Web App
-
-### GitLab CI/CD Pipeline
-
-**Archivo:** `.gitlab-ci.yml`
-
-El pipeline de GitLab incluye 5 stages:
-
-1. **Install Stage**
-   - Instalación de dependencias con cache
-   - Artifacts compartidos entre jobs
-
-2. **Test Stage**
-   - Tests unitarios con Vitest
-   - Tests E2E con Playwright (imagen Docker específica)
-   - Linting con ESLint
-   - Reportes de cobertura integrados
-
-3. **Security Stage**
-   - `npm audit` para escaneo de dependencias
-   - Dependency Scanning (GitLab Ultimate)
-   - SAST - Static Application Security Testing (GitLab Ultimate)
-
-4. **Build Stage**
-   - Build de Next.js para producción
-   - Build de imagen Docker (opcional, manual)
-   - Artifacts con expiración de 1 semana
-
-5. **Deploy Stage**
-   - Deploy a staging (branch `develop`, manual)
-   - Deploy a producción (branch `main`, manual)
-   - Soporte para Vercel, Docker, Kubernetes
-
-**Características:**
-- Cache inteligente basado en `package-lock.json`
-- Reportes de cobertura visualizados en merge requests
-- Cleanup automático de archivos temporales
-- Soporte para múltiples estrategias de deployment
-
-### Configuración Inicial
-
-#### Azure DevOps
-1. Crear Service Connection a Azure
-2. Configurar variables `azureSubscription` y `webAppName`
-3. Importar `azure-pipelines.yml` en Azure Pipelines
-4. Configurar branch policies para `main`
-
-#### GitLab
-1. Configurar variables de entorno en Settings > CI/CD
-2. Habilitar GitLab Runner
-3. Configurar deployment tokens si es necesario
-4. El pipeline se ejecuta automáticamente en push/merge request
-
-### GitHub Actions Pipeline
-
-**Archivos:** `.github/workflows/ci.yml`, `release.yml`, `docker-publish.yml`
-
-El pipeline de GitHub Actions implementa estándares internacionales de seguridad y calidad:
-
-#### Workflows
-
-| Workflow | Trigger | Descripción |
-|----------|---------|-------------|
-| **CI Pipeline** | Push/PR a main, develop | Lint, Tests, Security Scan, Build |
-| **Release** | Push a main | Semantic versioning + Changelog |
-| **Docker Publish** | Release publicado | Build multi-arch, Sign, SBOM, Push |
-
-#### Estándares Implementados
-
-| Estándar | Herramienta | Descripción |
-|----------|-------------|-------------|
-| **Semantic Versioning** | semantic-release | Versionado automático basado en commits |
-| **Conventional Commits** | commitlint | Validación de formato de commits |
-| **SAST** | CodeQL | Análisis estático de seguridad |
-| **Dependency Scan** | npm audit, Trivy | Vulnerabilidades en dependencias |
-| **Container Scan** | Trivy | Vulnerabilidades en imagen Docker |
-| **SBOM** | Syft | Software Bill of Materials (SPDX + CycloneDX) |
-| **Image Signing** | Cosign (Sigstore) | Firma criptográfica de imágenes |
-| **SLSA Level 3** | GitHub Attestations | Provenance de artefactos |
-| **OCI Compliance** | Docker Buildx | Imágenes multi-plataforma (amd64/arm64) |
-
-#### Configuración de Secrets
-
-En GitHub Repository → Settings → Secrets and variables → Actions:
-
-| Secret | Descripción | Cómo obtenerlo |
-|--------|-------------|----------------|
-| `DOCKERHUB_USERNAME` | Usuario de Docker Hub | Tu nombre de usuario |
-| `DOCKERHUB_TOKEN` | Access Token de Docker Hub | Docker Hub → Account Settings → Security → New Access Token |
-| `CODECOV_TOKEN` | Token para cobertura (opcional) | codecov.io → Settings → Repository Token |
-
-#### Conventional Commits
-
-Los commits deben seguir el formato:
-
-```
-<type>(<scope>): <description>
-
-[optional body]
-
-[optional footer]
-```
-
-**Tipos permitidos:**
-- `feat`: Nueva funcionalidad (trigger: minor release)
-- `fix`: Corrección de bug (trigger: patch release)
-- `docs`: Solo documentación
-- `style`: Formato de código
-- `refactor`: Refactorización
-- `perf`: Mejora de rendimiento
-- `test`: Tests
-- `build`: Sistema de build
-- `ci`: Configuración CI/CD
-- `chore`: Mantenimiento
-
-**Ejemplos:**
-```bash
-feat(tasks): add multicheck task type
-fix(evidence): correct clipboard paste on Safari
-docs(readme): update CI/CD documentation
-perf(store): optimize state updates
-```
-
-## 📊 Historial de Cambios
-
-**Ver [README.history.md](README.history.md) para el historial completo de cambios.**
-
-## 📄 Licencia
-
-GNU General Public License v3.0 (GPL-3.0) - Software libre para uso educativo y comercial.
-
-Este programa es software libre: puedes redistribuirlo y/o modificarlo bajo los términos de la Licencia Pública General de GNU publicada por la Free Software Foundation, ya sea la versión 3 de la Licencia, o (a tu elección) cualquier versión posterior.
-
-Este programa se distribuye con la esperanza de que sea útil, pero SIN NINGUNA GARANTÍA; sin siquiera la garantía implícita de COMERCIALIZACIÓN o IDONEIDAD PARA UN PROPÓSITO PARTICULAR. Consulta la Licencia Pública General de GNU para más detalles.
+Los commits siguen **[Conventional Commits](https://www.conventionalcommits.org/)** validados por `commitlint`. El versionado es automático con `semantic-release`.
 
 ---
 
-## 🌍 My Visits on real time
+## Seguridad
 
-[![ClustrMaps](https://www.clustrmaps.com/map_v2.png?d=2IMzz90NUzGxjVLJ385PGzeVLOoAvDNxc7El0ESQzbw&cl=ffffff)](https://clustrmaps.com/site/1c9qy)
+- **SAST** con CodeQL v4 en cada PR.
+- **Dependency scanning** con `npm audit` y Trivy (0 vulnerabilidades activas).
+- **Container scanning** con Trivy sobre la imagen Alpine 3.21.
+- **SBOM** generado en formato SPDX y CycloneDX.
+- **Firma de imágenes** con Cosign (Sigstore).
+- **SLSA Level 3** attestations vía GitHub Attestations.
+- **Sanitización XSS** en todo texto libre (`lib/sanitize.ts`).
+- **Rate limiting** en API Routes (`lib/rate-limit.ts`).
+- **Validación Zod** en payloads de API (`lib/api-schemas.ts`).
+- **Compresión lz-string** del estado persistido en localStorage.
 
-### 📊 Repo's Stats
+Overrides explícitos de dependencias transitivas vulnerables en `package.json` (minimatch, brace-expansion, picomatch, tar).
 
-![GitHub stars](https://img.shields.io/github/stars/habolanos/devsecops-process-tracker?style=social)
-![GitHub forks](https://img.shields.io/github/forks/habolanos/devsecops-process-tracker?style=social)
-![GitHub watchers](https://img.shields.io/github/watchers/habolanos/devsecops-process-tracker?style=social)
-![Open Source? Yes!](https://badgen.net/badge/Open%20Source%20%3F/Yes%21/green?icon=github)
+---
 
-**DevSecOps Process Tracker** © 2026 - Desarrollado por **Harold Adrian** con ❤️ usando Next.js y TypeScript
+## Licencia
+
+**GNU General Public License v3.0** — Software libre para uso educativo y comercial. Consulte [LICENSE](LICENSE).
+
+---
+
+## Autor
+
+**Harold Adrian** — [LinkedIn](https://www.linkedin.com/in/habolanos) · [GitHub](https://github.com/habolanos)
+
+Historial detallado de cambios en [README.history.md](README.history.md).
+
+---
+
+[![GitHub stars](https://img.shields.io/github/stars/habolanos/devsecops-process-tracker?style=social)](https://github.com/habolanos/devsecops-process-tracker/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/habolanos/devsecops-process-tracker?style=social)](https://github.com/habolanos/devsecops-process-tracker/network/members)
+[![GitHub watchers](https://img.shields.io/github/watchers/habolanos/devsecops-process-tracker?style=social)](https://github.com/habolanos/devsecops-process-tracker/watchers)

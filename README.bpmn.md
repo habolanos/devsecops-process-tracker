@@ -1,6 +1,8 @@
 # BPMN 2.0 Interactive Diagram Visualization
 
-**DevSecOps Process Tracker v2.0.0 Feature Documentation**
+**DevSecOps Process Tracker · Feature introducida en v2.0.0 y mantenida en líneas posteriores (v2.1.0+).**
+
+> Documentación complementaria: [`README.md`](README.md) · [`README.process.md`](README.process.md) · [`docs/diagrams/c4-model.md`](docs/diagrams/c4-model.md) · [`docs/diagrams/arquitectura-sistema.md`](docs/diagrams/arquitectura-sistema.md).
 
 ---
 
@@ -31,7 +33,7 @@
 
 ## Resumen Ejecutivo
 
-La versión 2.0.0 de **DevSecOps Process Tracker** introduce una **visualización interactiva de diagramas BPMN 2.0** que permite a los usuarios:
+Desde la versión 2.0.0, **DevSecOps Process Tracker** ofrece una **visualización interactiva de diagramas BPMN 2.0** que permite a los usuarios:
 
 1. **Visualizar el flujo completo del proceso** en un diagrama BPMN estándar
 2. **Identificar el estado de cada tarea** mediante código de colores
@@ -486,7 +488,9 @@ const BpmnViewer = dynamic(() => import('./_components/bpmn-viewer'), {
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
-| 2.0.0 | 2026-04-08 | **Implementación inicial completa**: Generador XML BPMN, visor interactivo con bpmn-js, toggle Lista/BPMN, 39 tests unitarios |
+| Unreleased | 2026-04-21 | Actualización documental: referencias cruzadas al modelo C4, sincronización con arquitectura actual (5 stores Zustand, 28 módulos `lib/`) y estado global de 529+ tests unitarios. El generador BPMN y el visor no cambian. |
+| 2.1.0 | 2026-04-19 | Integración transversal con el motor declarativo de export Excel (`process.export`): las tareas `export-excel` se siguen mapeando como `serviceTask` en el diagrama. |
+| 2.0.0 | 2026-04-08 | **Implementación inicial completa**: generador XML BPMN, visor interactivo con `bpmn-js` 18, toggle Lista/BPMN, 39 tests unitarios (`__tests__/unit/lib/bpmn-generator.test.ts`). |
 
 ---
 
@@ -498,6 +502,6 @@ const BpmnViewer = dynamic(() => import('./_components/bpmn-viewer'), {
 
 ---
 
-**Documentación generada para DevSecOps Process Tracker v2.0.0**
+**Documentación alineada con DevSecOps Process Tracker v2.1.0+ (rama `develop`).**
 
-Última actualización: 2026-04-08
+Última actualización: 2026-04-21
