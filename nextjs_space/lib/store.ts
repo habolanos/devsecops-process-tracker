@@ -16,6 +16,15 @@ interface ProcessStore {
   currentActivityId: string | null;
   currentTaskId: string | null;
   hasStartedInteraction: boolean; // Track if user has interacted with the process
+  /**
+   * True once the persist middleware has finished rehydrating AND the
+   * subsequent YAML re-fetch (if any) has settled (success or failure).
+   * UIs that render based on `process` should wait for this flag before
+   * deciding that "no process" means "redirect to home": right after a
+   * reload the persisted snapshot carries only user progress, and
+   * `process` is rebuilt asynchronously from the YAML.
+   */
+  hasHydrated: boolean;
   
   // Actions
   loadProcess: (process: ProcessState) => void;
@@ -72,6 +81,14 @@ export const useProcessStore = create<ProcessStore>()(persist(
     currentActivityId: null,
     currentTaskId: null,
     hasStartedInteraction: false,
+    // When there is no persisted snapshot to load, Zustand skips the
+    // onRehydrateStorage post-callback entirely. Resolve the initial value
+    // synchronously so consumers do not wait forever on a callback that
+    // never fires. SSR (no `window`) also starts hydrated=true because
+    // the persist middleware will re-run on the client.
+    hasHydrated:
+      typeof window === 'undefined' ||
+      window.localStorage?.getItem('process-tracker-storage') === null,
 
     loadProcess: (process) => {
       const updated = updateTaskBlockedStatus(updateProgress(process));
@@ -741,24 +758,97 @@ export const useProcessStore = create<ProcessStore>()(persist(
   {
     name: 'process-tracker-storage',
     storage: createCompressedStorage<ProcessStore>(),
+    // Persist only the user-owned progress envelope (plus selection ids)
+    // instead of the full ProcessState. The YAML remains the single source
+    // of truth for structure and is re-fetched on rehydrate. This keeps
+    // localStorage payload small and makes YAML schema changes non-breaking
+    // for in-flight user sessions.
+    partialize: (state) => {
+      const snapshot = state.process ? extractProgress(state.process) : null;
+      // The shape we persist diverges from ProcessStore on purpose; Zustand
+      // types partialize as `Partial<S>` so we cast through `unknown` and
+      // document the extra `_progressSnapshot` key below.
+      return {
+        _progressSnapshot: snapshot,
+        currentPhaseId: state.currentPhaseId,
+        currentActivityId: state.currentActivityId,
+        currentTaskId: state.currentTaskId,
+        hasStartedInteraction: state.hasStartedInteraction,
+      } as unknown as ProcessStore;
+    },
+    // Merge strategy: discard any legacy `process` tree the persisted
+    // state might carry (from versions predating partialize); the new
+    // flow always rebuilds `process` from the YAML in onRehydrateStorage.
+    merge: (persisted, current) => {
+      const p = (persisted ?? {}) as Partial<ProcessStore> & {
+        _progressSnapshot?: ReturnType<typeof extractProgress> | null;
+        process?: ProcessState | null;
+      };
+      // Legacy snapshot compatibility: if the persisted shape still has
+      // `process`, extract a progress envelope from it so onRehydrateStorage
+      // can re-fetch and merge just like with the new shape.
+      const legacySnapshot = p.process ? extractProgress(p.process) : null;
+      const snapshot = p._progressSnapshot ?? legacySnapshot ?? null;
+      return {
+        ...current,
+        currentPhaseId: p.currentPhaseId ?? current.currentPhaseId,
+        currentActivityId: p.currentActivityId ?? current.currentActivityId,
+        currentTaskId: p.currentTaskId ?? current.currentTaskId,
+        hasStartedInteraction: p.hasStartedInteraction ?? current.hasStartedInteraction,
+        // Keep the envelope on the state briefly so onRehydrateStorage can
+        // pick it up. It is scrubbed immediately after.
+        _progressSnapshot: snapshot,
+      } as unknown as ProcessStore;
+    },
     onRehydrateStorage: () => (state) => {
-      // After Zustand rehydrates from localStorage, ensure the process
-      // structure reflects the latest YAML source of truth. This picks up
-      // new fields (e.g. completionAlert, new tasks, renamed labels) that
-      // the persisted snapshot predates, while preserving user progress.
       if (typeof window === 'undefined') return;
-      const processId = state?.process?.id;
-      if (!processId) return;
+      const bag = (state ?? {}) as Partial<ProcessStore> & {
+        _progressSnapshot?: ReturnType<typeof extractProgress> | null;
+      };
+      const snapshot = bag._progressSnapshot ?? null;
+      // Scrub the transient internal field from in-memory state.
+      if (state) {
+        delete (state as unknown as Record<string, unknown>)._progressSnapshot;
+      }
+
+      const finalize = () => useProcessStore.setState({ hasHydrated: true });
+
+      if (!snapshot) {
+        // Nothing to restore. If a legacy `process` leaked through merge
+        // (shouldn't happen but guard anyway), clear it so the UI does not
+        // render stale data.
+        useProcessStore.setState({ process: null });
+        finalize();
+        return;
+      }
+
       void (async () => {
         try {
-          const res = await fetch(`/api/processes/${encodeURIComponent(processId)}`);
-          if (!res.ok) return;
+          const res = await fetch(`/api/processes/${encodeURIComponent(snapshot.processId)}`);
+          if (!res.ok) {
+            console.warn(
+              `[process-store] Could not re-fetch YAML for '${snapshot.processId}' (HTTP ${res.status}); discarding stale progress.`,
+            );
+            useProcessStore.setState({ process: null });
+            return;
+          }
           const data: { content?: string } = await res.json();
-          if (typeof data.content !== 'string') return;
-          useProcessStore.getState().refreshFromYAML(data.content);
+          if (typeof data.content !== 'string') {
+            useProcessStore.setState({ process: null });
+            return;
+          }
+          const fresh = parseYAMLToProcess(data.content);
+          if (fresh.id !== snapshot.processId) {
+            useProcessStore.setState({ process: null });
+            return;
+          }
+          const merged = updateTaskBlockedStatus(updateProgress(mergeProgressIntoFresh(fresh, snapshot)));
+          useProcessStore.setState({ process: merged });
         } catch (err) {
-          // Non-fatal: the persisted snapshot remains usable.
-          console.warn('[process-store] YAML refresh on rehydrate failed:', err);
+          console.warn('[process-store] YAML rehydrate failed:', err);
+          useProcessStore.setState({ process: null });
+        } finally {
+          finalize();
         }
       })();
     },
