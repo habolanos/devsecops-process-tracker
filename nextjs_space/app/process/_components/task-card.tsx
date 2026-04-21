@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useState } from 'react';
+import { memo, useState, useRef } from 'react';
 import { TaskState } from '@/lib/types';
 import { useProcessStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
@@ -222,7 +222,9 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
   const [alertOpen, setAlertOpen] = useState(false);
   // Tracks whether the completionAlert was already confirmed by the user
   // so the evidence modal does not show it a second time.
-  const [alertAlreadyConfirmed, setAlertAlreadyConfirmed] = useState(false);
+  // Uses a ref (not state) so the value is available synchronously inside
+  // the same onConfirm callback that calls performComplete().
+  const alertAlreadyConfirmedRef = useRef(false);
 
   // Executes the actual completion side-effects. Split from
   // `handleToggleComplete` so it can be invoked either directly (no alert)
@@ -240,7 +242,7 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
     if (requiresEvidence) {
       // Pass flag so the evidence modal knows the alert was already confirmed
       // and does not show it again.
-      onViewEvidence(alertAlreadyConfirmed);
+      onViewEvidence(alertAlreadyConfirmedRef.current);
       return;
     }
 
@@ -720,7 +722,7 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
           taskName={task.name}
           onConfirm={() => {
             setAlertOpen(false);
-            setAlertAlreadyConfirmed(true);
+            alertAlreadyConfirmedRef.current = true;
             void performComplete();
           }}
         />
