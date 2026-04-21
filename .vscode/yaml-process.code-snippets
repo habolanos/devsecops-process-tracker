@@ -284,6 +284,22 @@
     ]
   },
 
+  "Completion alert": {
+    "scope": "yaml",
+    "prefix": "completion-alert",
+    "description": "Optional confirmation dialog shown before a task is finalized.",
+    "body": [
+      "completionAlert:",
+      "  severity: \"${1|info,warning,critical|}\"",
+      "  title: \"${2:Confirmar finalización}\"",
+      "  description: |",
+      "    ${3:Esta acción marcará la tarea como completada. Verifica...}",
+      "  confirmLabel: \"${4:Finalizar}\"",
+      "  cancelLabel: \"${5:Cancelar}\"",
+      "$0"
+    ]
+  },
+
   "Reference": {
     "scope": "yaml",
     "prefix": "reference",

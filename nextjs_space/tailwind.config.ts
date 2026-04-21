@@ -78,10 +78,22 @@ const config: Config = {
             height: '0',
           },
         },
+        'pulse-once': {
+          '0%, 100%': { opacity: '1', transform: 'scale(1)' },
+          '50%':      { opacity: '0.85', transform: 'scale(1.01)' },
+        },
+        'pulse-strong': {
+          '0%, 100%': { opacity: '1', transform: 'scale(1)' },
+          '25%':      { opacity: '0.75', transform: 'scale(1.02)' },
+          '50%':      { opacity: '1', transform: 'scale(1)' },
+          '75%':      { opacity: '0.85', transform: 'scale(1.015)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'pulse-once':    'pulse-once 0.6s ease-in-out 1',
+        'pulse-strong':  'pulse-strong 0.9s ease-in-out 1',
       },
     },
   },

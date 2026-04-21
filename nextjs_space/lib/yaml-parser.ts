@@ -4,6 +4,43 @@ import { parseTimeString } from './helpers';
 
 const CELL_REF_RE = /^[A-Z]+[0-9]+$/;
 
+const COMPLETION_ALERT_SEVERITIES = new Set(['info', 'warning', 'critical']);
+
+function validateCompletionAlert(
+  alert: unknown,
+  contextId: string,
+): import('./types').CompletionAlertConfig | undefined {
+  if (alert === undefined || alert === null) return undefined;
+  if (typeof alert !== 'object' || Array.isArray(alert)) {
+    throw new Error(`completionAlert in ${contextId} must be an object`);
+  }
+  const a = alert as Record<string, unknown>;
+  if (typeof a.description !== 'string' || a.description.trim().length === 0) {
+    throw new Error(`completionAlert.description in ${contextId} is required and must be a non-empty string`);
+  }
+  const severity = a.severity ?? 'info';
+  if (typeof severity !== 'string' || !COMPLETION_ALERT_SEVERITIES.has(severity)) {
+    throw new Error(
+      `completionAlert.severity in ${contextId} must be one of info|warning|critical (got '${String(severity)}')`,
+    );
+  }
+  const optionalString = (key: 'title' | 'confirmLabel' | 'cancelLabel') => {
+    const v = a[key];
+    if (v === undefined || v === null) return undefined;
+    if (typeof v !== 'string') {
+      throw new Error(`completionAlert.${key} in ${contextId} must be a string when provided`);
+    }
+    return v;
+  };
+  return {
+    severity: severity as 'info' | 'warning' | 'critical',
+    description: a.description,
+    title: optionalString('title'),
+    confirmLabel: optionalString('confirmLabel'),
+    cancelLabel: optionalString('cancelLabel'),
+  };
+}
+
 function validateCellRef(ref: unknown, context: string): void {
   if (typeof ref !== 'string' || !CELL_REF_RE.test(ref)) {
     throw new Error(`Invalid cell reference "${ref}" in ${context} (expected format like "F85")`);
@@ -174,7 +211,8 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
           completed: false,
           evidence: { images: [] },
           isBlocked: false,
-          dynamicLinks: task.dynamicLinks || []
+          dynamicLinks: task.dynamicLinks || [],
+          completionAlert: validateCompletionAlert(task.completionAlert, `task '${task.id}' in ${contextId}`),
         };
       });
     };

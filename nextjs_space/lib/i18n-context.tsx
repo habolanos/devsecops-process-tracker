@@ -93,6 +93,10 @@ const translations: Translations = {
   'common.loading': { es: 'Cargando...', en: 'Loading...' },
   'common.error': { es: 'Error', en: 'Error' },
   'common.success': { es: 'Éxito', en: 'Success' },
+  'common.confirm': { es: 'Confirmar', en: 'Confirm' },
+
+  // Completion alert dialog
+  'alert.completion.defaultTitle': { es: 'Confirmar finalización', en: 'Confirm completion' },
 
   // Process Tray / Tabs / Command Palette
   'tray.title': { es: 'Procesos de Sesión', en: 'Session Processes' },
