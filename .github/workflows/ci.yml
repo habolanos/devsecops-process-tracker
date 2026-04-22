@@ -184,6 +184,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: read
+      security-events: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -206,9 +208,24 @@ jobs:
         with:
           scan-type: 'fs'
           scan-ref: ${{ env.WORKING_DIR }}
-          format: 'table'
+          format: 'sarif'
+          output: 'trivy-fs-results.sarif'
           severity: 'CRITICAL,HIGH'
           trivyignores: '.trivyignore'
+
+      - name: Ensure Trivy FS SARIF exists
+        if: always()
+        run: |
+          if [ ! -f trivy-fs-results.sarif ]; then
+            echo '{"version":"2.1.0","$schema":"https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema.json","runs":[{"tool":{"driver":{"name":"Trivy","version":"0.0.0","informationUri":"https://trivy.dev","rules":[]}},"results":[]}]}' > trivy-fs-results.sarif
+          fi
+
+      - name: Upload Trivy FS scan results to Security tab
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: 'trivy-fs-results.sarif'
+          category: 'trivy-fs'
 
   # ==========================================================================
   # Security - SAST with CodeQL
@@ -283,6 +300,8 @@ jobs:
     if: github.event_name == 'pull_request'
     permissions:
       contents: read
+      actions: read
+      security-events: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -306,9 +325,24 @@ jobs:
         continue-on-error: true
         with:
           image-ref: 'devsecops-process-tracker:test'
-          format: 'table'
+          format: 'sarif'
+          output: 'trivy-image-results.sarif'
           severity: 'CRITICAL,HIGH'
           trivyignores: '.trivyignore'
+
+      - name: Ensure Trivy Image SARIF exists
+        if: always()
+        run: |
+          if [ ! -f trivy-image-results.sarif ]; then
+            echo '{"version":"2.1.0","$schema":"https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema.json","runs":[{"tool":{"driver":{"name":"Trivy","version":"0.0.0","informationUri":"https://trivy.dev","rules":[]}},"results":[]}]}' > trivy-image-results.sarif
+          fi
+
+      - name: Upload Trivy Image scan results to Security tab
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: 'trivy-image-results.sarif'
+          category: 'trivy-image'
 
   # ==========================================================================
   # CI Summary
