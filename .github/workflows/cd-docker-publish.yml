@@ -62,13 +62,13 @@ jobs:
         with:
           images: ${{ env.IMAGE_NAME_DOCKER }}
           # Tag strategy:
-          #   - On `release`: semver is extracted from the git tag (refs/tags/vX.Y.Z)
-          #     producing `X.Y.Z`, `X.Y` and `X`, plus `latest` and `sha-<sha>`.
+          #   - On `release`: extract the exact semver from the git tag
+          #     (refs/tags/X.Y.Z → `X.Y.Z`), plus `latest` and `sha-<sha>`.
+          #     Rolling `X.Y` and `X` tags are intentionally NOT emitted to
+          #     avoid unintended auto-upgrades for pinned consumers.
           #   - On `workflow_dispatch`: use the manually provided input verbatim.
           tags: |
             type=semver,pattern={{version}},enable=${{ github.event_name == 'release' }}
-            type=semver,pattern={{major}}.{{minor}},enable=${{ github.event_name == 'release' }}
-            type=semver,pattern={{major}},enable=${{ github.event_name == 'release' }}
             type=raw,value=latest,enable=${{ github.event_name == 'release' }}
             type=sha,prefix=sha-,enable=${{ github.event_name == 'release' }}
             type=raw,value=${{ github.event.inputs.version }},enable=${{ github.event_name == 'workflow_dispatch' }}
@@ -86,8 +86,6 @@ jobs:
           images: ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME_GHCR }}
           tags: |
             type=semver,pattern={{version}},enable=${{ github.event_name == 'release' }}
-            type=semver,pattern={{major}}.{{minor}},enable=${{ github.event_name == 'release' }}
-            type=semver,pattern={{major}},enable=${{ github.event_name == 'release' }}
             type=raw,value=latest,enable=${{ github.event_name == 'release' }}
             type=sha,prefix=sha-,enable=${{ github.event_name == 'release' }}
             type=raw,value=${{ github.event.inputs.version }},enable=${{ github.event_name == 'workflow_dispatch' }}
