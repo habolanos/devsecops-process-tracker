@@ -26,6 +26,7 @@ permissions:
 
 env:
   NODE_VERSION: '24'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   # ==========================================================================
@@ -73,6 +74,7 @@ jobs:
       - name: Semantic Release
         id: semantic
         working-directory: .
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -84,6 +86,7 @@ jobs:
 
       - name: Detect new release
         id: detect-release
+        if: always()
         run: |
           LAST_TAG_BEFORE="${{ steps.last-tag.outputs.last_tag }}"
           LAST_TAG_AFTER=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
@@ -113,6 +116,7 @@ jobs:
           fi
 
       - name: Debug Outputs
+        if: always()
         run: |
           echo "Published: ${{ steps.detect-release.outputs.new_release_published }}"
           echo "Version: ${{ steps.detect-release.outputs.new_release_version }}"
