@@ -212,7 +212,15 @@ function ProcessTrayItemCard({
 
   const canResume = item.status === 'paused';
   const canCancel = item.status === 'active' || item.status === 'paused';
-  const canRemove = item.status === 'completed' || item.status === 'cancelled';
+  // `canRemove` intentionally excludes `isActive` on top of the status
+  // check. Today `completeProcess` / `cancelProcess` always null out
+  // `activeTrayId`, so any item with status `completed` or `cancelled`
+  // is also non-active. We still gate on `!isActive` here so that if
+  // that coupling is ever loosened the Remove option remains disabled
+  // for the process the user is currently working on. The store-level
+  // guard in `removeFromTray` is the authoritative invariant.
+  const canRemove =
+    !isActive && (item.status === 'completed' || item.status === 'cancelled');
   const canExport = item.status === 'completed';
 
   return (
