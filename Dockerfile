@@ -9,14 +9,14 @@ ARG VCS_REF
 ARG VERSION=latest
 
 # Base image used across all stages
-ARG BASE_IMAGE=node:24-alpine3.21
+ARG BASE_IMAGE=node:24-alpine3.22
 
 # ==========================================================================
 # Stage 1: Dependencies
 # ==========================================================================
 FROM ${BASE_IMAGE} AS deps
 
-# Security: Update Alpine packages to fix vulnerabilities (zlib, etc.)
+# Security: Update Alpine packages to fix vulnerabilities
 RUN apk update && apk upgrade --no-cache && \
     apk add --no-cache libc6-compat
 
@@ -65,11 +65,10 @@ RUN --mount=type=cache,target=/root/.npm \
 # ==========================================================================
 FROM ${BASE_IMAGE} AS runner
 
-# Security: Update Alpine packages
-RUN apk update && apk upgrade --no-cache
-
-# Security: Update npm to fix tar vulnerabilities
-RUN npm install -g npm@latest
+# Security: Update Alpine packages (fix CVE-2026-28390, CVE-2026-40200, CVE-2026-22184, etc.)
+RUN apk update && apk upgrade --no-cache && \
+    apk add --no-cache dumb-init && \
+    rm -rf /var/cache/apk/*
 
 # Re-declare build args for this stage (required for LABEL to access them)
 ARG BUILD_DATE
@@ -117,4 +116,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))" || exit 1
 
 # Start application
-CMD ["node", "server.js"]
+CMD ["dumb-init", "node", "server.js"]
