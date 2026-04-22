@@ -60,8 +60,19 @@ export function ProcessTabs({ language = 'es', maxVisibleTabs = 4 }: ProcessTabs
 
   const handleCloseTab = (e: React.MouseEvent, trayId: string) => {
     e.stopPropagation();
-    removeFromTray(trayId);
-    toast.success(language === 'es' ? 'Proceso removido' : 'Process removed');
+    const removed = removeFromTray(trayId);
+    if (removed) {
+      toast.success(language === 'es' ? 'Proceso removido' : 'Process removed');
+    } else {
+      // Defensive: the × is hidden on the active tab, so this path is not
+      // reachable from the UI. Keep the message in sync with the store
+      // invariant in case a future caller slips through.
+      toast.warning(
+        language === 'es'
+          ? 'No puedes cerrar el proceso en el que estás trabajando. Cambia a otro proceso primero.'
+          : 'You cannot close the process you are working on. Switch to another process first.'
+      );
+    }
   };
 
   const renderTab = (process: typeof processes[0], isOverflow = false) => {
@@ -106,13 +117,21 @@ export function ProcessTabs({ language = 'es', maxVisibleTabs = 4 }: ProcessTabs
           {process.processName}
         </span>
 
-        <div
-          onClick={(e) => handleCloseTab(e, process.trayId)}
-          className="opacity-0 group-hover:opacity-100 ml-auto p-0.5 rounded hover:bg-accent transition-opacity cursor-pointer"
-          title={language === 'es' ? 'Cerrar' : 'Close'}
-        >
-          <X className="w-3 h-3 text-muted-foreground" />
-        </div>
+        {/* The close affordance is deliberately NOT rendered for the active
+            tab: closing the process you are currently working on would
+            discard in-progress work. The user must switch to another
+            process (or complete / cancel this one) first. See
+            `removeFromTray` in `lib/session-store.ts` for the matching
+            store-level guard. */}
+        {!isActive && (
+          <div
+            onClick={(e) => handleCloseTab(e, process.trayId)}
+            className="opacity-0 group-hover:opacity-100 ml-auto p-0.5 rounded hover:bg-accent transition-opacity cursor-pointer"
+            title={language === 'es' ? 'Cerrar' : 'Close'}
+          >
+            <X className="w-3 h-3 text-muted-foreground" />
+          </div>
+        )}
 
         {/* Progress indicator */}
         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-secondary rounded-full overflow-hidden">

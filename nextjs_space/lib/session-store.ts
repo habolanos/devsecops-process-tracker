@@ -43,7 +43,18 @@ interface SessionStore {
   pauseCurrentProcess: (snapshot: ProcessState) => void;
   completeProcess: (trayId: string, snapshot: ProcessState) => void;
   cancelProcess: (trayId: string) => void;
-  removeFromTray: (trayId: string) => void;
+  /**
+   * Removes a process entry from the tray.
+   *
+   * Refuses to remove the currently active process (the one the user is
+   * working on) as a protection against accidental data loss. Callers
+   * should check the return value and surface a message to the user when
+   * it is `false`.
+   *
+   * @returns `true` if the entry was removed, `false` if the call was
+   *   rejected because `trayId` matches `activeTrayId`.
+   */
+  removeFromTray: (trayId: string) => boolean;
   updateSnapshot: (trayId: string, snapshot: ProcessState) => void;
   getActiveProcess: () => ProcessTrayItem | null;
   getProcessCount: () => number;
@@ -195,10 +206,19 @@ export const useSessionStore = create<SessionStore>()(
       },
 
       removeFromTray: (trayId) => {
+        // Guard: refuse to remove the currently active process. The user
+        // must switch to another process (or complete / cancel this one)
+        // before it can be cleared from the tray. This prevents accidental
+        // loss of in-progress work from any entry point (tab bar close
+        // button, drawer, command palette, home page, future callers).
+        if (get().activeTrayId === trayId) {
+          return false;
+        }
+
         set((state) => ({
           processes: state.processes.filter((p) => p.trayId !== trayId),
-          activeTrayId: state.activeTrayId === trayId ? null : state.activeTrayId,
         }));
+        return true;
       },
 
       updateSnapshot: (trayId, snapshot) => {
