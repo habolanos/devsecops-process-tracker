@@ -533,16 +533,33 @@ export default function HomePage() {
                         >
                           <Download className="w-4 h-4 text-gray-500" />
                         </button>
-                        <button
-                          onClick={() => {
-                            useSessionStore.getState().removeFromTray(item.trayId);
-                            toast.success(language === 'es' ? 'Proceso removido' : 'Process removed');
-                          }}
-                          className="p-1.5 hover:bg-red-50 rounded-lg transition-colors"
-                          title={language === 'es' ? 'Eliminar' : 'Remove'}
-                        >
-                          <Trash2 className="w-4 h-4 text-red-500" />
-                        </button>
+                        {/* Hide the Remove button on the card for the
+                            currently active process. Removing the
+                            process you are working on would discard
+                            in-progress state; the store guard in
+                            `removeFromTray` enforces the same invariant. */}
+                        {!isActive && (
+                          <button
+                            onClick={() => {
+                              const removed = useSessionStore
+                                .getState()
+                                .removeFromTray(item.trayId);
+                              if (removed) {
+                                toast.success(language === 'es' ? 'Proceso removido' : 'Process removed');
+                              } else {
+                                toast.warning(
+                                  language === 'es'
+                                    ? 'No puedes eliminar el proceso en el que estás trabajando.'
+                                    : 'You cannot remove the process you are working on.'
+                                );
+                              }
+                            }}
+                            className="p-1.5 hover:bg-red-50 rounded-lg transition-colors"
+                            title={language === 'es' ? 'Eliminar' : 'Remove'}
+                          >
+                            <Trash2 className="w-4 h-4 text-red-500" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>

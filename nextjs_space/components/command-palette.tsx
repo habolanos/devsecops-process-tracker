@@ -90,9 +90,21 @@ export function CommandPalette({ language = 'es' }: CommandPaletteProps) {
   }, [processes, language, handleClose]);
 
   const handleRemove = useCallback((trayId: string) => {
-    removeFromTray(trayId);
-    toast.success(language === 'es' ? 'Proceso removido' : 'Process removed');
-    handleClose();
+    const removed = removeFromTray(trayId);
+    if (removed) {
+      toast.success(language === 'es' ? 'Proceso removido' : 'Process removed');
+      handleClose();
+    } else {
+      // Defensive: the Trash button is hidden on the active row, so this
+      // path is not reachable from the UI. Keep it wired to the store's
+      // rejection so keyboard shortcuts or future callers cannot bypass
+      // the invariant.
+      toast.warning(
+        language === 'es'
+          ? 'No puedes eliminar el proceso en el que estás trabajando.'
+          : 'You cannot remove the process you are working on.'
+      );
+    }
   }, [removeFromTray, language, handleClose]);
 
   const handleGoHome = useCallback(() => {
@@ -234,13 +246,19 @@ export function CommandPalette({ language = 'es' }: CommandPaletteProps) {
                           >
                             <Download className="w-4 h-4 text-gray-500" />
                           </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleRemove(process.trayId); }}
-                            className="p-1.5 hover:bg-red-100 rounded"
-                            title={t.remove}
-                          >
-                            <Trash2 className="w-4 h-4 text-red-500" />
-                          </button>
+                          {/* Hide the Remove action for the process the
+                              user is currently working on. The store's
+                              `removeFromTray` guard would reject it
+                              anyway; hiding avoids a misleading control. */}
+                          {!isActive && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleRemove(process.trayId); }}
+                              className="p-1.5 hover:bg-red-100 rounded"
+                              title={t.remove}
+                            >
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </button>
+                          )}
                         </div>
 
                         <ArrowRight className={`w-4 h-4 text-gray-400 ${isSelected ? 'opacity-100' : 'opacity-0'}`} />
