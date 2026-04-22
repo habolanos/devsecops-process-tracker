@@ -22,6 +22,7 @@ export default function ProcessTimer() {
     typeof window === 'undefined' ? 0 : getElapsedTime(),
   );
   const hasAutoStarted = useRef(false);
+  const wasManuallyPaused = useRef(false);
 
   const timeTracking = process?.timeTracking;
   const estimatedTime = process?.estimatedTime;
@@ -81,7 +82,15 @@ export default function ProcessTimer() {
     }
   };
 
-  // Auto-start timer on first interaction (only once)
+  // Reset auto-start flag when timer is manually paused (allows re-auto-start on next interaction)
+  useEffect(() => {
+    if (isPaused && wasManuallyPaused.current) {
+      hasAutoStarted.current = false;
+      wasManuallyPaused.current = false;
+    }
+  }, [isPaused]);
+
+  // Auto-start timer on first interaction (only once, resets after manual pause)
   useEffect(() => {
     if (isClient && hasStartedInteraction && !hasAutoStarted.current && (isIdle || isPaused)) {
       hasAutoStarted.current = true;
@@ -108,6 +117,7 @@ export default function ProcessTimer() {
   };
 
   const handlePause = () => {
+    wasManuallyPaused.current = true;
     pauseProcessTimer();
   };
 

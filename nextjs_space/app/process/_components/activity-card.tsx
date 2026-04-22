@@ -17,7 +17,7 @@ import { DynamicLinksList } from './dynamic-link-button';
 interface ActivityCardProps {
   activity: ActivityState;
   phaseId: string;
-  onViewEvidence: (task: TaskState) => void;
+  onViewEvidence: (task: TaskState, completionAlertAlreadyConfirmed?: boolean) => void;
 }
 
 function ActivityCard({ activity, phaseId, onViewEvidence }: ActivityCardProps) {
@@ -26,8 +26,8 @@ function ActivityCard({ activity, phaseId, onViewEvidence }: ActivityCardProps) 
   const [showImageModal, setShowImageModal] = useState<string | null>(null);
 
   // Stable callback for each task to prevent memo breaking
-  const handleViewEvidence = useCallback((task: TaskState) => {
-    onViewEvidence(task);
+  const handleViewEvidence = useCallback((task: TaskState, alertAlreadyConfirmed?: boolean) => {
+    onViewEvidence(task, alertAlreadyConfirmed);
   }, [onViewEvidence]);
 
   const completedTasks = activity.tasks?.filter((t) => t.completed).length ?? 0;
@@ -150,7 +150,7 @@ function ActivityCard({ activity, phaseId, onViewEvidence }: ActivityCardProps) 
                 task={task}
                 phaseId={phaseId}
                 activityId={activity.id}
-                onViewEvidence={() => handleViewEvidence(task)}
+                onViewEvidence={(alertAlreadyConfirmed) => handleViewEvidence(task, alertAlreadyConfirmed)}
               />
             ))}
           </div>

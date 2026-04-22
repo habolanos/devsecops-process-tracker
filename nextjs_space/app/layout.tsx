@@ -13,6 +13,9 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'Process Tracker - DevSecOps MVP',
   description: 'Gestiona y ejecuta procesos paso a paso con evidencia completa',
+  icons: {
+    icon: '/icon.svg',
+  },
 };
 
 export default function RootLayout({

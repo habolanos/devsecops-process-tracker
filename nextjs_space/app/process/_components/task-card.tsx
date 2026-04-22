@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useState } from 'react';
+import { memo, useState, useRef } from 'react';
 import { TaskState } from '@/lib/types';
 import { useProcessStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
@@ -29,7 +29,7 @@ interface TaskCardProps {
   task: TaskState;
   phaseId: string;
   activityId?: string;
-  onViewEvidence: () => void;
+  onViewEvidence: (completionAlertAlreadyConfirmed?: boolean) => void;
 }
 
 function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) {
@@ -43,6 +43,7 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
     updateListData: state?.updateListData,
     updateDetailData: state?.updateDetailData,
     updateFormData: state?.updateFormData,
+    markInteractionStarted: state?.markInteractionStarted,
   })));
 
   const taskType = task?.type || 'standard';
@@ -54,16 +55,19 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
 
   // Handle list data changes for dynamic-list tasks
   const handleListDataChange = (items: ListItem[]) => {
+    storeActions.markInteractionStarted?.();
     storeActions.updateListData?.(phaseId, task.id, items, activityId);
   };
 
   // Handle detail data changes for detail-list tasks
   const handleDetailDataChange = (detailData: DetailItem[]) => {
+    storeActions.markInteractionStarted?.();
     storeActions.updateDetailData?.(phaseId, task.id, detailData, activityId);
   };
 
   // Handle form data changes for form tasks
   const handleFormDataChange = (formData: FormFieldValue[]) => {
+    storeActions.markInteractionStarted?.();
     storeActions.updateFormData?.(phaseId, task.id, formData, activityId);
   };
 
@@ -147,6 +151,7 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
 
   // Handle save progress - open dialog for image evidence, just toast otherwise
   const handleSaveProgress = () => {
+    storeActions.markInteractionStarted?.();
     if (requiresImageEvidence) {
       onViewEvidence();
     } else {
@@ -215,6 +220,11 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
   // complete, the dialog is shown first. Cancel keeps the task pending;
   // confirm runs the original completion flow (`performComplete`).
   const [alertOpen, setAlertOpen] = useState(false);
+  // Tracks whether the completionAlert was already confirmed by the user
+  // so the evidence modal does not show it a second time.
+  // Uses a ref (not state) so the value is available synchronously inside
+  // the same onConfirm callback that calls performComplete().
+  const alertAlreadyConfirmedRef = useRef(false);
 
   // Executes the actual completion side-effects. Split from
   // `handleToggleComplete` so it can be invoked either directly (no alert)
@@ -230,7 +240,9 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
 
     // If task requires evidence (text, image, or both), open evidence modal
     if (requiresEvidence) {
-      onViewEvidence();
+      // Pass flag so the evidence modal knows the alert was already confirmed
+      // and does not show it again.
+      onViewEvidence(alertAlreadyConfirmedRef.current);
       return;
     }
 
@@ -245,6 +257,7 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
   };
 
   const handleToggleComplete = async () => {
+    storeActions.markInteractionStarted?.();
     if (task?.completed) {
       storeActions.uncompleteTask?.(phaseId, task.id, activityId);
       toast.info(t('task.uncompleted'));
@@ -297,6 +310,7 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
 
   const handleToggleCheckItem = (checkItemId: string) => {
     if (task?.completed || task?.isBlocked) return;
+    storeActions.markInteractionStarted?.();
     storeActions.toggleCheckItem?.(phaseId, task.id, checkItemId, activityId);
   };
 
@@ -428,7 +442,7 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
             </button>
           ) : !isDynamicListType && !isCheckType && (
             <button
-              onClick={onViewEvidence}
+              onClick={() => onViewEvidence()}
               disabled={isBlocked}
               data-testid="view-evidence-btn"
               className={`px-3 py-1.5 rounded-lg transition-colors text-sm font-medium ${
@@ -708,6 +722,7 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
           taskName={task.name}
           onConfirm={() => {
             setAlertOpen(false);
+            alertAlreadyConfirmedRef.current = true;
             void performComplete();
           }}
         />

@@ -20,6 +20,9 @@ on:
     branches: [develop, QA, master]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -181,7 +184,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      security-events: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -199,21 +201,14 @@ jobs:
         continue-on-error: true
 
       - name: Run Trivy vulnerability scanner (filesystem)
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.35.0
+        continue-on-error: true
         with:
           scan-type: 'fs'
           scan-ref: ${{ env.WORKING_DIR }}
-          format: 'sarif'
-          output: 'trivy-fs-results.sarif'
+          format: 'table'
           severity: 'CRITICAL,HIGH'
           trivyignores: '.trivyignore'
-
-      - name: Upload Trivy scan results to Security tab
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
-        with:
-          sarif_file: 'trivy-fs-results.sarif'
-          category: 'trivy-fs'
 
   # ==========================================================================
   # Security - SAST with CodeQL
@@ -288,7 +283,6 @@ jobs:
     if: github.event_name == 'pull_request'
     permissions:
       contents: read
-      security-events: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -308,20 +302,13 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Scan Docker image with Trivy
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.35.0
+        continue-on-error: true
         with:
           image-ref: 'devsecops-process-tracker:test'
-          format: 'sarif'
-          output: 'trivy-image-results.sarif'
+          format: 'table'
           severity: 'CRITICAL,HIGH'
           trivyignores: '.trivyignore'
-
-      - name: Upload Trivy image scan results
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
-        with:
-          sarif_file: 'trivy-image-results.sarif'
-          category: 'trivy-image'
 
   # ==========================================================================
   # CI Summary

@@ -224,7 +224,7 @@ Sin credenciales, la aplicación opera íntegramente con localStorage comprimido
 
 ## Testing
 
-El proyecto cuenta con **529+ tests unitarios** (Vitest) en 26 archivos y **tests E2E** con Playwright sobre los flujos críticos.
+El proyecto cuenta con **580+ tests unitarios** (Vitest) en 27 archivos y **tests E2E** con Playwright sobre los flujos críticos.
 
 ```bash
 npm run test                # Modo watch

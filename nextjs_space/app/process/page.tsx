@@ -35,12 +35,20 @@ const BpmnViewer = dynamic(() => import('./_components/bpmn-viewer'), { ssr: fal
 export default function ProcessPage() {
   const router = useRouter();
   const { t, language, setLanguage } = useI18n();
+  // Track if component has mounted on client to avoid hydration mismatch
+  const [mounted, setMounted] = useState(() => typeof window !== 'undefined');
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mounted flag only runs once on client
+    setMounted(true);
+  }, []);
+  
   // Optimized selectors with shallow compare to prevent unnecessary re-renders
-  const { process, currentPhaseId, currentTaskId } = useProcessStore(
+  const { process, currentPhaseId, currentTaskId, hasHydrated } = useProcessStore(
     useShallow((state) => ({
       process: state?.process,
       currentPhaseId: state?.currentPhaseId,
       currentTaskId: state?.currentTaskId,
+      hasHydrated: state?.hasHydrated ?? false,
     }))
   );
   
@@ -58,13 +66,15 @@ export default function ProcessPage() {
   
   const [isExporting, setIsExporting] = useState(false);
   const [showEvidenceModal, setShowEvidenceModal] = useState(false);
+  const [completionAlertAlreadyConfirmed, setCompletionAlertAlreadyConfirmed] = useState(false);
   const [showVariablesForm, setShowVariablesForm] = useState(false);
   const [showConfigUpload, setShowConfigUpload] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'bpmn'>('list');
   
   // Stable callback for viewing evidence to prevent memo breaking
-  const handleViewEvidence = useCallback((taskId: string) => {
+  const handleViewEvidence = useCallback((taskId: string, alertAlreadyConfirmed?: boolean) => {
     setCurrentTask?.(taskId);
+    setCompletionAlertAlreadyConfirmed(!!alertAlreadyConfirmed);
     setShowEvidenceModal(true);
   }, [setCurrentTask]);
 
@@ -105,10 +115,28 @@ export default function ProcessPage() {
   }, []);
 
   useEffect(() => {
-    if (!process) {
+    // Wait for persist + YAML rehydrate to settle before concluding that
+    // there is no active process; otherwise a direct reload to /process
+    // would bounce to home before the asynchronous YAML re-fetch finishes.
+    if (hasHydrated && !process) {
       router.push('/');
     }
-  }, [process, router]);
+  }, [process, router, hasHydrated]);
+
+  // Show loading state only after client-side mount to avoid hydration mismatch
+  if (!mounted || !hasHydrated) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-background" suppressHydrationWarning>
+        <div className="flex flex-col items-center gap-3 text-muted-foreground">
+          <div
+            className="h-8 w-8 rounded-full border-2 border-current border-t-transparent animate-spin"
+            aria-hidden="true"
+          />
+          <p className="text-sm">Restaurando proceso…</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!process) return null;
 
@@ -396,7 +424,7 @@ export default function ProcessPage() {
                           key={activity.id}
                           activity={activity}
                           phaseId={currentPhaseId ?? ''}
-                          onViewEvidence={(task) => handleViewEvidence(task?.id ?? '')}
+                          onViewEvidence={(task, alertAlreadyConfirmed) => handleViewEvidence(task?.id ?? '', alertAlreadyConfirmed)}
                         />
                       ))
                     ) : (
@@ -406,7 +434,7 @@ export default function ProcessPage() {
                           key={task?.id}
                           task={task}
                           phaseId={currentPhaseId ?? ''}
-                          onViewEvidence={() => handleViewEvidence(task?.id ?? '')}
+                          onViewEvidence={(alertAlreadyConfirmed) => handleViewEvidence(task?.id ?? '', alertAlreadyConfirmed)}
                         />
                       )) ?? null
                     )}
@@ -425,9 +453,11 @@ export default function ProcessPage() {
           <EvidenceModal
             task={currentTask}
             phaseId={currentPhaseId}
+            completionAlertAlreadyConfirmed={completionAlertAlreadyConfirmed}
             onClose={() => {
               setShowEvidenceModal(false);
               setCurrentTask?.(null);
+              setCompletionAlertAlreadyConfirmed(false);
             }}
           />
         </Suspense>

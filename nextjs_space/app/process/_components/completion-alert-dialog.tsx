@@ -70,7 +70,10 @@ export function CompletionAlertDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel data-testid="completion-alert-cancel">
+          <AlertDialogCancel
+            data-testid="completion-alert-cancel"
+            className={styles.cancelButtonClass}
+          >
             {cancelLabel}
           </AlertDialogCancel>
           <AlertDialogAction

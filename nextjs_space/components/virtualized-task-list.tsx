@@ -3,6 +3,7 @@
 // cannot safely memoize (stale UI risk). Opt out of auto-memoization for
 // this component — the ESLint rule react-hooks/incompatible-library honors
 // the directive and silences the informational warning.
+// eslint-disable-next-line react-hooks/incompatible-library
 'use no memo';
 
 import { useRef, useCallback } from 'react';
