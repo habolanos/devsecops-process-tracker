@@ -6,14 +6,19 @@
 name: CD Docker Publish
 
 on:
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
       version:
         description: 'Version tag (e.g., 1.0.0)'
         required: true
         default: 'latest'
+
+# Note: this workflow is intentionally NOT wired to `release: published`.
+# `cd-release.yml` is the single orchestrator: it runs semantic-release,
+# creates the git tag + GitHub Release, and then dispatches this workflow
+# explicitly via `actions.createWorkflowDispatch`, passing the resolved
+# version as input. Keeping a second `release` trigger here would cause
+# every release to build and push twice.
 
 env:
   REGISTRY_DOCKER: docker.io
@@ -61,10 +66,17 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.IMAGE_NAME_DOCKER }}
+          # Tag strategy (workflow_dispatch only):
+          #   - `${{ inputs.version }}` — the dispatched semver from cd-release.yml
+          #   - `latest` — rolling alias pointing to the last published image
+          #   - `sha-<short-sha>` — immutable digest reference for traceability
+          # Rolling `X.Y` and `X` tags are intentionally NOT emitted to avoid
+          # silent auto-upgrades across minor/major boundaries for pinned
+          # consumers.
           tags: |
             type=raw,value=${{ github.event.inputs.version }}
-            type=sha,prefix=sha-,enable=${{ github.event_name == 'release' }}
-            type=raw,value=latest,enable=${{ github.event_name == 'release' }}
+            type=raw,value=latest
+            type=sha,prefix=sha-
           labels: |
             org.opencontainers.image.title=DevSecOps Process Tracker
             org.opencontainers.image.description=Web application for DevSecOps process management with evidence tracking
@@ -79,8 +91,8 @@ jobs:
           images: ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME_GHCR }}
           tags: |
             type=raw,value=${{ github.event.inputs.version }}
-            type=sha,prefix=sha-,enable=${{ github.event_name == 'release' }}
-            type=raw,value=latest,enable=${{ github.event_name == 'release' }}
+            type=raw,value=latest
+            type=sha,prefix=sha-
           labels: |
             org.opencontainers.image.title=DevSecOps Process Tracker
             org.opencontainers.image.description=Web application for DevSecOps process management with evidence tracking
@@ -105,7 +117,7 @@ jobs:
           build-args: |
             BUILD_DATE=${{ steps.commit_info.outputs.date }}
             VCS_REF=${{ github.sha }}
-            VERSION=${{ github.event.inputs.version }}
+            VERSION=${{ steps.meta-docker.outputs.version }}
 
       # Step 2: SECURITY SCAN (before pushing) - BLOCKS if vulnerabilities found
       - name: 🔍 Security Scan Image (BLOCKING)
@@ -166,7 +178,7 @@ jobs:
           build-args: |
             BUILD_DATE=${{ steps.commit_info.outputs.date }}
             VCS_REF=${{ github.sha }}
-            VERSION=${{ github.event.inputs.version }}
+            VERSION=${{ steps.meta-docker.outputs.version }}
 
       - name: Push Docker image to GHCR
         id: push-ghcr
@@ -183,7 +195,7 @@ jobs:
           build-args: |
             BUILD_DATE=${{ steps.commit_info.outputs.date }}
             VCS_REF=${{ github.sha }}
-            VERSION=${{ github.event.inputs.version }}
+            VERSION=${{ steps.meta-ghcr.outputs.version }}
 
       - name: Export digest
         run: |
@@ -270,10 +282,15 @@ jobs:
             sbom-cyclonedx.json
           retention-days: 90
 
+      # Attach the generated SBOMs to the GitHub Release created earlier
+      # by cd-release.yml (same run chain). Skip when the dispatched
+      # version is the placeholder `latest` or doesn't look like a semver,
+      # because in those cases there is no matching release to attach to.
       - name: Attach SBOM to release
-        if: github.event_name == 'release'
+        if: startsWith(github.event.inputs.version, '1.') || startsWith(github.event.inputs.version, '2.') || startsWith(github.event.inputs.version, '3.')
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.event.inputs.version }}
           files: |
             sbom-spdx.json
             sbom-cyclonedx.json
@@ -310,7 +327,6 @@ jobs:
     name: 🧹 Cleanup Old GHCR Images
     runs-on: ubuntu-latest
     needs: [build-and-push, attestation]
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'release'
     permissions:
       packages: write
     steps:
@@ -400,7 +416,6 @@ jobs:
     name: 📝 Update Docker Hub Metadata
     runs-on: ubuntu-latest
     needs: [build-and-push]
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'release'
     env:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -470,7 +485,6 @@ jobs:
     name: 🧹 Cleanup Old Docker Hub Images
     runs-on: ubuntu-latest
     needs: [build-and-push, sign]
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'release'
     env:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
