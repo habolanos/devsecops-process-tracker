@@ -259,7 +259,8 @@ export async function generateWordDocument(process: ProcessState): Promise<Blob>
     //   2. An export-excel task in the same phase/activity
     const templatePath = process?.export?.templatePath
       || allTasks.find(t => t.type === 'export-excel' && t.exportConfig)?.exportConfig?.templatePath;
-    const sheet = process?.export?.sheet;
+    const sheet = (process?.export as any)?.mappings?.sheets?.[0]?.sheet
+      || (process?.export as any)?.sheet;
 
     for (let i = 0; i < allTasks.length; i++) {
       const task = allTasks[i];

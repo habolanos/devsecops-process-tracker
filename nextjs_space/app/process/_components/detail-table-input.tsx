@@ -19,11 +19,20 @@ interface DetailTableInputProps {
   config: DetailTableConfig;
   sourceItems: string[];
   detailTableData: DetailTableRow[];
-  capturedVariables: Record<string, string>;
+  capturedVariables: Record<string, string | string[]>;
   onDetailTableDataChange: (data: DetailTableRow[]) => void;
   disabled?: boolean;
   templatePath?: string;  // Path to Excel template for #CELL# token replacement in labels
   sheet?: string;         // Sheet name in template (default: first sheet)
+}
+
+/** Extract only string-valued entries from CapturedVariables (for template interpolation). */
+function stringOnlyVars(vars: Record<string, string | string[]>): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [k, v] of Object.entries(vars)) {
+    if (typeof v === 'string') result[k] = v;
+  }
+  return result;
 }
 
 function computeTemplateValue(
@@ -91,7 +100,7 @@ export function DetailTableInput({
       const initialValues: Record<string, any> = {};
       for (const col of columns) {
         if (col.type === 'computed-text' && col.template) {
-          initialValues[col.id] = computeTemplateValue(col.template, item, capturedVariables);
+          initialValues[col.id] = computeTemplateValue(col.template, item, stringOnlyVars(capturedVariables));
         } else if (col.type === 'boolean') {
           initialValues[col.id] = false;
         } else {
@@ -181,7 +190,7 @@ export function DetailTableInput({
 
       case 'computed-text': {
         const computedVal = col.template
-          ? computeTemplateValue(col.template, row.sourceItem, capturedVariables)
+          ? computeTemplateValue(col.template, row.sourceItem, stringOnlyVars(capturedVariables))
           : '';
         const displayVal = value || computedVal;
         return (

@@ -5,6 +5,8 @@ import type {
   ProcessExportConfig,
   ProcessExportMappings,
   ExportTaskSource,
+  ExportSheetSection,
+  ExportSource,
   ProcessState,
   TaskState,
   FormFieldConfig,
@@ -770,7 +772,6 @@ export function resolveExportPlan(
     templateVersion: base?.templateVersion,
     templateSha256: base?.templateSha256,
     outputFilename: taskExport?.outputFilename ?? base?.outputFilename,
-    sheet: base?.sheet,
     autoDownload: taskExport?.autoDownload ?? base?.autoDownload ?? true,
     mappings: mergeMappings(base?.mappings, taskExport?.mappings),
   };
@@ -784,20 +785,40 @@ function mergeMappings(
   if (!base && !override) return undefined;
   if (!base) return override;
   if (!override) return base;
-  return {
-    variables: { ...(base.variables || {}), ...(override.variables || {}) },
-    staticCells: { ...(base.staticCells || {}), ...(override.staticCells || {}) },
-    time: { ...(base.time || {}), ...(override.time || {}) },
-    process: { ...(base.process || {}), ...(override.process || {}) },
-    taskSources: [...(base.taskSources || []), ...(override.taskSources || [])],
-    comments: override.comments ?? base.comments,
-    evidences: override.evidences ?? base.evidences,
-  };
+
+  // Merge sheets by sheet name: same name = merge sources; different name = concatenate
+  const baseSheets = base.sheets || [];
+  const overrideSheets = override.sheets || [];
+  const mergedSheets: ExportSheetSection[] = [];
+
+  // Start with base sheets
+  for (const bs of baseSheets) {
+    const os = overrideSheets.find(s => s.sheet === bs.sheet);
+    if (os) {
+      // Same sheet name: merge sources
+      mergedSheets.push({
+        ...bs,
+        ...os,
+        sources: [...(bs.sources || []), ...(os.sources || [])],
+      });
+    } else {
+      mergedSheets.push(bs);
+    }
+  }
+
+  // Add override sheets not in base
+  for (const os of overrideSheets) {
+    if (!baseSheets.some(bs => bs.sheet === os.sheet)) {
+      mergedSheets.push(os);
+    }
+  }
+
+  return { sheets: mergedSheets };
 }
 
 /**
  * Generic, declarative Excel export.
- * Fetches the template, applies all mappings declared in `plan`, and returns a Blob.
+ * Fetches the template, applies all sheets[] declared in `plan`, and returns a Blob.
  */
 export async function executeExportPlan(
   plan: ProcessExportConfig,
@@ -815,83 +836,31 @@ export async function executeExportPlan(
   const arrayBuffer = await response.arrayBuffer();
   await workbook.xlsx.load(arrayBuffer);
 
-  const targetSheetName = plan.sheet;
-  const worksheet = targetSheetName
-    ? workbook.getWorksheet(targetSheetName) ?? workbook.worksheets[0]
-    : workbook.worksheets[0];
-
-  const m = plan.mappings || {};
   const vars: Record<string, string> = process?.capturedVariables || {};
+  const sheets = plan.mappings?.sheets || [];
 
-  // --- 1) Static cells (literal values) ---
-  if (m.staticCells) {
-    for (const [ref, value] of Object.entries(m.staticCells)) {
-      setCell(worksheet, ref, value);
-    }
-  }
+  for (const sheetSection of sheets) {
+    const worksheet = workbook.getWorksheet(sheetSection.sheet) ?? workbook.worksheets[0];
+    if (!worksheet) continue;
 
-  // --- 2) Variables -> cells ---
-  if (m.variables) {
-    for (const [varKey, ref] of Object.entries(m.variables)) {
-      setCell(worksheet, ref, vars[varKey]);
+    // Apply sources for this sheet
+    for (const src of sheetSection.sources || []) {
+      applySource(worksheet, src, process, vars);
     }
-  }
 
-  // --- 3) Process metadata -> cells ---
-  if (m.process) {
-    setCell(worksheet, m.process.id, process?.id);
-    setCell(worksheet, m.process.name, process?.name);
-    setCell(worksheet, m.process.version, process?.version);
-  }
-
-  // --- 4) Time tracking -> cells ---
-  if (m.time) {
-    const tt = process?.timeTracking || {};
-    if (m.time.startedAt) {
-      const started = tt.firstStartedAt || tt.currentSessionStart;
-      setCell(worksheet, m.time.startedAt, started ? new Date(started) : undefined);
-    }
-    if (m.time.completedAt) {
-      setCell(
-        worksheet,
-        m.time.completedAt,
-        process?.completedAt ? new Date(process.completedAt) : new Date(),
-      );
-    }
-    if (m.time.totalElapsedMinutes && typeof tt.totalActiveTime === 'number') {
-      setCell(worksheet, m.time.totalElapsedMinutes, Math.round(tt.totalActiveTime / 60000));
-    }
-    if (m.time.totalElapsedHours && typeof tt.totalActiveTime === 'number') {
-      setCell(worksheet, m.time.totalElapsedHours, Math.round(tt.totalActiveTime / 3600000));
-    }
-    if (m.time.today) {
-      setCell(worksheet, m.time.today, new Date());
-    }
-  }
-
-  // --- 5) Task-driven sources ---
-  for (const src of m.taskSources || []) {
-    applyTaskSource(worksheet, src, process);
-  }
-
-  // --- 6) Comments ---
-  if (m.comments) {
-    const text = m.comments.template
-      ? interpolateExportTokens(m.comments.template, process)
-      : '';
-    if (text) setCell(worksheet, m.comments.cell, text);
-  }
-
-  // --- 7) Evidences sheet ---
-  if (m.evidences) {
-    const evSheet = workbook.getWorksheet(m.evidences.sheet);
-    if (evSheet) {
-      const evTasks = collectAllTasks(process).filter((t) => t.completedAt);
-      const max = m.evidences.maxRows ?? evTasks.length;
-      evTasks.slice(0, max).forEach((t, idx) => {
-        const row = m.evidences!.startRow + idx;
-        setCell(evSheet, `${m.evidences!.dateColumn}${row}`, new Date(t.completedAt!));
-        setCell(evSheet, `${m.evidences!.activityColumn}${row}`, t.name);
+    // Apply log-mode (completed tasks with timestamps)
+    if (sheetSection.timestampColumn || sheetSection.nameColumn) {
+      const logTasks = collectAllTasks(process).filter((t: TaskState) => t.completedAt);
+      const max = sheetSection.maxRows ?? logTasks.length;
+      const startRow = sheetSection.startRow ?? 1;
+      logTasks.slice(0, max).forEach((t: TaskState, idx: number) => {
+        const row = startRow + idx;
+        if (sheetSection.timestampColumn) {
+          setCell(worksheet, `${sheetSection.timestampColumn}${row}`, new Date(t.completedAt!));
+        }
+        if (sheetSection.nameColumn) {
+          setCell(worksheet, `${sheetSection.nameColumn}${row}`, t.name);
+        }
       });
     }
   }
@@ -900,6 +869,124 @@ export async function executeExportPlan(
   return new Blob([buffer], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   });
+}
+
+/** Convert Excel column letter(s) to 1-based column number (A=1, B=2, ..., AA=27). */
+function colLetterToNumber(col: string): number {
+  let n = 0;
+  for (let i = 0; i < col.length; i++) {
+    n = n * 26 + (col.charCodeAt(i) - 64); // 'A' = 65 → 1
+  }
+  return n;
+}
+
+/**
+ * Apply a single source to a worksheet.
+ * Handles both sheet-level sources (variables, static, time, process, comments)
+ * and task-driven sources (list, detail, form, checklist, detail-table, cell).
+ */
+function applySource(
+  worksheet: ExcelJS.Worksheet,
+  src: ExportSource,
+  process: ProcessData,
+  vars: Record<string, string>,
+): void {
+  if (src.kind === 'variables') {
+    for (const [varKey, ref] of Object.entries(src.mapping)) {
+      setCell(worksheet, ref, vars[varKey]);
+    }
+    return;
+  }
+
+  if (src.kind === 'static') {
+    for (const [ref, value] of Object.entries(src.cells)) {
+      setCell(worksheet, ref, value);
+    }
+    return;
+  }
+
+  if (src.kind === 'time') {
+    const tt = process?.timeTracking || {};
+    if (src.startedAt) {
+      const started = tt.firstStartedAt || tt.currentSessionStart;
+      setCell(worksheet, src.startedAt, started ? new Date(started) : undefined);
+    }
+    if (src.completedAt) {
+      setCell(
+        worksheet,
+        src.completedAt,
+        process?.completedAt ? new Date(process.completedAt) : new Date(),
+      );
+    }
+    if (src.totalElapsedMinutes && typeof tt.totalActiveTime === 'number') {
+      setCell(worksheet, src.totalElapsedMinutes, Math.round(tt.totalActiveTime / 60000));
+    }
+    if (src.totalElapsedHours && typeof tt.totalActiveTime === 'number') {
+      setCell(worksheet, src.totalElapsedHours, Math.round(tt.totalActiveTime / 3600000));
+    }
+    if (src.today) {
+      setCell(worksheet, src.today, new Date());
+    }
+    return;
+  }
+
+  if (src.kind === 'process') {
+    if (src.id) setCell(worksheet, src.id, process?.id);
+    if (src.name) setCell(worksheet, src.name, process?.name);
+    if (src.version) setCell(worksheet, src.version, process?.version);
+    return;
+  }
+
+  if (src.kind === 'comments') {
+    const text = src.template
+      ? interpolateExportTokens(src.template, process)
+      : '';
+    if (text) setCell(worksheet, src.cell, text);
+    return;
+  }
+
+  if (src.kind === 'range') {
+    // Read a range of cells from the worksheet and store in capturedVariables
+    const rangeMatch = src.range.match(/^([A-Z]+)(\d+):([A-Z]+)(\d+)$/);
+    if (!rangeMatch) return;
+    const [, startCol, startRowStr, endCol, endRowStr] = rangeMatch;
+    const startRowNum = parseInt(startRowStr, 10);
+    const endRowNum = parseInt(endRowStr, 10);
+    const startColNum = colLetterToNumber(startCol);
+    const endColNum = colLetterToNumber(endCol);
+    const flatten = src.flatten !== false; // default true
+
+    const values: (string | string[])[] = [];
+    if (flatten) {
+      // Single-row or single-column range → string[]
+      for (let r = startRowNum; r <= endRowNum; r++) {
+        for (let c = startColNum; c <= endColNum; c++) {
+          const cell = worksheet.getCell(r, c);
+          const val = cell.text ?? '';
+          if (val) values.push(val);
+        }
+      }
+      process.capturedVariables = process.capturedVariables || {};
+      process.capturedVariables[src.outputVar] = values as string[];
+    } else {
+      // Matrix → string[][]
+      const matrix: string[][] = [];
+      for (let r = startRowNum; r <= endRowNum; r++) {
+        const row: string[] = [];
+        for (let c = startColNum; c <= endColNum; c++) {
+          const cell = worksheet.getCell(r, c);
+          row.push(cell.text ?? '');
+        }
+        matrix.push(row);
+      }
+      process.capturedVariables = process.capturedVariables || {};
+      process.capturedVariables[src.outputVar] = matrix as any;
+    }
+    return;
+  }
+
+  // Task-driven sources — delegate to applyTaskSource
+  applyTaskSource(worksheet, src as ExportTaskSource, process);
 }
 
 /**

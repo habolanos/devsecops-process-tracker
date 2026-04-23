@@ -18,7 +18,10 @@ Esta guía proporciona una documentación exhaustiva sobre cómo crear y configu
   - [Export-Excel](#export-excel)
   - [Dynamic-List](#dynamic-list)
   - [Detail-List](#detail-list)
+  - [Detail-Table](#detail-table)
   - [Form](#form)
+  - [Variables de Salida (outputVars)](#variables-de-salida-de-tareas-outputvars)
+  - [Opciones Dinámicas (optionsFrom)](#variables-de-proceso-con-opciones-dinámicas-optionsfrom)
 - [Configuraciones Avanzadas](#configuraciones-avanzadas)
   - [Referencias](#referencias)
   - [Dependencias](#dependencias)
@@ -106,7 +109,7 @@ process:
 - **PATCH**: Correcciones de errores.
 - **Pre-release / build**: identificadores separados por `-` o `+` (`rc.1`, `beta.2`, `build.42`).
 
-> El patrón se valida contra el JSON Schema **v1.1.0** (`schemas/process.schema.json`) con la expresión `^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$`.
+> El patrón se valida contra el JSON Schema **v1.2.0** (`schemas/process.schema.json`) con la expresión `^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$`.
 
 ### Tiempo Estimado
 
@@ -630,88 +633,138 @@ process:
     templateVersion: "1.0.0"                           # opcional, informativo
     templateSha256: "..."                              # opcional, integridad
     outputFilename: "Reporte_{today:YYYYMMDD}_{vars.rfc}"
-    sheet: "Checklist"                                 # opcional: hoja objetivo (default: primera)
     autoDownload: true
 
     mappings:
-      # 1) Celdas estáticas (valor literal)
-      staticCells:
-        A1: "DevSecOps Process Tracker"
-        Z99: 42
+      # Arquitectura sheets[]: cada sección declara una hoja y sus fuentes
+      sheets:
+        # --- Hoja principal ---
+        - sheet: "Checklist"
+          sources:
+            # 1) Celdas estáticas (valor literal)
+            - kind: static
+              cells:
+                A1: "DevSecOps Process Tracker"
+                Z99: 42
 
-      # 2) Variables del proceso (capturedVariables) -> celdas
-      variables:
-        torre: "F3"
-        rfc: "F9"
-        desarrollador: "W12"
+            # 2) Variables del proceso (capturedVariables) -> celdas
+            - kind: variables
+              mapping:
+                torre: "F3"
+                rfc: "F9"
+                desarrollador: "W12"
 
-      # 3) Metadato del proceso -> celdas
-      process:
-        id: "F84"
-        name: "F2"
-        version: "Z2"
+            # 3) Metadato del proceso -> celdas
+            - kind: process
+              id: "F84"
+              name: "F2"
+              version: "Z2"
 
-      # 4) Time tracking -> celdas (Date values)
-      time:
-        today: "W3"                 # fecha de generación
-        startedAt: "W85"             # firstStartedAt del proceso
-        completedAt: "W86"           # completedAt o fecha actual
-        totalElapsedMinutes: "Z10"   # tiempo total activo, en minutos
-        totalElapsedHours: "Z11"
+            # 4) Time tracking -> celdas
+            - kind: time
+              today: "W3"
+              startedAt: "W85"
+              completedAt: "W86"
+              totalElapsedMinutes: "Z10"
+              totalElapsedHours: "Z11"
 
-      # 5) Fuentes basadas en tareas
-      taskSources:
-        # 5.a) Lista dinámica -> rango vertical
-        - kind: list
-          sourceTaskId: task-1-2     # id de una tarea type=dynamic-list
-          column: F
-          startRow: 5
-          endRow: 13                  # (o usa maxItems)
+            # 5) Comentarios con template interpolable
+            - kind: comments
+              cell: "B100"
+              template: "Proceso: {process.name}\nRFC: {vars.rfc}"
 
-        # 5.b) Detail list -> una o varias secciones repetidas
-        - kind: detail
-          sourceTaskId: task-1-2b    # id de una tarea type=detail-list
-          sections:
-            - { column: B, startRow: 47, endRow: 56 }
-            - { column: B, startRow: 60, endRow: 69 }
+            # 6) Leer rango de celdas del template -> variable de proceso
+            - kind: range
+              range: "H46:L46"
+              outputVar: "columnHeaders"     # capturedVariables.columnHeaders = ["val1", "val2", ...]
+              flatten: true                  # true=string[], false=string[][]
 
-        # 5.c) Form -> usa field.valueCell de cada campo del form
-        - kind: form
-          sourceTaskId: task-7-1b    # id de una tarea type=form
+            # 7) Fuentes basadas en tareas
+            - kind: list
+              sourceTaskId: task-1-2
+              column: F
+              startRow: 5
+              endRow: 13
 
-        # 5.d) Checklist -> una fila por tarea con estado aplica/validado/url
-        - kind: checklist
-          # sourceTaskId: "task-x"   # opcional; si se omite recorre TODAS las tareas
-          startRow: 18
-          maxRows: 20
-          columns:
-            aplica: T
-            validado: U
-            url: V
-            nombre: B                 # opcional
+            - kind: detail
+              sourceTaskId: task-1-2b
+              sections:
+                - { column: B, startRow: 47, endRow: 56 }
 
-      # 6) Celda de comentarios con template interpolable
-      comments:
-        cell: "B100"
-        template: "Proceso: {process.name}\nRFC: {vars.rfc}"
+            - kind: form
+              sourceTaskId: task-7-1b
 
-      # 7) Hoja de evidencias (tareas completadas con timestamp)
-      evidences:
-        sheet: "Evidencias"
-        startRow: 3
-        dateColumn: B
-        activityColumn: C
-        maxRows: 200                 # opcional
+            - kind: checklist
+              startRow: 18
+              maxRows: 20
+              columns:
+                aplica: T
+                validado: U
+                url: V
+                nombre: B
+
+            - kind: detail-table
+              sourceTaskId: task-1-2a
+              startRow: 47
+              columns:
+                integracionMaster: H
+                deudaTecnica: I
+                vulnerabilidades: J
+                urlRepo: L
+
+            - kind: cell
+              sourceTaskId: task-1-1
+              fields:
+                - field: "evidence.text"
+                  cell: "B100"
+                - field: "completedAt"
+                  cell: "W100"
+
+        # --- Hoja de evidencias ---
+        - sheet: "Evidencias"
+          startRow: 3
+          timestampColumn: B
+          nameColumn: C
+          maxRows: 200
 ```
 
-#### Tipos de `taskSources`
+#### Source kinds disponibles
 
-| `kind` | Requiere | Qué escribe |
-|--------|----------|-------------|
-| `list` | `sourceTaskId` (dynamic-list), `column`, `startRow`, (`endRow` o `maxItems`) | Cada item en `{column}{startRow+i}` |
-| `detail` | `sourceTaskId` (detail-list), `sections[]` | Replica los textos en cada sección |
-| `form` | `sourceTaskId` (form) | Cada `field.valueCell` del form recibe su valor |
-| `checklist` | `startRow`, `columns` (al menos una) | Una fila por tarea: `aplica=true`, `validado=bool`, `url`, `nombre` |
+| `kind` | Requiere | Qué hace |
+|--------|----------|---------|
+| `variables` | `mapping` | Escribe cada variable en su celda |
+| `static` | `cells` | Escribe literales en celdas |
+| `time` | (al menos un campo) | Escribe metadatos de tiempo |
+| `process` | (al menos un campo) | Escribe metadatos del proceso |
+| `comments` | `cell` | Escribe texto interpolado en una celda |
+| `range` | `range`, `outputVar` | Lee rango del template → `capturedVariables` |
+| `list` | `sourceTaskId`, `column`, `startRow` | Items de dynamic-list en rango vertical |
+| `detail` | `sourceTaskId`, `sections[]` | Textos de detail-list en secciones |
+| `form` | `sourceTaskId` | Cada `field.valueCell` del form |
+| `checklist` | `startRow`, `columns` | Una fila por tarea con estado |
+| `detail-table` | `sourceTaskId`, `startRow`, `columns` | Filas de detail-table en columnas |
+| `cell` | `sourceTaskId`, `fields[]` | Campos específicos de tarea a celdas |
+
+#### `kind: range` — Leer datos del template
+
+Lee un rango de celdas del template Excel y lo almacena como variable de proceso en `capturedVariables`. Útil para extraer headers, listas de opciones, o datos de referencia del template.
+
+```yaml
+- kind: range
+  range: "H46:L46"              # Notación Excel: ColumnaFila:ColumnaFila
+  outputVar: "columnHeaders"    # Nombre de variable en capturedVariables
+  flatten: true                 # true (default) = string[], false = string[][]
+```
+
+**Comportamiento:**
+- `flatten: true` (default): Lee todos los valores no vacíos del rango y los almacena como `string[]`
+- `flatten: false`: Lee el rango como matriz `string[][]` (filas × columnas)
+- Las celdas vacías se omiten con `flatten: true`, se incluyen como `""` con `flatten: false`
+
+**Casos de uso:**
+- Extraer headers de columnas del template para usar como opciones de `select`
+- Leer datos de referencia del template (ej: lista de torres, ambientes)
+- Combinar con `optionsFrom` para poblar dropdowns dinámicamente
 
 #### Agregar un proceso nuevo con template
 
@@ -887,6 +940,162 @@ fields:
   - id: "campo2"
     label: "#CELDA#D85"  # Referencia absoluta a celda D85
 ```
+
+---
+
+### Detail-Table
+
+Captura datos estructurados en formato tabla para cada item de una lista dinámica. Cada fila corresponde a un item fuente y las columnas son campos configurables.
+
+```yaml
+- id: "task-1-2a"
+  name: "Validación por Repositorio"
+  description: "Para cada repositorio, valide los criterios de calidad"
+  order: 3
+  type: "detail-table"
+  detailTableConfig:
+    sourceTaskId: "task-1-2"          # ID de tarea dynamic-list (alternativa: sourceVar)
+    # sourceVar: "repos"             # Alternativa: leer items desde una variable de proceso
+    columns:
+      - id: "integracionMaster"
+        label: "#H46#"               # Sintaxis #CELL# para leer label del template Excel
+        type: "boolean"
+        required: false
+      - id: "deudaTecnica"
+        label: "#I46#"
+        type: "boolean"
+        required: false
+      - id: "vulnerabilidades"
+        label: "#J46#"
+        type: "boolean"
+        required: false
+      - id: "urlRepo"
+        label: "#L46#"
+        type: "computed-text"
+        template: "{vars.repositoryUrl}/{item}"
+        required: false
+  evidence:
+    type: "text"
+    required: false
+  dependencies: ["task-1-2"]
+```
+
+**Campos de `detailTableConfig`:**
+- `sourceTaskId`: ID de la tarea `dynamic-list` origen (método clásico)
+- `sourceVar`: Nombre de variable de proceso que contiene una lista (alternativa dinámica)
+- `columns`: Lista de definiciones de columnas
+
+**Tipos de columna:**
+
+| Tipo | Descripción | Input |
+|------|-------------|-------|
+| `boolean` | Checkbox | Toggle |
+| `text` | Texto libre | Input |
+| `date` | Fecha | Date picker |
+| `list` | Selección de opciones | Select dropdown |
+| `computed-text` | Auto-calculado con template | Input (editable) |
+
+**`computed-text` templates:**
+- `{item}`: Nombre del item fuente (fila actual)
+- `{vars.xxx}`: Variable de proceso capturada
+- Otros tokens: se resuelven contra `capturedVariables`
+
+**Labels con `#CELL#`:**
+- `label: "#H46#"` → lee el valor de la celda H46 del template Excel como label de la columna
+- Requiere que `process.export.templatePath` esté configurado
+
+**`sourceVar` vs `sourceTaskId`:**
+- `sourceTaskId`: Lee items de `listData` de otra tarea (estático, definido en tiempo de diseño)
+- `sourceVar`: Lee items de una `capturedVariable` que contiene un array (dinámico, puede venir de `outputVars` o `kind: range`)
+
+---
+
+### Variables de Salida de Tareas (`outputVars`)
+
+Cualquier tarea puede declarar opcionalmente `outputVars` que se escriben en `capturedVariables` al completarse. Esto permite que otras tareas o variables del proceso consuman los datos producidos.
+
+```yaml
+- id: "task-1-2"
+  name: "Lista de Repositorios"
+  type: "dynamic-list"
+  listConfig:
+    label: "Repositorio"
+  outputVars:
+    - name: "repos"               # Nombre de la variable en capturedVariables
+      type: "list"                # text | list | object
+      source: "listData"          # Campo de TaskState (dot-notation path)
+      mapTo: "value"              # Para list: propiedad a extraer de cada item
+  evidence:
+    type: "text"
+    required: false
+```
+
+**Campos de `outputVars[]`:**
+
+| Campo | Requerido | Descripción |
+|-------|-----------|-------------|
+| `name` | sí | Nombre de la variable en `capturedVariables` |
+| `type` | sí | `text` (string), `list` (string[]), `object` (JSON string) |
+| `source` | sí | Path dot-notation sobre TaskState (ej: `listData`, `evidence.text`, `formData`) |
+| `mapTo` | no | Para `type: list`, propiedad a extraer de cada item (ej: `value` de `ListItem`) |
+
+**Tipos de salida:**
+
+| `type` | Resultado en `capturedVariables` | Ejemplo |
+|--------|----------------------------------|---------|
+| `text` | `string` | `capturedVariables.evidenceOutput = "mi texto"` |
+| `list` | `string[]` | `capturedVariables.repos = ["repo-a", "repo-b"]` |
+| `object` | `string` (JSON) | `capturedVariables.formDump = "[{...}]"` |
+
+**Sources comunes:**
+
+| Source path | Tarea tipo | Qué produce |
+|-------------|-----------|-------------|
+| `listData` | dynamic-list | Array de items |
+| `evidence.text` | cualquier | Texto de evidencia |
+| `formData` | form | Array de campos |
+| `completedAt` | cualquier | Timestamp ISO |
+| `checkItems` | check/multicheck | Array de estados |
+
+**Flujo típico:**
+1. Tarea `dynamic-list` con `outputVars` → completa → `capturedVariables.repos = ["a", "b"]`
+2. Variable `select` con `optionsFrom: "repos"` → dropdown muestra "a", "b"
+3. Tarea `detail-table` con `sourceVar: "repos"` → tabla con filas "a", "b"
+
+---
+
+### Variables de Proceso con Opciones Dinámicas (`optionsFrom`)
+
+Las variables tipo `select` pueden obtener sus opciones dinámicamente desde una variable de proceso que contenga una lista, en lugar de definirlas estáticamente con `options`.
+
+```yaml
+variables:
+  # Select con opciones estáticas (clásico)
+  - key: "environment"
+    label: "Ambiente"
+    type: "select"
+    required: true
+    options:
+      - "development"
+      - "staging"
+      - "production"
+
+  # Select con opciones dinámicas (desde outputVar o kind: range)
+  - key: "repositorioSeleccionado"
+    label: "Repositorio"
+    type: "select"
+    required: true
+    optionsFrom: "repos"          # Lee opciones de capturedVariables.repos
+```
+
+**Campos:**
+- `options`: Lista estática de strings (clásico)
+- `optionsFrom`: Nombre de una `capturedVariable` que contiene `string[]` o un string separado por comas
+
+**Restricciones:**
+- `optionsFrom` solo es válido para `type: "select"`
+- La variable referenciada debe existir en `capturedVariables` al momento de renderizar
+- Si la variable no existe o está vacía, el dropdown no muestra opciones
 
 ---
 
@@ -1444,4 +1653,4 @@ Para preguntas o problemas con la creación de procesos:
 
 **Última actualización:** 2026-04-21
 **Versión de la guía:** 1.2.0
-**Schema:** `schemas/process.schema.json` v1.1.0
+**Schema:** `schemas/process.schema.json` v1.2.0

@@ -166,13 +166,13 @@ Cualquier tarea admite opcionalmente `completionAlert` para mostrar un modal de 
 
 El motor genérico `executeExportPlan` (en `lib/excel-generator.ts`) lee el bloque `process.export` del YAML y llena un template `.xlsx` sin necesidad de escribir código TypeScript por proceso. Permite:
 
-- **Mapeo de variables** a celdas (`variables: { org: "F3" }`).
-- **Celdas estáticas** con literales (`staticCells: { A1: "Reporte" }`).
-- **Metadatos de tiempo** (`time.startedAt`, `time.totalElapsedHours`, `time.today`).
-- **Metadatos de proceso** (`process.id`, `process.name`, `process.version`).
-- **Fuentes de tareas** (`taskSources`): `kind: list | detail | form | checklist | detail-table | cell`.
-- **Comentarios con templating** de tokens (`{process.name}`, `{vars.xxx}`, `{today:FMT}`).
-- **Hoja de evidencias** con fecha y actividad por fila.
+- **Arquitectura `sheets[]`**: cada sección declara `sheet` (hoja) y `sources[]` (fuentes de datos).
+- **Source kinds**: `variables | static | time | process | comments | range | list | detail | form | checklist | detail-table | cell`.
+- **`kind: range`**: lee rango de celdas del template → variable de proceso (`outputVar`).
+- **Variables de salida de tareas** (`outputVars`): al completar, la tarea escribe en `capturedVariables`.
+- **`optionsFrom`**: variable `select` obtiene opciones dinámicamente desde una variable de salida.
+- **`sourceVar`**: `detail-table` puede leer items desde una variable en vez de `sourceTaskId`.
+- **`CapturedVariables`** soporta `string | string[]` (listas).
 - **Overrides por tarea** (`task.exportConfig` con `inherit: true`).
 
 Ejemplo canónico: `data/processes/release-checklist.yaml`. Detalles completos en [README.process.md](README.process.md#export-excel).

@@ -114,21 +114,33 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
 
   // For detail-table tasks, find the source task to get items
   let tableSourceItems: string[] = sourceItems; // reuse same sourceItems logic if same sourceTaskId
-  if (isDetailTableType && task?.detailTableConfig?.sourceTaskId && process) {
-    const findTaskById = (taskId: string): TaskState | null => {
-      for (const phase of process.phases || []) {
-        const found = phase.tasks?.find(t => t.id === taskId);
-        if (found) return found;
-        for (const activity of phase.activities || []) {
-          const foundInActivity = activity.tasks?.find(t => t.id === taskId);
-          if (foundInActivity) return foundInActivity;
-        }
+  if (isDetailTableType && task?.detailTableConfig && process) {
+    // sourceVar: read items from a capturedVariable (string[])
+    if (task.detailTableConfig.sourceVar) {
+      const varValue = process.capturedVariables?.[task.detailTableConfig.sourceVar];
+      if (Array.isArray(varValue)) {
+        tableSourceItems = varValue as string[];
+      } else if (typeof varValue === 'string' && varValue.trim()) {
+        tableSourceItems = varValue.split(',').map(s => s.trim()).filter(Boolean);
       }
-      return null;
-    };
-    const tableSourceTask = findTaskById(task.detailTableConfig.sourceTaskId);
-    if (tableSourceTask?.listData) {
-      tableSourceItems = tableSourceTask.listData.map(item => item.value);
+    }
+    // sourceTaskId: read items from another task's listData
+    else if (task.detailTableConfig.sourceTaskId) {
+      const findTaskById = (taskId: string): TaskState | null => {
+        for (const phase of process.phases || []) {
+          const found = phase.tasks?.find(t => t.id === taskId);
+          if (found) return found;
+          for (const activity of phase.activities || []) {
+            const foundInActivity = activity.tasks?.find(t => t.id === taskId);
+            if (foundInActivity) return foundInActivity;
+          }
+        }
+        return null;
+      };
+      const tableSourceTask = findTaskById(task.detailTableConfig.sourceTaskId);
+      if (tableSourceTask?.listData) {
+        tableSourceItems = tableSourceTask.listData.map(item => item.value);
+      }
     }
   }
 
@@ -184,7 +196,8 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
   // Resolve the sheet name from process.export for #CELL# token resolution
   const getExportSheet = (): string | undefined => {
     if (!process) return undefined;
-    return process.export?.sheet;
+    return (process.export as any)?.mappings?.sheets?.[0]?.sheet
+      || (process.export as any)?.sheet;
   };
 
   const exportSheet = getExportSheet();
@@ -251,8 +264,8 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
         ? buildExportFilename(task.exportConfig.outputFilename, process)
         : generateReleaseFilename(
             process.name || 'process',
-            variables.rfc,
-            variables.notaInstalacion,
+            typeof variables.rfc === 'string' ? variables.rfc : '',
+            typeof variables.notaInstalacion === 'string' ? variables.notaInstalacion : '',
           );
       downloadExcel(blob, filename);
 

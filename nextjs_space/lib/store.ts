@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { produce } from 'immer';
-import { ProcessState, TaskEvidence, CapturedVariables, WorkSession, ListItem, DetailItem, DetailTableRow, FormFieldValue } from './types';
+import { ProcessState, TaskEvidence, CapturedVariables, WorkSession, ListItem, DetailItem, DetailTableRow, FormFieldValue, TaskOutputVar } from './types';
 import { updateProgress, updateTaskBlockedStatus, getAllDependentTasks } from './helpers';
 import { createCompressedStorage } from './persist-storage';
 import { useUserProfileStore } from './user-profile-store';
@@ -75,6 +75,33 @@ interface ProcessStore {
   resumeProcessTimer: () => void;
   stopProcessTimer: () => void;
   getElapsedTime: () => number;
+}
+
+/**
+ * Compute output variables from a completed task and return them as CapturedVariables.
+ * Resolves the `source` dot-notation path on the task object.
+ */
+function computeOutputVars(task: any, outputVars?: TaskOutputVar[]): CapturedVariables {
+  if (!outputVars || outputVars.length === 0) return {};
+  const result: CapturedVariables = {};
+  for (const ov of outputVars) {
+    const raw = ov.source.split('.').reduce((obj: any, key: string) => obj?.[key], task);
+    if (raw === undefined || raw === null) continue;
+
+    if (ov.type === 'text') {
+      result[ov.name] = typeof raw === 'string' ? raw : String(raw);
+    } else if (ov.type === 'list') {
+      if (Array.isArray(raw)) {
+        const mapped = ov.mapTo
+          ? raw.map((item: any) => item?.[ov.mapTo!] ?? '')
+          : raw.map((item: any) => String(item));
+        result[ov.name] = mapped.filter((s: string) => s !== '');
+      }
+    } else if (ov.type === 'object') {
+      result[ov.name] = JSON.stringify(raw);
+    }
+  }
+  return result;
 }
 
 export const useProcessStore = create<ProcessStore>()(persist(
@@ -291,6 +318,23 @@ export const useProcessStore = create<ProcessStore>()(persist(
 
         // Update blocked status after completion
         updatedProcess = updateTaskBlockedStatus(updatedProcess);
+
+        // Compute outputVars from the completed task and merge into capturedVariables
+        const completedTask = updatedProcess.phases
+          .flatMap((p: any) => [...(p.tasks ?? []), ...((p.activities ?? []).flatMap((a: any) => a.tasks))])
+          .find((t: any) => t?.id === taskId);
+        if (completedTask?.outputVars) {
+          const outputs = computeOutputVars(completedTask, completedTask.outputVars);
+          if (Object.keys(outputs).length > 0) {
+            updatedProcess = {
+              ...updatedProcess,
+              capturedVariables: {
+                ...updatedProcess.capturedVariables,
+                ...outputs,
+              },
+            };
+          }
+        }
 
         return { process: updatedProcess };
       });
@@ -660,7 +704,12 @@ export const useProcessStore = create<ProcessStore>()(persist(
       
       return variableDefinitions
         .filter((v) => v.required)
-        .every((v) => capturedVariables[v.key] && capturedVariables[v.key].trim() !== '');
+        .every((v) => {
+          const val = capturedVariables[v.key];
+          if (!val) return false;
+          if (Array.isArray(val)) return val.length > 0;
+          return val.trim() !== '';
+        });
     },
 
     startProcessTimer: () => {

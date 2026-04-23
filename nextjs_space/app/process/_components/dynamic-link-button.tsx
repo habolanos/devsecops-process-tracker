@@ -13,7 +13,10 @@ interface DynamicLinkButtonProps {
 
 function interpolateUrl(template: string, variables: CapturedVariables): string {
   return template.replace(/\{(\w+)\}/g, (match, key) => {
-    return variables[key] || match;
+    const val = variables[key];
+    if (!val) return match;
+    if (Array.isArray(val)) return val.join(',');
+    return val;
   });
 }
 
@@ -41,7 +44,12 @@ export default function DynamicLinkButton({ link, taskId: _taskId, phaseId: _pha
   
   // Check if specific required variables are filled
   const requiredVarsFilled = link.requiresVariables 
-    ? link.requiresVariables.every((v) => capturedVariables[v] && capturedVariables[v].trim() !== '')
+    ? link.requiresVariables.every((v) => {
+        const val = capturedVariables[v];
+        if (!val) return false;
+        if (Array.isArray(val)) return val.length > 0;
+        return val.trim() !== '';
+      })
     : true;
 
   const canActivate = isActive && requiredVarsFilled;

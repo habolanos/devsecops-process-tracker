@@ -14,82 +14,85 @@ process:
   export:
     templatePath: "/templates/TEMPLATE_Checklist_Liberacion.xlsx"
     templateVersion: "1.0.0"
-    sheet: "Checklist"
     outputFilename: "Checklist_Liberacion_{today:DDMMYYYY}_RFC{vars.rfc}_NOTA{vars.notaInstalacion}_{process.name}"
     autoDownload: true
     mappings:
-      # capturedVariables.<key> -> cell reference
-      variables:
-        torre: "F3"
-        nombreProyecto: "F4"
-        api: "L5"
-        componentesLiberar: "F5"
-        uriMeet: "U5"
-        rfc: "F14"
-        notaInstalacion: "U14"
-        scmDiurno: "F15"
-        lider: "U15"
-        sreNocturno: "F16"
-        tester: "U16"
-        sreDiurno: "F17"
-        desarrollador: "U17"
-        tipoLiberacion: "F86"
-        tiempoGuardia: "F87"
-      # Time tracking
-      time:
-        today: "U3"
-        startedAt: "S86"
-        completedAt: "S87"
-      # Process metadata
-      process:
-        id: "F84"
-      # Free-form comments cell
-      comments:
-        cell: "B100"
-        template: "Proceso: {process.name} - NOTA: {vars.notaInstalacion} RFC: {vars.rfc}\nVersión: {process.version}\n"
-      # Task-driven data sources (replaces hardcoded EXCEL_CELL_MAP)
-      taskSources:
-        - kind: list
-          sourceTaskId: task-1-2
-          column: F
-          startRow: 5
-          endRow: 13
-        - kind: list
-          sourceTaskId: task-1-2
-          column: B
-          startRow: 47
-          endRow: 56
-        - kind: list
-          sourceTaskId: task-1-2
-          column: B
-          startRow: 60
-          endRow: 69
-        - kind: list
-          sourceTaskId: task-1-2
-          column: B
-          startRow: 72
-          endRow: 81
-        - kind: list
-          sourceTaskId: task-1-2
-          column: B
-          startRow: 89
-          endRow: 98
-        - kind: detail-table
-          sourceTaskId: task-1-2c
-          startRow: 47
-          columns:
-            integracionMaster: H
-            deudaTecnica: I
-            vulnerabilidades: J
-            urlRepo: L
-        - kind: form
-          sourceTaskId: task-7-1b
-      # Secondary sheet for evidences (completed tasks with timestamps)
-      evidences:
-        sheet: "Evidencias"
-        startRow: 3
-        dateColumn: B
-        activityColumn: C
+      sheets:
+        # --- Hoja principal: Checklist ---
+        - sheet: "Checklist"
+          sources:
+            # capturedVariables.<key> -> cell reference
+            - kind: variables
+              mapping:
+                torre: "F3"
+                nombreProyecto: "F4"
+                api: "L5"
+                componentesLiberar: "F5"
+                uriMeet: "U5"
+                rfc: "F14"
+                notaInstalacion: "U14"
+                scmDiurno: "F15"
+                lider: "U15"
+                sreNocturno: "F16"
+                tester: "U16"
+                sreDiurno: "F17"
+                desarrollador: "U17"
+                tipoLiberacion: "F86"
+                tiempoGuardia: "F87"
+            # Time tracking
+            - kind: time
+              today: "U3"
+              startedAt: "S86"
+              completedAt: "S87"
+            # Process metadata
+            - kind: process
+              id: "F84"
+            # Free-form comments cell
+            - kind: comments
+              cell: "B100"
+              template: "Proceso: {process.name} - NOTA: {vars.notaInstalacion} RFC: {vars.rfc}\nVersión: {process.version}\n"
+            # Task-driven data sources
+            - kind: list
+              sourceTaskId: task-1-2
+              column: F
+              startRow: 5
+              endRow: 13
+            - kind: list
+              sourceTaskId: task-1-2
+              column: B
+              startRow: 47
+              endRow: 56
+            - kind: list
+              sourceTaskId: task-1-2
+              column: B
+              startRow: 60
+              endRow: 69
+            - kind: list
+              sourceTaskId: task-1-2
+              column: B
+              startRow: 72
+              endRow: 81
+            - kind: list
+              sourceTaskId: task-1-2
+              column: B
+              startRow: 89
+              endRow: 98
+            - kind: detail-table
+              sourceTaskId: task-1-2a
+              startRow: 47
+              columns:
+                integracionMaster: H
+                deudaTecnica: I
+                vulnerabilidades: J
+                urlRepo: L
+            - kind: form
+              sourceTaskId: task-7-1b
+
+        # --- Hoja secundaria: Evidencias (registro de tareas completadas) ---
+        - sheet: "Evidencias"
+          startRow: 3
+          timestampColumn: B
+          nameColumn: C
 
   variables:
     - key: "torre"
@@ -239,8 +242,39 @@ process:
             description: "Notas adicionales sobre los repositorios"
           dependencies: ["task-1-1"]
 
-        - id: "task-1-2c"
-          name: "Validación por Repositorio"
+        - id: "task-1-2a"
+          name: "VALIDACION DE PULLREQUEST Y DEUDA TECNICA"
+          description: "Para cada repositorio, valide los criterios de calidad"
+          order: 3
+          type: "detail-table"
+          detailTableConfig:
+            sourceTaskId: "task-1-2"
+            columns:
+              - id: "integracionMaster"
+                label: "#H46#"
+                type: "boolean"
+                required: false
+              - id: "deudaTecnica"
+                label: "#I46#"
+                type: "boolean"
+                required: false
+              - id: "vulnerabilidades"
+                label: "#J46#"
+                type: "boolean"
+                required: false
+              - id: "urlRepo"
+                label: "#L46#"
+                type: "computed-text"
+                template: "{vars.repositoryUrl}/{item}"
+                required: false
+          evidence:
+            type: "text"
+            required: false
+            description: "La tabla de validación por repositorio constituye la evidencia"
+          dependencies: ["task-1-2"]
+
+        - id: "task-1-2b"
+          name: "VALIDACION DE PIPELINES CD"
           description: "Para cada repositorio, valide los criterios de calidad"
           order: 3
           type: "detail-table"
@@ -292,7 +326,7 @@ process:
             type: "text"
             required: false
             description: "Notas sobre disponibilidad del equipo"
-          dependencies: ["task-1-2c"]
+          dependencies: ["task-1-2b"]
 
     # ========================================
     # FASE 2: VALIDACIONES PRE-LIBERACIÓN
