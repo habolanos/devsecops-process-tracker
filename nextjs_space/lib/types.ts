@@ -190,12 +190,24 @@ export interface ExportTaskDetailTableSource {
   maxRows?: number;                  // optional cap
 }
 
+export interface ExportTaskCellFieldMapping {
+  field: string;                      // dot-notation path: "evidence.text", "checkItems.<id>.checked", "completedAt"
+  cell: CellRef;                      // target cell: "B100", "J50"
+}
+
+export interface ExportTaskCellSource {
+  kind: 'cell';
+  sourceTaskId: string;               // id of any task type
+  fields: ExportTaskCellFieldMapping[]; // field-to-cell mappings
+}
+
 export type ExportTaskSource =
   | ExportTaskListSource
   | ExportTaskDetailSource
   | ExportTaskFormSource
   | ExportTaskChecklistSource
-  | ExportTaskDetailTableSource;
+  | ExportTaskDetailTableSource
+  | ExportTaskCellSource;
 
 export interface ProcessExportMappings {
   // Variable key (from capturedVariables) -> cell reference

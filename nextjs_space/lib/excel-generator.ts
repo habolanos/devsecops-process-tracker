@@ -902,6 +902,24 @@ export async function executeExportPlan(
   });
 }
 
+/**
+ * Resolves a dot-notation field path on a task object.
+ * Special case: "checkItems.<id>.<prop>" looks up by checkItem id instead of array index.
+ */
+function resolveTaskField(task: TaskState, field: string): any {
+  // Special case: checkItems.<id>.<prop> — lookup by id
+  const checkMatch = field.match(/^checkItems\.([^.]+)\.(.+)/);
+  if (checkMatch) {
+    const itemId = checkMatch[1];
+    const prop = checkMatch[2];
+    const item = task.checkItems?.find(c => c.id === itemId);
+    return item ? (item as any)[prop] : undefined;
+  }
+
+  // Generic dot-notation path
+  return field.split('.').reduce((obj, key) => obj?.[key], task as any);
+}
+
 function applyTaskSource(
   worksheet: ExcelJS.Worksheet,
   src: ExportTaskSource,
@@ -958,6 +976,19 @@ function applyTaskSource(
         }
       }
     });
+    return;
+  }
+
+  if (src.kind === 'cell') {
+    const task = findTaskById(process, src.sourceTaskId);
+    if (task) {
+      for (const mapping of src.fields) {
+        const value = resolveTaskField(task, mapping.field);
+        if (value !== undefined && value !== null && value !== '') {
+          setCell(worksheet, mapping.cell, value);
+        }
+      }
+    }
     return;
   }
 

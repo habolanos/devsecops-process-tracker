@@ -95,7 +95,7 @@ npm run dev
 | **ExcelJS** | 4.4 | Exportación Excel declarativa |
 | **docx** | 9.6 | Generación Word |
 | **bpmn-js** | 18.14 | Visor BPMN 2.0 (lazy) |
-| **Vitest** | 4.1 | Tests unitarios (545+ pasando) |
+| **Vitest** | 4.1 | Tests unitarios (550+ pasando) |
 | **Playwright** | 1.59 | Tests E2E |
 | **NextAuth** | 4.24 (opcional) | Autenticación |
 | **AWS SDK v3** | — (opcional) | Integración S3 |
@@ -170,7 +170,7 @@ El motor genérico `executeExportPlan` (en `lib/excel-generator.ts`) lee el bloq
 - **Celdas estáticas** con literales (`staticCells: { A1: "Reporte" }`).
 - **Metadatos de tiempo** (`time.startedAt`, `time.totalElapsedHours`, `time.today`).
 - **Metadatos de proceso** (`process.id`, `process.name`, `process.version`).
-- **Fuentes de tareas** (`taskSources`): `kind: list | detail | form | checklist`.
+- **Fuentes de tareas** (`taskSources`): `kind: list | detail | form | checklist | detail-table | cell`.
 - **Comentarios con templating** de tokens (`{process.name}`, `{vars.xxx}`, `{today:FMT}`).
 - **Hoja de evidencias** con fecha y actividad por fila.
 - **Overrides por tarea** (`task.exportConfig` con `inherit: true`).
@@ -225,7 +225,7 @@ Sin credenciales, la aplicación opera íntegramente con localStorage comprimido
 
 ## Testing
 
-El proyecto cuenta con **596+ tests unitarios** (Vitest) en 29 archivos y **tests E2E** con Playwright sobre los flujos críticos.
+El proyecto cuenta con **602+ tests unitarios** (Vitest) en 30 archivos y **tests E2E** con Playwright sobre los flujos críticos.
 
 ```bash
 npm run test                # Modo watch

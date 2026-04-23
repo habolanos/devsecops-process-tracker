@@ -193,7 +193,7 @@ process:
       label: "URL del Repositorio"
       type: "text"
       required: true
-      placeholder: "https://github.com/org/repo"
+      placeholder: "https://dev.azure.com/Coppel-Retail/Cadena_de_Suministros/_git/"
 
   phases:
     # ========================================

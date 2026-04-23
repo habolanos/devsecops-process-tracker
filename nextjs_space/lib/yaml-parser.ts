@@ -104,6 +104,13 @@ function validateExportConfig(cfg: ProcessExportConfig | undefined, ctx: string)
           throw new Error(`${where}: columns['${fieldId}'] must be a column letter like "L"`);
         }
       }
+    } else if (src.kind === 'cell') {
+      if (!src.sourceTaskId) throw new Error(`${where}: 'sourceTaskId' required for kind=cell`);
+      if (!Array.isArray(src.fields) || src.fields.length === 0) throw new Error(`${where}: 'fields' must be a non-empty array for kind=cell`);
+      for (const f of src.fields) {
+        if (!f.field || typeof f.field !== 'string') throw new Error(`${where}: each field mapping must have a 'field' string`);
+        if (!f.cell || typeof f.cell !== 'string') throw new Error(`${where}: each field mapping must have a 'cell' string`);
+      }
     } else {
       throw new Error(`${where}: unknown kind '${(src as { kind?: string }).kind}'`);
     }
