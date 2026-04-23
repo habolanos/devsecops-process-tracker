@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { produce } from 'immer';
-import { ProcessState, TaskEvidence, CapturedVariables, WorkSession, ListItem, DetailItem, FormFieldValue } from './types';
+import { ProcessState, TaskEvidence, CapturedVariables, WorkSession, ListItem, DetailItem, DetailTableRow, FormFieldValue } from './types';
 import { updateProgress, updateTaskBlockedStatus, getAllDependentTasks } from './helpers';
 import { createCompressedStorage } from './persist-storage';
 import { useUserProfileStore } from './user-profile-store';
@@ -55,6 +55,9 @@ interface ProcessStore {
   
   // Detail List Actions (for detail-list tasks)
   updateDetailData: (phaseId: string, taskId: string, detailData: DetailItem[], activityId?: string) => void;
+
+  // Detail Table Actions (for detail-table tasks)
+  updateDetailTableData: (phaseId: string, taskId: string, detailTableData: DetailTableRow[], activityId?: string) => void;
   
   // Form Actions (for form tasks)
   updateFormData: (phaseId: string, taskId: string, formData: FormFieldValue[], activityId?: string) => void;
@@ -548,6 +551,49 @@ export const useProcessStore = create<ProcessStore>()(persist(
           return {
             ...phase,
             tasks: (phase.tasks ?? []).map(updateTaskFormData)
+          };
+        });
+
+        return {
+          process: {
+            ...state.process,
+            phases: updatedPhases
+          }
+        };
+      });
+    },
+
+    updateDetailTableData: (phaseId, taskId, detailTableData, activityId) => {
+      set((state) => {
+        if (!state.process) return state;
+
+        const updateTaskDetailTableData = (task: any) => {
+          if (task?.id !== taskId) return task;
+          return {
+            ...task,
+            detailTableData: detailTableData
+          };
+        };
+
+        const updatedPhases = state.process.phases.map((phase) => {
+          if (phase?.id !== phaseId) return phase;
+
+          if (activityId) {
+            return {
+              ...phase,
+              activities: (phase.activities ?? []).map((activity) => {
+                if (activity?.id !== activityId) return activity;
+                return {
+                  ...activity,
+                  tasks: activity.tasks.map(updateTaskDetailTableData)
+                };
+              })
+            };
+          }
+
+          return {
+            ...phase,
+            tasks: (phase.tasks ?? []).map(updateTaskDetailTableData)
           };
         });
 

@@ -95,6 +95,15 @@ function validateExportConfig(cfg: ProcessExportConfig | undefined, ctx: string)
       if (!src.sourceTaskId) throw new Error(`${where}: 'sourceTaskId' required for kind=form`);
     } else if (src.kind === 'checklist') {
       if (typeof src.startRow !== 'number') throw new Error(`${where}: 'startRow' must be a number`);
+    } else if (src.kind === 'detail-table') {
+      if (!src.sourceTaskId) throw new Error(`${where}: 'sourceTaskId' required for kind=detail-table`);
+      if (typeof src.startRow !== 'number') throw new Error(`${where}: 'startRow' must be a number`);
+      if (!src.columns || typeof src.columns !== 'object') throw new Error(`${where}: 'columns' must be an object mapping field id to column letter`);
+      for (const [fieldId, colLetter] of Object.entries(src.columns)) {
+        if (typeof colLetter !== 'string' || !/^[A-Z]+$/.test(colLetter)) {
+          throw new Error(`${where}: columns['${fieldId}'] must be a column letter like "L"`);
+        }
+      }
     } else {
       throw new Error(`${where}: unknown kind '${(src as { kind?: string }).kind}'`);
     }
@@ -155,8 +164,8 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
         });
       }
       
-      if (taskType !== 'export-excel' && taskType !== 'dynamic-list' && taskType !== 'detail-list' && taskType !== 'form') {
-        throw new Error(`Invalid task type '${taskType}' in ${contextId}. Must be 'standard', 'check', 'multicheck', 'export-excel', 'dynamic-list', 'detail-list', or 'form'`);
+      if (taskType !== 'export-excel' && taskType !== 'dynamic-list' && taskType !== 'detail-list' && taskType !== 'detail-table' && taskType !== 'form') {
+        throw new Error(`Invalid task type '${taskType}' in ${contextId}. Must be 'standard', 'check', 'multicheck', 'export-excel', 'dynamic-list', 'detail-list', 'detail-table', or 'form'`);
       }
       return [];
     };
@@ -196,7 +205,7 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
           name: task.name,
           description: task.description || '',
           order: task.order || 0,
-          type: taskType as 'standard' | 'check' | 'multicheck' | 'export-excel' | 'dynamic-list' | 'detail-list' | 'form',
+          type: taskType as 'standard' | 'check' | 'multicheck' | 'export-excel' | 'dynamic-list' | 'detail-list' | 'detail-table' | 'form',
           checkItems: parseCheckItems(task, `task ${task.id} in ${contextId}`),
           references: task.references || [],
           evidenceConfig: task.evidence || { type: 'text', required: false },
@@ -206,6 +215,8 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
           listData: [],
           detailConfig: task.detailConfig,
           detailData: [],
+          detailTableConfig: task.detailTableConfig,
+          detailTableData: [],
           formConfig: task.formConfig,
           formData: [],
           completed: false,

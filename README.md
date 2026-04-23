@@ -61,7 +61,7 @@ npm run dev
 ## Características principales
 
 - **Procesos declarativos en YAML** validados contra `schemas/process.schema.json` (JSON Schema Draft 2020-12).
-- **7 tipos de tareas**: `standard`, `check`, `multicheck`, `dynamic-list`, `detail-list`, `form`, `export-excel`.
+- **8 tipos de tareas**: `standard`, `check`, `multicheck`, `dynamic-list`, `detail-list`, `detail-table`, `form`, `export-excel`.
 - **Confirmación previa al cierre** (`completionAlert`): diálogo opcional con severidad (`info` / `warning` / `critical`) antes de finalizar tareas críticas.
 - **Dependencias entre tareas** con bloqueo/desbloqueo automático y visualización de estado.
 - **Variables de proceso** parametrizables (texto, select, número) con autofill desde configuración DevOps JSON.
@@ -95,7 +95,7 @@ npm run dev
 | **ExcelJS** | 4.4 | Exportación Excel declarativa |
 | **docx** | 9.6 | Generación Word |
 | **bpmn-js** | 18.14 | Visor BPMN 2.0 (lazy) |
-| **Vitest** | 4.1 | Tests unitarios (529+ pasando) |
+| **Vitest** | 4.1 | Tests unitarios (545+ pasando) |
 | **Playwright** | 1.59 | Tests E2E |
 | **NextAuth** | 4.24 (opcional) | Autenticación |
 | **AWS SDK v3** | — (opcional) | Integración S3 |
@@ -154,6 +154,7 @@ Para crear procesos propios consulte la [Guía YAML](README.process.md).
 | `multicheck` | Lista de verificaciones | `checkItems[]` |
 | `dynamic-list` | Captura de N items (repos, URLs…) | `listConfig` |
 | `detail-list` | Detalle por item de una `dynamic-list` | `detailConfig.sourceTaskId` |
+| `detail-table` | Tabla estructurada por item (boolean/date/list/text/computed-text) | `detailTableConfig.sourceTaskId` + `columns[]` |
 | `form` | Formulario con layout grid 1-4 cols | `formConfig.layout` + `fields[]` |
 | `export-excel` | Descarga de reporte `.xlsx` | `exportConfig` / hereda de `process.export` |
 
@@ -224,7 +225,7 @@ Sin credenciales, la aplicación opera íntegramente con localStorage comprimido
 
 ## Testing
 
-El proyecto cuenta con **580+ tests unitarios** (Vitest) en 27 archivos y **tests E2E** con Playwright sobre los flujos críticos.
+El proyecto cuenta con **596+ tests unitarios** (Vitest) en 29 archivos y **tests E2E** con Playwright sobre los flujos críticos.
 
 ```bash
 npm run test                # Modo watch

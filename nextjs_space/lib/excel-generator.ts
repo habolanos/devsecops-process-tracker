@@ -945,6 +945,22 @@ function applyTaskSource(
     return;
   }
 
+  if (src.kind === 'detail-table') {
+    const task = findTaskById(process, src.sourceTaskId);
+    const rows = task?.detailTableData ?? [];
+    const max = src.maxRows ?? rows.length;
+    rows.slice(0, max).forEach((row, idx) => {
+      const excelRow = src.startRow + idx;
+      for (const [fieldId, colLetter] of Object.entries(src.columns)) {
+        const value = row.values?.[fieldId];
+        if (value !== undefined && value !== null && value !== '') {
+          setCell(worksheet, `${colLetter}${excelRow}`, value);
+        }
+      }
+    });
+    return;
+  }
+
   if (src.kind === 'checklist') {
     const pool = src.sourceTaskId
       ? ([findTaskById(process, src.sourceTaskId)].filter(Boolean) as TaskState[])

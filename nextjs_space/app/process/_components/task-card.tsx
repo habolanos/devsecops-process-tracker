@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { DynamicLinksList } from './dynamic-link-button';
 import { DynamicListInput } from './dynamic-list-input';
 import { DetailListInput } from './detail-list-input';
+import { DetailTableInput } from './detail-table-input';
 import { FormRenderer } from './form-renderer';
 import { CompletionAlertDialog } from './completion-alert-dialog';
 import {
@@ -23,7 +24,7 @@ import {
   resolveExportPlan,
   buildExportFilename,
 } from '@/lib/excel-generator';
-import { ListItem, DetailItem, FormFieldValue } from '@/lib/types';
+import { ListItem, DetailItem, DetailTableRow, FormFieldValue } from '@/lib/types';
 
 interface TaskCardProps {
   task: TaskState;
@@ -42,6 +43,7 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
     canCompleteCheckTask: state?.canCompleteCheckTask,
     updateListData: state?.updateListData,
     updateDetailData: state?.updateDetailData,
+    updateDetailTableData: state?.updateDetailTableData,
     updateFormData: state?.updateFormData,
     markInteractionStarted: state?.markInteractionStarted,
   })));
@@ -51,6 +53,7 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
   const isExportExcelType = taskType === 'export-excel';
   const isDynamicListType = taskType === 'dynamic-list';
   const isDetailListType = taskType === 'detail-list';
+  const isDetailTableType = taskType === 'detail-table';
   const isFormType = taskType === 'form';
 
   // Handle list data changes for dynamic-list tasks
@@ -63,6 +66,12 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
   const handleDetailDataChange = (detailData: DetailItem[]) => {
     storeActions.markInteractionStarted?.();
     storeActions.updateDetailData?.(phaseId, task.id, detailData, activityId);
+  };
+
+  // Handle detail table data changes for detail-table tasks
+  const handleDetailTableDataChange = (detailTableData: DetailTableRow[]) => {
+    storeActions.markInteractionStarted?.();
+    storeActions.updateDetailTableData?.(phaseId, task.id, detailTableData, activityId);
   };
 
   // Handle form data changes for form tasks
@@ -103,6 +112,41 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
   const currentDetailItems = task?.detailData?.filter(d => d.capturedText.trim().length > 0).length ?? 0;
   const isDetailMinMet = currentDetailItems >= detailMinItems;
 
+  // For detail-table tasks, find the source task to get items
+  let tableSourceItems: string[] = sourceItems; // reuse same sourceItems logic if same sourceTaskId
+  if (isDetailTableType && task?.detailTableConfig?.sourceTaskId && process) {
+    const findTaskById = (taskId: string): TaskState | null => {
+      for (const phase of process.phases || []) {
+        const found = phase.tasks?.find(t => t.id === taskId);
+        if (found) return found;
+        for (const activity of phase.activities || []) {
+          const foundInActivity = activity.tasks?.find(t => t.id === taskId);
+          if (foundInActivity) return foundInActivity;
+        }
+      }
+      return null;
+    };
+    const tableSourceTask = findTaskById(task.detailTableConfig.sourceTaskId);
+    if (tableSourceTask?.listData) {
+      tableSourceItems = tableSourceTask.listData.map(item => item.value);
+    }
+  }
+
+  // For detail-table tasks, check if all required columns are filled
+  const isDetailTableValid = () => {
+    if (!isDetailTableType || !task?.detailTableConfig) return true;
+    const requiredCols = task.detailTableConfig.columns.filter(c => c.required);
+    const rows = task?.detailTableData || [];
+    if (rows.length === 0) return false;
+    return rows.every(row =>
+      requiredCols.every(col => {
+        const val = row.values[col.id];
+        if (col.type === 'boolean') return val === true;
+        return val !== '' && val !== undefined && val !== null;
+      })
+    );
+  };
+
   // For form tasks, check if all required fields are filled
   const isFormValid = () => {
     if (!isFormType || !task?.formConfig) return true;
@@ -136,6 +180,14 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
   };
 
   const templatePath = getTemplatePath();
+
+  // Resolve the sheet name from process.export for #CELL# token resolution
+  const getExportSheet = (): string | undefined => {
+    if (!process) return undefined;
+    return process.export?.sheet;
+  };
+
+  const exportSheet = getExportSheet();
 
   // Check if task requires evidence (text, image, or both) AND is required
   const requiresEvidence = task?.evidenceConfig?.required && (
@@ -284,6 +336,14 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
     if (isDetailListType && !isDetailMinMet) {
       toast.warning('Detalles incompletos', {
         description: `Complete todos los detalles (${currentDetailItems}/${detailMinItems}).`,
+      });
+      return;
+    }
+
+    // For detail-table tasks, verify all required columns are filled
+    if (isDetailTableType && !isDetailTableValid()) {
+      toast.warning('Tabla incompleta', {
+        description: 'Complete todas las filas requeridas de la tabla de validación',
       });
       return;
     }
@@ -539,6 +599,51 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
           </div>
         )}
 
+        {/* DetailTable for detail-table tasks */}
+        {isDetailTableType && task?.detailTableConfig && (
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <DetailTableInput
+              config={task.detailTableConfig}
+              sourceItems={tableSourceItems}
+              detailTableData={task.detailTableData || []}
+              capturedVariables={process?.capturedVariables || {}}
+              onDetailTableDataChange={handleDetailTableDataChange}
+              disabled={isCompleted || isBlocked}
+              templatePath={templatePath}
+              sheet={exportSheet}
+            />
+
+            {/* Action buttons for detail-table tasks */}
+            <div className="mt-4 pt-3 border-t border-gray-200 flex justify-end gap-2">
+              <button
+                onClick={handleSaveProgress}
+                disabled={isBlocked || isCompleted}
+                className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
+                  isBlocked || isCompleted
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-blue-500 text-white hover:bg-blue-600'
+                }`}
+              >
+                Guardar
+              </button>
+              <button
+                onClick={handleToggleComplete}
+                disabled={isBlocked || !isDetailTableValid()}
+                className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-1.5 ${
+                  isBlocked || !isDetailTableValid()
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : isCompleted
+                      ? 'bg-orange-500 text-white hover:bg-orange-600'
+                      : 'bg-green-500 text-white hover:bg-green-600'
+                }`}
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                {isCompleted ? t('task.uncomplete') : t('task.complete')}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* FormRenderer for form tasks */}
         {isFormType && task?.formConfig && (
           <div className="mt-3 pt-3 border-t border-gray-200">
@@ -548,6 +653,7 @@ function TaskCard({ task, phaseId, activityId, onViewEvidence }: TaskCardProps) 
               onDataChange={handleFormDataChange}
               disabled={isCompleted || isBlocked}
               templatePath={templatePath}
+              sheet={exportSheet}
             />
             
             {/* Action buttons for form tasks */}

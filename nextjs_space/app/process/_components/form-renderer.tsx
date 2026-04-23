@@ -11,9 +11,10 @@ interface FormRendererProps {
   onDataChange: (data: FormFieldValue[]) => void;
   disabled?: boolean;
   templatePath?: string;  // Path to Excel template for token replacement
+  sheet?: string;         // Sheet name in template (default: first sheet)
 }
 
-export function FormRenderer({ config, data, onDataChange, disabled, templatePath }: FormRendererProps) {
+export function FormRenderer({ config, data, onDataChange, disabled, templatePath, sheet }: FormRendererProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [processedConfig, setProcessedConfig] = useState<FormConfig>(config);
 
@@ -26,12 +27,13 @@ export function FormRenderer({ config, data, onDataChange, disabled, templatePat
   // synchronously (during render). The async token-resolver below will then
   // overwrite it once the resolved values arrive. The previous-value tracking
   // avoids a setState-in-effect cascade for the synchronous path.
-  const [trackedDeps, setTrackedDeps] = useState<{ config: FormConfig; templatePath?: string }>({
+  const [trackedDeps, setTrackedDeps] = useState<{ config: FormConfig; templatePath?: string; sheet?: string }>({
     config,
     templatePath,
+    sheet,
   });
-  if (trackedDeps.config !== config || trackedDeps.templatePath !== templatePath) {
-    setTrackedDeps({ config, templatePath });
+  if (trackedDeps.config !== config || trackedDeps.templatePath !== templatePath || trackedDeps.sheet !== sheet) {
+    setTrackedDeps({ config, templatePath, sheet });
     setProcessedConfig(config);
   }
 
@@ -40,12 +42,12 @@ export function FormRenderer({ config, data, onDataChange, disabled, templatePat
   // are exempt from the react-hooks/set-state-in-effect rule.
   useEffect(() => {
     if (!templatePath) return;
-    replaceFormConfigTokens(config, templatePath)
+    replaceFormConfigTokens(config, templatePath, sheet)
       .then(setProcessedConfig)
       .catch((err) => {
         console.error('Error replacing cell tokens:', err);
       });
-  }, [config, templatePath]);
+  }, [config, templatePath, sheet]);
 
   const updateFieldValue = (fieldId: string, value: any) => {
     const newData = [...data];

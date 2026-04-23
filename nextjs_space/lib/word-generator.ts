@@ -254,9 +254,12 @@ export async function generateWordDocument(process: ProcessState): Promise<Blob>
     // Tasks
     const allTasks = [...(phase?.tasks ?? []), ...(phase?.activities?.flatMap(a => a.tasks) ?? [])];
     
-    // Get templatePath from export-excel task for token replacement
-    const exportTask = allTasks.find(t => t.type === 'export-excel' && t.exportConfig);
-    const templatePath = exportTask?.exportConfig?.templatePath;
+    // Get templatePath for token replacement (same priority as task-card.tsx):
+    //   1. process.export.templatePath (declarative, global)
+    //   2. An export-excel task in the same phase/activity
+    const templatePath = process?.export?.templatePath
+      || allTasks.find(t => t.type === 'export-excel' && t.exportConfig)?.exportConfig?.templatePath;
+    const sheet = process?.export?.sheet;
 
     for (let i = 0; i < allTasks.length; i++) {
       const task = allTasks[i];
@@ -460,6 +463,82 @@ export async function generateWordDocument(process: ProcessState): Promise<Blob>
           }
         }
 
+        // Detail Table Evidence
+        if (task?.type === 'detail-table') {
+          let tableConfig = task.detailTableConfig;
+
+          // Replace #CELL# tokens in column labels if templatePath is available
+          if (templatePath && tableConfig) {
+            try {
+              const newColumns = await Promise.all(
+                tableConfig.columns.map(async (col) => {
+                  if (!col.label || !col.label.includes('#')) return col;
+                  const { replaceCellTokens } = await import('./excel-template-helper');
+                  const newLabel = await replaceCellTokens(col.label, undefined, templatePath, sheet);
+                  return { ...col, label: newLabel };
+                })
+              );
+              tableConfig = { ...tableConfig, columns: newColumns };
+            } catch (error) {
+              console.error('Error replacing detail-table tokens in Word report:', error);
+            }
+          }
+
+          if (task?.detailTableData && task.detailTableData.length > 0) {
+            sections.push(
+              new Paragraph({
+                text: `Tabla de Validación (${task.detailTableData.length} items):`,
+                spacing: { after: 200 }
+              })
+            );
+
+            task.detailTableData.forEach((row, idx) => {
+              // Row header with source item name
+              sections.push(
+                new Paragraph({
+                  children: [
+                    new TextRun({ text: `${idx + 1}. `, bold: true }),
+                    new TextRun({ text: row.sourceItem || '', bold: true }),
+                  ],
+                  spacing: { after: 50 }
+                })
+              );
+
+              // Column values for this row
+              if (tableConfig) {
+                for (const col of tableConfig.columns) {
+                  const value = row.values?.[col.id];
+                  const displayValue = col.type === 'boolean'
+                    ? (value === true ? 'Sí' : value === false ? 'No' : String(value ?? ''))
+                    : String(value ?? '');
+                  sections.push(
+                    new Paragraph({
+                      children: [
+                        new TextRun({ text: `    ${col.label}: `, italics: true }),
+                        new TextRun(displayValue),
+                      ],
+                      spacing: { after: 30 }
+                    })
+                  );
+                }
+              }
+            });
+          } else {
+            sections.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: 'No hay datos de la tabla de validación',
+                    italics: true,
+                    color: '94A3B8'
+                  })
+                ],
+                spacing: { after: 200 }
+              })
+            );
+          }
+        }
+
         // Form Evidence
         if (task?.type === 'form') {
           let formConfig = task.formConfig;
@@ -467,7 +546,7 @@ export async function generateWordDocument(process: ProcessState): Promise<Blob>
           // Replace tokens in form labels if templatePath is available
           if (templatePath && formConfig) {
             try {
-              formConfig = await replaceFormConfigTokens(formConfig, templatePath);
+              formConfig = await replaceFormConfigTokens(formConfig, templatePath, sheet);
             } catch (error) {
               console.error('Error replacing form tokens in Word report:', error);
               // Fallback to original config
@@ -514,7 +593,7 @@ export async function generateWordDocument(process: ProcessState): Promise<Blob>
         }
 
         // If no evidence at all for completed task
-        if (task?.completed && !task?.evidence?.text && (!task?.evidence?.images || task.evidence.images.length === 0) && task?.type !== 'dynamic-list' && task?.type !== 'detail-list' && task?.type !== 'form') {
+        if (task?.completed && !task?.evidence?.text && (!task?.evidence?.images || task.evidence.images.length === 0) && task?.type !== 'dynamic-list' && task?.type !== 'detail-list' && task?.type !== 'detail-table' && task?.type !== 'form') {
           sections.push(
             new Paragraph({
               children: [
