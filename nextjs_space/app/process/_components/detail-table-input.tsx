@@ -168,6 +168,18 @@ export function DetailTableInput({
           />
         );
 
+      case 'number':
+        return (
+          <Input
+            type="number"
+            value={value || ''}
+            onChange={(e) => handleCellChange(rowIdx, col.id, e.target.value)}
+            disabled={cellDisabled}
+            placeholder={col.placeholder || '0'}
+            className="h-8 text-xs"
+          />
+        );
+
       case 'list':
         return (
           <Select

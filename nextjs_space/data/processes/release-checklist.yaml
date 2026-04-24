@@ -85,6 +85,25 @@ process:
                 deudaTecnica: I
                 vulnerabilidades: J
                 urlRepo: L
+            - kind: detail-table
+              sourceTaskId: task-1-2b
+              startRow: 60
+              columns:
+                ordenTareas: H
+                variables: I
+                validacionPuertos: J
+                healthCheck: L
+                numPods: M
+                urlConfigVariables: N
+                comentarios: V
+            - kind: detail-table
+              sourceTaskId: task-1-2c
+              startRow: 72
+              columns:
+                nroRelease: H
+                rama: I
+                urlReleaseRollback: J
+                propertiesCommit: W
             - kind: form
               sourceTaskId: task-7-1b
 
@@ -197,6 +216,11 @@ process:
       type: "text"
       required: true
       placeholder: "https://dev.azure.com/Coppel-Retail/Cadena_de_Suministros/_git/"
+    - key: "repositoryUrlProperties"
+      label: "URL del Repositorio de Properties"
+      type: "text"
+      required: true
+      placeholder: "https://dev.azure.com/Coppel-Retail/Cadena_de_Suministros/_git/properties?path=/"
 
   phases:
     # ========================================
@@ -244,7 +268,7 @@ process:
 
         - id: "task-1-2a"
           name: "VALIDACION DE PULLREQUEST Y DEUDA TECNICA"
-          description: "Para cada repositorio, valide los criterios de calidad"
+          description: "Para cada repositorio, valide pull request y deuda tecnica"
           order: 3
           type: "detail-table"
           detailTableConfig:
@@ -281,27 +305,70 @@ process:
           detailTableConfig:
             sourceTaskId: "task-1-2"
             columns:
-              - id: "integracionMaster"
-                label: "#H46#"
+              - id: "ordenTareas"
+                label: "#H59#"
                 type: "boolean"
                 required: false
-              - id: "deudaTecnica"
-                label: "#I46#"
+              - id: "variables"
+                label: "#I59#"
                 type: "boolean"
                 required: false
-              - id: "vulnerabilidades"
-                label: "#J46#"
+              - id: "validacionPuertos"
+                label: "#J59#"
                 type: "boolean"
                 required: false
-              - id: "urlRepo"
-                label: "#L46#"
+              - id: "healthCheck"
+                label: "#L59#"
+                type: "boolean"
+                required: false
+              - id: "numPods"
+                label: "#M59#"
+                type: "number"
+                required: true
+              - id: "urlConfigVariables"
+                label: "#N59#"
                 type: "computed-text"
-                template: "{vars.repositoryUrl}/{item}"
+                template: "{vars.repositoryUrlProperties}/{item}"
+                required: false
+              - id: "comentarios"
+                label: "#V59#"
+                type: "text"
                 required: false
           evidence:
             type: "text"
             required: false
-            description: "La tabla de validación por repositorio constituye la evidencia"
+            description: "La tabla de validación de pipelines CD"
+          dependencies: ["task-1-2"]
+
+        - id: "task-1-2c"
+          name: "COMPONENTES EN CASO DE ROLLBACK"
+          description: "Para cada repositorio, valide los componentes necesarios para rollback"
+          order: 3
+          type: "detail-table"
+          detailTableConfig:
+            sourceTaskId: "task-1-2"
+            columns:
+              - id: "nroRelease"
+                label: "#H71#"
+                type: "number"
+                required: false
+              - id: "rama"
+                label: "#I71#"
+                type: "text"
+                required: false
+              - id: "urlReleaseRollback"
+                label: "#J71#"
+                type: "computed-text"
+                template: "{vars.repositoryUrl}/{item}"
+                required: false
+              - id: "propertiesCommit"
+                label: "#W71#"
+                type: "text"
+                required: false
+          evidence:
+            type: "text"
+            required: false
+            description: "La tabla de validación de componentes para rollback"
           dependencies: ["task-1-2"]
 
         - id: "task-1-3"

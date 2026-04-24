@@ -271,7 +271,7 @@
       "properties": {
         "id":       { "$ref": "#/$defs/Identifier" },
         "label":    { "type": "string", "minLength": 1, "description": "Column header. Supports #CELL# syntax (e.g. '#H46#') to read from template." },
-        "type":     { "enum": ["boolean", "text", "date", "list", "computed-text"] },
+        "type":     { "enum": ["boolean", "text", "number", "date", "list", "computed-text"] },
         "required": { "type": "boolean" },
         "options":  { "type": "array", "items": { "type": "string" }, "description": "Options for type: list columns." },
         "template": { "type": "string", "description": "Template for type: computed-text. Supports {item}, {vars.xxx}." }

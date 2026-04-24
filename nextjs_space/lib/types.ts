@@ -338,7 +338,7 @@ export interface DetailItem {
 // Detail Table Types (structured per-item table)
 // ============================================
 
-export type DetailTableColumnType = 'boolean' | 'date' | 'list' | 'text' | 'computed-text';
+export type DetailTableColumnType = 'boolean' | 'date' | 'list' | 'number' | 'text' | 'computed-text';
 
 export interface DetailTableColumn {
   id: string;                           // Unique column identifier

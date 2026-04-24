@@ -991,6 +991,7 @@ Captura datos estructurados en formato tabla para cada item de una lista dinámi
 |------|-------------|-------|
 | `boolean` | Checkbox | Toggle |
 | `text` | Texto libre | Input |
+| `number` | Numérico | Input (type=number) |
 | `date` | Fecha | Date picker |
 | `list` | Selección de opciones | Select dropdown |
 | `computed-text` | Auto-calculado con template | Input (editable) |
