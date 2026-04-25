@@ -104,6 +104,13 @@ process:
                 rama: I
                 urlReleaseRollback: J
                 propertiesCommit: W
+            - kind: detail-table
+              sourceTaskId: task-1-2d
+              startRow: 89
+              columns:
+                nroRelease: G
+                rama: H
+                urlRelease: I
             - kind: form
               sourceTaskId: task-7-1b
 
@@ -364,6 +371,33 @@ process:
               - id: "propertiesCommit"
                 label: "#W71#"
                 type: "text"
+                required: false
+          evidence:
+            type: "text"
+            required: false
+            description: "La tabla de validación de componentes para rollback"
+          dependencies: ["task-1-2"]
+
+        - id: "task-1-2d"
+          name: "RELEASE CHECK LIST"
+          description: "Para cada repositorio, validación de checklist de release"
+          order: 3
+          type: "detail-table"
+          detailTableConfig:
+            sourceTaskId: "task-1-2"
+            columns:
+              - id: "nroRelease"
+                label: "#G88#"
+                type: "number"
+                required: false
+              - id: "rama"
+                label: "#H88#"
+                type: "text"
+                required: false
+              - id: "urlRelease"
+                label: "#I88#"
+                type: "computed-text"
+                template: "{vars.repositoryUrl}/{item}"
                 required: false
           evidence:
             type: "text"
