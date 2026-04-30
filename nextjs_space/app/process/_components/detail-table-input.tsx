@@ -5,7 +5,6 @@ import { Table2 } from 'lucide-react';
 import { DetailTableConfig, DetailTableColumn, DetailTableRow } from '@/lib/types';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,

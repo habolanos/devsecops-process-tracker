@@ -25,9 +25,11 @@ function resolveTaskField(task: TaskState, field: string): any {
   return field.split('.').reduce((obj, key) => obj?.[key], task as any);
 }
 
-// Replicate setCell from excel-generator.ts
+// Adapted from setCell in excel-generator.ts. The `undefined` branch of the
+// real guard is unreachable here because applyCellSource (below) pre-filters
+// undefined values, so CodeQL flags it as dead code.
 function setCell(ws: ReturnType<typeof createMockWorksheet>, ref: string, value: any) {
-  if (value === undefined || value === null || value === '') return;
+  if (value === null || value === '') return;
   ws.getCell(ref).value = value;
 }
 
