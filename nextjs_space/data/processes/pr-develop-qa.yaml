@@ -1,0 +1,242 @@
+# yaml-language-server: $schema=../../../schemas/process.schema.json
+process:
+  id: "pr-develop-qa-2026"
+  name: "Pull Request con destino develop & QA"
+  description: "Proceso de Integración de Código (PRs) — Servicio SCM. Atención de PRs con destino develop & QA, desde validación DOD hasta evidencia de despliegue."
+  version: "1.0.0"
+  estimatedTime: "45m"
+
+  variables:
+    - key: "folioSD"
+      label: "Folio SD (Solicitud del Cliente)"
+      type: "text"
+      required: true
+      placeholder: "ej: SD-123456"
+    - key: "repositoryUrl"
+      label: "URL del Repositorio"
+      type: "text"
+      required: true
+      placeholder: "https://dev.azure.com/org/proj/_git/repo"
+    - key: "branchOrigen"
+      label: "Branch Origen"
+      type: "text"
+      required: true
+      placeholder: "ej: feature/PROJ-123"
+    - key: "branchDestino"
+      label: "Branch Destino"
+      type: "select"
+      required: true
+      options:
+        - "develop"
+        - "qa"
+
+  phases:
+    # ==============================
+    # c1 - VALIDACIÓN
+    # ==============================
+    - id: "phase-c1-validacion"
+      name: "c1 — Validación"
+      description: "Se valida el cumplimiento de la solicitud antes de proceder a la integración."
+      order: 1
+      tasks:
+        - id: "task-c1-input"
+          name: "Recibir Solicitud del Cliente"
+          description: "Registrar el folio SD y datos del repositorio recibidos del cliente."
+          order: 1
+          type: "standard"
+          evidence:
+            type: "text"
+            required: true
+            description: "Detalle de la solicitud recibida (folio SD, repositorio, branches)."
+
+        - id: "task-c1-checks"
+          name: "Validar Criterios de Cumplimiento (DOD)"
+          description: "Verificar el cumplimiento de los criterios estándar antes de integrar."
+          order: 2
+          type: "multicheck"
+          checkItems:
+            - id: "check-dod"
+              description: "DOD (Definition of Done) cumplido"
+              required: true
+            - id: "check-branch-strategy"
+              description: "Branch Strategy correcta"
+              required: true
+            - id: "check-politicas"
+              description: "Políticas de repositorio aplicadas"
+              required: true
+            - id: "check-versionamento"
+              description: "Versionamiento correcto"
+              required: true
+            - id: "check-ci-pipe"
+              description: "Configuración CI pipe validada"
+              required: true
+            - id: "check-cd-pipe"
+              description: "Configuración CD pipe validada"
+              required: true
+            - id: "check-config-file"
+              description: "Config File validado"
+              required: true
+          evidence:
+            type: "text"
+            required: false
+            description: "Notas u observaciones sobre la validación."
+          dependencies: ["task-c1-input"]
+          completionAlert:
+            severity: "warning"
+            title: "Confirmar validación"
+            description: "¿Se confirman todos los criterios DOD para proceder a la integración?"
+            confirmLabel: "Sí, proceder"
+            cancelLabel: "Revisar"
+
+    # ==============================
+    # c2 - EJECUCIÓN
+    # ==============================
+    - id: "phase-c2-ejecucion"
+      name: "c2 — Ejecución"
+      description: "Se atendieron los puntos de la solicitud y se procede al despliegue."
+      order: 2
+      tasks:
+        - id: "task-c2-creacion-pr"
+          name: "Creación del Pull Request"
+          description: "Crear el PR desde el branch origen hacia el branch destino."
+          order: 1
+          type: "check"
+          checkItem:
+            description: "Pull Request creado correctamente"
+            required: true
+          evidence:
+            type: "image"
+            required: true
+            description: "Captura del PR creado."
+          dependencies: ["task-c1-checks"]
+
+        - id: "task-c2-validacion-ci"
+          name: "Validación PR.CI"
+          description: "Verificar ejecución exitosa del pipeline de Continuous Integration sobre el PR."
+          order: 2
+          type: "check"
+          checkItem:
+            description: "Pipeline CI ejecutado y aprobado"
+            required: true
+          evidence:
+            type: "image"
+            required: true
+            description: "Captura del pipeline CI verde."
+          dependencies: ["task-c2-creacion-pr"]
+
+        - id: "task-c2-integracion"
+          name: "Integración del PR"
+          description: "Mergear el PR validado al branch destino."
+          order: 3
+          type: "form"
+          formConfig:
+            layout:
+              type: "vertical"
+            fields:
+              - id: "prUrl"
+                label: "URL del PR Integrado"
+                type: "text"
+                required: true
+                placeholder: "https://dev.azure.com/.../pullrequest/123"
+                description: "URL del PR ya mergeado."
+          evidence:
+            type: "form"
+            required: true
+            description: "Datos de integración del PR."
+          dependencies: ["task-c2-validacion-ci"]
+          outputVars:
+            - name: "prUrl"
+              type: "text"
+              source: "formData.prUrl"
+
+        - id: "task-c2-despliegue"
+          name: "Procede al Despliegue"
+          description: "Confirmar que se inicia el despliegue del cambio integrado."
+          order: 4
+          type: "check"
+          checkItem:
+            description: "Despliegue iniciado"
+            required: true
+          evidence:
+            type: "text"
+            required: false
+            description: "Notas sobre el inicio del despliegue."
+          dependencies: ["task-c2-integracion"]
+
+    # ==============================
+    # c3 - RESULTADO
+    # ==============================
+    - id: "phase-c3-resultado"
+      name: "c3 — Resultado"
+      description: "Se comparte el detalle del despliegue y se concluye la actividad."
+      order: 3
+      tasks:
+        - id: "task-c3-artifact"
+          name: "Validar Release CD Artifact"
+          description: "Confirmar que el artefacto de Release CD fue validado en destino."
+          order: 1
+          type: "check"
+          checkItem:
+            description: "Release CD Artifact Validado"
+            required: true
+          evidence:
+            type: "image"
+            required: true
+            description: "Captura del artefacto validado."
+          dependencies: ["task-c2-despliegue"]
+
+        - id: "task-c3-release-url"
+          name: "Compartir URL del Release"
+          description: "Capturar la URL del release desplegado."
+          order: 2
+          type: "form"
+          formConfig:
+            layout:
+              type: "vertical"
+            fields:
+              - id: "releaseUrl"
+                label: "URL del Release"
+                type: "text"
+                required: true
+                placeholder: "https://.../release/456"
+              - id: "releaseNumber"
+                label: "Número de Release (#)"
+                type: "text"
+                required: true
+                placeholder: "ej: 456"
+          evidence:
+            type: "form"
+            required: true
+            description: "Información del release."
+          dependencies: ["task-c3-artifact"]
+
+        - id: "task-c3-pod-evidence"
+          name: "Compartir Prueba de Pod"
+          description: "Adjuntar evidencia visual del pod desplegado en ambiente."
+          order: 3
+          type: "check"
+          checkItem:
+            description: "Pod corriendo y verificado"
+            required: true
+          evidence:
+            type: "image"
+            required: true
+            description: "Captura del pod desplegado."
+          dependencies: ["task-c3-release-url"]
+
+        - id: "task-c3-cierre"
+          name: "Actividad Concluida"
+          description: "Cierre formal de la actividad e interacción con el cliente en folio."
+          order: 4
+          type: "standard"
+          evidence:
+            type: "text"
+            required: true
+            description: "Resumen final compartido con el cliente en el folio."
+          dependencies: ["task-c3-pod-evidence"]
+          completionAlert:
+            severity: "info"
+            title: "Cerrar actividad"
+            description: "¿Confirma que la actividad ha concluido y se ha notificado al cliente?"
+            confirmLabel: "Cerrar"
+            cancelLabel: "Revisar"

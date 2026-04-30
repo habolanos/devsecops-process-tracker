@@ -17,7 +17,7 @@ describe('release-checklist.yaml Process Definition', () => {
       expect(processData.process).toBeDefined();
       expect(processData.process.id).toBe('release-checklist-2026');
       expect(processData.process.name).toBe('Checklist de Liberación');
-      expect(processData.process.version).toBe('1.0.0');
+      expect(processData.process.version).toBe('1.1.0');
     });
 
     it('should have estimatedTime defined', () => {
