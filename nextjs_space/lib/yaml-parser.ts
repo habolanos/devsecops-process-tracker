@@ -5,6 +5,35 @@ import { parseTimeString } from './helpers';
 const CELL_REF_RE = /^[A-Z]+[0-9]+$/;
 
 const COMPLETION_ALERT_SEVERITIES = new Set(['info', 'warning', 'critical']);
+const OUTPUT_VAR_TYPES = new Set(['text', 'list', 'object']);
+
+function validateOutputVars(
+  outputVars: unknown,
+  contextId: string,
+): import('./types').TaskOutputVar[] | undefined {
+  if (outputVars === undefined || outputVars === null) return undefined;
+  if (!Array.isArray(outputVars)) {
+    throw new Error(`outputVars in ${contextId} must be an array`);
+  }
+  if (outputVars.length === 0) return undefined;
+  return outputVars.map((v: any, idx: number) => {
+    if (!v.name || typeof v.name !== 'string') {
+      throw new Error(`outputVars[${idx}] in ${contextId}: 'name' must be a string`);
+    }
+    if (!v.type || !OUTPUT_VAR_TYPES.has(v.type)) {
+      throw new Error(`outputVars[${idx}] in ${contextId}: 'type' must be one of text|list|object`);
+    }
+    if (!v.source || typeof v.source !== 'string') {
+      throw new Error(`outputVars[${idx}] in ${contextId}: 'source' must be a string`);
+    }
+    return {
+      name: v.name,
+      type: v.type,
+      source: v.source,
+      mapTo: v.mapTo,
+    };
+  });
+}
 
 function validateCompletionAlert(
   alert: unknown,
@@ -54,49 +83,99 @@ function validateExportConfig(cfg: ProcessExportConfig | undefined, ctx: string)
   }
   const m = cfg.mappings;
   if (!m) return;
-  if (m.variables) {
-    for (const [k, ref] of Object.entries(m.variables)) {
-      validateCellRef(ref, `${ctx}.mappings.variables['${k}']`);
-    }
+
+  // Validate sheets array
+  if (!Array.isArray(m.sheets) || m.sheets.length === 0) {
+    throw new Error(`${ctx}.mappings: 'sheets' must be a non-empty array`);
   }
-  if (m.staticCells) {
-    for (const ref of Object.keys(m.staticCells)) {
-      validateCellRef(ref, `${ctx}.mappings.staticCells key`);
+
+  for (const [sheetIdx, sheetSection] of m.sheets.entries()) {
+    const sheetCtx = `${ctx}.mappings.sheets[${sheetIdx}]`;
+
+    if (!sheetSection.sheet || typeof sheetSection.sheet !== 'string') {
+      throw new Error(`${sheetCtx}: 'sheet' (worksheet name) is required`);
     }
-  }
-  if (m.time) {
-    for (const [k, ref] of Object.entries(m.time)) {
-      if (ref !== undefined) validateCellRef(ref, `${ctx}.mappings.time.${k}`);
+
+    // Validate log-mode fields
+    if (sheetSection.startRow !== undefined && typeof sheetSection.startRow !== 'number') {
+      throw new Error(`${sheetCtx}: 'startRow' must be a number`);
     }
-  }
-  if (m.process) {
-    for (const [k, ref] of Object.entries(m.process)) {
-      if (ref !== undefined) validateCellRef(ref, `${ctx}.mappings.process.${k}`);
+    if (sheetSection.timestampColumn && !/^[A-Z]+$/.test(sheetSection.timestampColumn)) {
+      throw new Error(`${sheetCtx}: 'timestampColumn' must be a column letter`);
     }
-  }
-  if (m.comments) {
-    validateCellRef(m.comments.cell, `${ctx}.mappings.comments.cell`);
-  }
-  for (const [idx, src] of (m.taskSources || []).entries()) {
-    const where = `${ctx}.mappings.taskSources[${idx}]`;
-    if (!src || typeof src !== 'object' || !('kind' in src)) {
-      throw new Error(`${where}: missing 'kind'`);
+    if (sheetSection.nameColumn && !/^[A-Z]+$/.test(sheetSection.nameColumn)) {
+      throw new Error(`${sheetCtx}: 'nameColumn' must be a column letter`);
     }
-    if (src.kind === 'list') {
-      if (!src.sourceTaskId) throw new Error(`${where}: 'sourceTaskId' required for kind=list`);
-      if (!src.column || !/^[A-Z]+$/.test(src.column)) throw new Error(`${where}: invalid 'column'`);
-      if (typeof src.startRow !== 'number') throw new Error(`${where}: 'startRow' must be a number`);
-    } else if (src.kind === 'detail') {
-      if (!src.sourceTaskId) throw new Error(`${where}: 'sourceTaskId' required for kind=detail`);
-      if (!Array.isArray(src.sections) || src.sections.length === 0) {
-        throw new Error(`${where}: 'sections' must be a non-empty array`);
+
+    // Validate sources
+    for (const [srcIdx, src] of (sheetSection.sources || []).entries()) {
+      const where = `${sheetCtx}.sources[${srcIdx}]`;
+      if (!src || typeof src !== 'object' || !('kind' in src)) {
+        throw new Error(`${where}: missing 'kind'`);
       }
-    } else if (src.kind === 'form') {
-      if (!src.sourceTaskId) throw new Error(`${where}: 'sourceTaskId' required for kind=form`);
-    } else if (src.kind === 'checklist') {
-      if (typeof src.startRow !== 'number') throw new Error(`${where}: 'startRow' must be a number`);
-    } else {
-      throw new Error(`${where}: unknown kind '${(src as { kind?: string }).kind}'`);
+
+      if (src.kind === 'variables') {
+        if (!src.mapping || typeof src.mapping !== 'object') {
+          throw new Error(`${where}: 'mapping' must be an object for kind=variables`);
+        }
+        for (const [k, ref] of Object.entries(src.mapping)) {
+          validateCellRef(ref, `${where}.mapping['${k}']`);
+        }
+      } else if (src.kind === 'static') {
+        if (!src.cells || typeof src.cells !== 'object') {
+          throw new Error(`${where}: 'cells' must be an object for kind=static`);
+        }
+        for (const ref of Object.keys(src.cells)) {
+          validateCellRef(ref, `${where}.cells key`);
+        }
+      } else if (src.kind === 'time') {
+        for (const [k, ref] of Object.entries(src)) {
+          if (k === 'kind') continue;
+          if (ref !== undefined && typeof ref === 'string') validateCellRef(ref, `${where}.${k}`);
+        }
+      } else if (src.kind === 'process') {
+        for (const [k, ref] of Object.entries(src)) {
+          if (k === 'kind') continue;
+          if (ref !== undefined && typeof ref === 'string') validateCellRef(ref, `${where}.${k}`);
+        }
+      } else if (src.kind === 'comments') {
+        if (!src.cell) throw new Error(`${where}: 'cell' required for kind=comments`);
+        validateCellRef(src.cell, `${where}.cell`);
+      } else if (src.kind === 'list') {
+        if (!src.sourceTaskId) throw new Error(`${where}: 'sourceTaskId' required for kind=list`);
+        if (!src.column || !/^[A-Z]+$/.test(src.column)) throw new Error(`${where}: invalid 'column'`);
+        if (typeof src.startRow !== 'number') throw new Error(`${where}: 'startRow' must be a number`);
+      } else if (src.kind === 'detail') {
+        if (!src.sourceTaskId) throw new Error(`${where}: 'sourceTaskId' required for kind=detail`);
+        if (!Array.isArray(src.sections) || src.sections.length === 0) {
+          throw new Error(`${where}: 'sections' must be a non-empty array`);
+        }
+      } else if (src.kind === 'form') {
+        if (!src.sourceTaskId) throw new Error(`${where}: 'sourceTaskId' required for kind=form`);
+      } else if (src.kind === 'checklist') {
+        if (typeof src.startRow !== 'number') throw new Error(`${where}: 'startRow' must be a number`);
+      } else if (src.kind === 'detail-table') {
+        if (!src.sourceTaskId) throw new Error(`${where}: 'sourceTaskId' required for kind=detail-table`);
+        if (typeof src.startRow !== 'number') throw new Error(`${where}: 'startRow' must be a number`);
+        if (!src.columns || typeof src.columns !== 'object') throw new Error(`${where}: 'columns' must be an object mapping field id to column letter`);
+        for (const [fieldId, colLetter] of Object.entries(src.columns)) {
+          if (typeof colLetter !== 'string' || !/^[A-Z]+$/.test(colLetter)) {
+            throw new Error(`${where}: columns['${fieldId}'] must be a column letter like "L"`);
+          }
+        }
+      } else if (src.kind === 'cell') {
+        if (!src.sourceTaskId) throw new Error(`${where}: 'sourceTaskId' required for kind=cell`);
+        if (!Array.isArray(src.fields) || src.fields.length === 0) throw new Error(`${where}: 'fields' must be a non-empty array for kind=cell`);
+        for (const f of src.fields) {
+          if (!f.field || typeof f.field !== 'string') throw new Error(`${where}: each field mapping must have a 'field' string`);
+          if (!f.cell || typeof f.cell !== 'string') throw new Error(`${where}: each field mapping must have a 'cell' string`);
+        }
+      } else if (src.kind === 'range') {
+        if (!src.range || typeof src.range !== 'string') throw new Error(`${where}: 'range' required for kind=range (e.g., "H46:L46")`);
+        if (!src.outputVar || typeof src.outputVar !== 'string') throw new Error(`${where}: 'outputVar' required for kind=range`);
+      } else {
+        throw new Error(`${where}: unknown kind '${(src as { kind?: string }).kind}'`);
+      }
     }
   }
 }
@@ -155,8 +234,8 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
         });
       }
       
-      if (taskType !== 'export-excel' && taskType !== 'dynamic-list' && taskType !== 'detail-list' && taskType !== 'form') {
-        throw new Error(`Invalid task type '${taskType}' in ${contextId}. Must be 'standard', 'check', 'multicheck', 'export-excel', 'dynamic-list', 'detail-list', or 'form'`);
+      if (taskType !== 'export-excel' && taskType !== 'dynamic-list' && taskType !== 'detail-list' && taskType !== 'detail-table' && taskType !== 'form') {
+        throw new Error(`Invalid task type '${taskType}' in ${contextId}. Must be 'standard', 'check', 'multicheck', 'export-excel', 'dynamic-list', 'detail-list', 'detail-table', or 'form'`);
       }
       return [];
     };
@@ -196,7 +275,7 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
           name: task.name,
           description: task.description || '',
           order: task.order || 0,
-          type: taskType as 'standard' | 'check' | 'multicheck' | 'export-excel' | 'dynamic-list' | 'detail-list' | 'form',
+          type: taskType as 'standard' | 'check' | 'multicheck' | 'export-excel' | 'dynamic-list' | 'detail-list' | 'detail-table' | 'form',
           checkItems: parseCheckItems(task, `task ${task.id} in ${contextId}`),
           references: task.references || [],
           evidenceConfig: task.evidence || { type: 'text', required: false },
@@ -206,6 +285,8 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
           listData: [],
           detailConfig: task.detailConfig,
           detailData: [],
+          detailTableConfig: task.detailTableConfig,
+          detailTableData: [],
           formConfig: task.formConfig,
           formData: [],
           completed: false,
@@ -213,6 +294,7 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
           isBlocked: false,
           dynamicLinks: task.dynamicLinks || [],
           completionAlert: validateCompletionAlert(task.completionAlert, `task '${task.id}' in ${contextId}`),
+          outputVars: validateOutputVars(task.outputVars, `task '${task.id}' in ${contextId}`),
         };
       });
     };
@@ -265,6 +347,15 @@ export function parseYAMLToProcess(yamlContent: string): ProcessState {
       variables.forEach((v) => {
         if (v.defaultValue) {
           initialCapturedVariables[v.key] = v.defaultValue;
+        }
+        // Validate optionsFrom: must be a string and only valid for type: select
+        if (v.optionsFrom) {
+          if (typeof v.optionsFrom !== 'string') {
+            throw new Error(`Variable '${v.key}': optionsFrom must be a string`);
+          }
+          if (v.type !== 'select') {
+            throw new Error(`Variable '${v.key}': optionsFrom is only valid for type: select`);
+          }
         }
       });
     }

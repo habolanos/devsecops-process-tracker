@@ -3,7 +3,7 @@ process:
   id: "release-checklist-2026"
   name: "Checklist de Liberación"
   description: "Proceso de validación y checklist para liberaciones a producción con generación automática de reporte Excel"
-  version: "1.0.0"
+  version: "1.1.0"
   estimatedTime: "45m"
 
   # =========================================================================
@@ -17,56 +17,108 @@ process:
     outputFilename: "Checklist_Liberacion_{today:DDMMYYYY}_RFC{vars.rfc}_NOTA{vars.notaInstalacion}_{process.name}"
     autoDownload: true
     mappings:
-      # capturedVariables.<key> -> cell reference
-      variables:
-        torre: "F3"
-        nombreProyecto: "F4"
-        api: "F5"
-        componentesLiberar: "F7"
-        uriMeet: "W7"
-        rfc: "F9"
-        notaInstalacion: "W9"
-        scmDiurno: "F10"
-        lider: "W10"
-        sreNocturno: "F11"
-        tester: "W11"
-        sreDiurno: "F12"
-        desarrollador: "W12"
-        tipoLiberacion: "F85"
-        tiempoGuardia: "F86"
-      # Time tracking
-      time:
-        today: "W3"
-        startedAt: "W85"
-        completedAt: "W86"
-      # Process metadata
-      process:
-        id: "F84"
-      # Free-form comments cell
-      comments:
-        cell: "B100"
-        template: "Proceso: {process.name}\nVersión: {process.version}\nRFC: {vars.rfc}"
-      # Task-driven data sources (replaces hardcoded EXCEL_CELL_MAP)
-      taskSources:
-        - kind: list
-          sourceTaskId: task-1-2
-          column: F
-          startRow: 5
-          endRow: 13
-        - kind: detail
-          sourceTaskId: task-1-2b
-          sections:
-            - { column: B, startRow: 47, endRow: 56 }
-            - { column: B, startRow: 60, endRow: 69 }
-            - { column: B, startRow: 72, endRow: 81 }
-        - kind: form
-          sourceTaskId: task-7-1b
-      # Secondary sheet for evidences (completed tasks with timestamps)
-      evidences:
-        sheet: "Evidencias"
-        startRow: 3
-        dateColumn: B
-        activityColumn: C
+      sheets:
+        # --- Hoja principal: Checklist ---
+        - sheet: "Checklist"
+          sources:
+            # capturedVariables.<key> -> cell reference
+            - kind: variables
+              mapping:
+                torre: "F3"
+                nombreProyecto: "F4"
+                api: "L5"
+                componentesLiberar: "F5"
+                uriMeet: "U5"
+                rfc: "F14"
+                notaInstalacion: "U14"
+                scmDiurno: "F15"
+                lider: "U15"
+                sreNocturno: "F16"
+                tester: "U16"
+                sreDiurno: "F17"
+                desarrollador: "U17"
+                tipoLiberacion: "F86"
+                tiempoGuardia: "F87"
+            # Time tracking
+            - kind: time
+              today: "U3"
+              startedAt: "S86"
+              completedAt: "S87"
+            # Process metadata
+            - kind: process
+              id: "F84"
+            # Free-form comments cell
+            - kind: comments
+              cell: "B100"
+              template: "Proceso: {process.name} - NOTA: {vars.notaInstalacion} RFC: {vars.rfc}\nVersión: {process.version}\n"
+            # Task-driven data sources
+            - kind: list
+              sourceTaskId: task-1-2
+              column: F
+              startRow: 5
+              endRow: 13
+            - kind: list
+              sourceTaskId: task-1-2
+              column: B
+              startRow: 47
+              endRow: 56
+            - kind: list
+              sourceTaskId: task-1-2
+              column: B
+              startRow: 60
+              endRow: 69
+            - kind: list
+              sourceTaskId: task-1-2
+              column: B
+              startRow: 72
+              endRow: 81
+            - kind: list
+              sourceTaskId: task-1-2
+              column: B
+              startRow: 89
+              endRow: 98
+            - kind: detail-table
+              sourceTaskId: task-1-2a
+              startRow: 47
+              columns:
+                integracionMaster: H
+                deudaTecnica: I
+                vulnerabilidades: J
+                urlRepo: L
+            - kind: detail-table
+              sourceTaskId: task-1-2b
+              startRow: 60
+              columns:
+                ordenTareas: H
+                variables: I
+                validacionPuertos: J
+                healthCheck: L
+                numPods: M
+                urlConfigVariables: N
+                comentarios: V
+            - kind: detail-table
+              sourceTaskId: task-1-2c
+              startRow: 72
+              columns:
+                nroRelease: H
+                rama: I
+                urlReleaseRollback: J
+                propertiesCommit: W
+            - kind: detail-table
+              sourceTaskId: task-1-2d
+              startRow: 89
+              columns:
+                nroRelease: G
+                rama: H
+                urlRelease: I
+            - kind: form
+              sourceTaskId: task-7-1b
+
+        # --- Hoja secundaria: Evidencias (registro de tareas completadas) ---
+        - sheet: "Evidencias"
+          startRow: 3
+          timestampColumn: B
+          nameColumn: C
 
   variables:
     - key: "torre"
@@ -170,7 +222,12 @@ process:
       label: "URL del Repositorio"
       type: "text"
       required: true
-      placeholder: "https://github.com/org/repo"
+      placeholder: "https://dev.azure.com/Coppel-Retail/Cadena_de_Suministros/_git/"
+    - key: "repositoryUrlProperties"
+      label: "URL del Repositorio de Properties"
+      type: "text"
+      required: true
+      placeholder: "https://dev.azure.com/Coppel-Retail/Cadena_de_Suministros/_git/properties?path=/"
 
   phases:
     # ========================================
@@ -203,7 +260,7 @@ process:
             label: "Repositorio/Componente"
             placeholder: "Ingrese nombres separados por coma, punto y coma, o salto de línea"
             minItems: 1
-            maxItems: 20
+            maxItems: 9
             allowDuplicates: false
             separators:
               - ","
@@ -216,19 +273,136 @@ process:
             description: "Notas adicionales sobre los repositorios"
           dependencies: ["task-1-1"]
 
-        - id: "task-1-2b"
-          name: "Detalle de Repositorios"
-          description: "Para cada repositorio, ingrese información adicional (versión, rama, comentarios)"
+        - id: "task-1-2a"
+          name: "VALIDACION DE PULLREQUEST Y DEUDA TECNICA"
+          description: "Para cada repositorio, valide pull request y deuda tecnica"
           order: 3
-          type: "detail-list"
-          detailConfig:
+          type: "detail-table"
+          detailTableConfig:
             sourceTaskId: "task-1-2"
-            placeholder: "Ingrese detalle para {item}"
-            maxLength: 200
+            columns:
+              - id: "integracionMaster"
+                label: "#H46#"
+                type: "boolean"
+                required: false
+              - id: "deudaTecnica"
+                label: "#I46#"
+                type: "boolean"
+                required: false
+              - id: "vulnerabilidades"
+                label: "#J46#"
+                type: "boolean"
+                required: false
+              - id: "urlRepo"
+                label: "#L46#"
+                type: "computed-text"
+                template: "{vars.repositoryUrl}/{item}"
+                required: false
           evidence:
             type: "text"
             required: false
-            description: "Notas adicionales sobre los detalles"
+            description: "La tabla de validación por repositorio constituye la evidencia"
+          dependencies: ["task-1-2"]
+
+        - id: "task-1-2b"
+          name: "VALIDACION DE PIPELINES CD"
+          description: "Para cada repositorio, valide los criterios de calidad"
+          order: 3
+          type: "detail-table"
+          detailTableConfig:
+            sourceTaskId: "task-1-2"
+            columns:
+              - id: "ordenTareas"
+                label: "#H59#"
+                type: "boolean"
+                required: false
+              - id: "variables"
+                label: "#I59#"
+                type: "boolean"
+                required: false
+              - id: "validacionPuertos"
+                label: "#J59#"
+                type: "boolean"
+                required: false
+              - id: "healthCheck"
+                label: "#L59#"
+                type: "boolean"
+                required: false
+              - id: "numPods"
+                label: "#M59#"
+                type: "number"
+                required: true
+              - id: "urlConfigVariables"
+                label: "#N59#"
+                type: "computed-text"
+                template: "{vars.repositoryUrlProperties}/{item}"
+                required: false
+              - id: "comentarios"
+                label: "#V59#"
+                type: "text"
+                required: false
+          evidence:
+            type: "text"
+            required: false
+            description: "La tabla de validación de pipelines CD"
+          dependencies: ["task-1-2"]
+
+        - id: "task-1-2c"
+          name: "COMPONENTES EN CASO DE ROLLBACK"
+          description: "Para cada repositorio, valide los componentes necesarios para rollback"
+          order: 3
+          type: "detail-table"
+          detailTableConfig:
+            sourceTaskId: "task-1-2"
+            columns:
+              - id: "nroRelease"
+                label: "#H71#"
+                type: "number"
+                required: false
+              - id: "rama"
+                label: "#I71#"
+                type: "text"
+                required: false
+              - id: "urlReleaseRollback"
+                label: "#J71#"
+                type: "computed-text"
+                template: "{vars.repositoryUrl}/{item}"
+                required: false
+              - id: "propertiesCommit"
+                label: "#W71#"
+                type: "text"
+                required: false
+          evidence:
+            type: "text"
+            required: false
+            description: "La tabla de validación de componentes para rollback"
+          dependencies: ["task-1-2"]
+
+        - id: "task-1-2d"
+          name: "RELEASE CHECK LIST"
+          description: "Para cada repositorio, validación de checklist de release"
+          order: 3
+          type: "detail-table"
+          detailTableConfig:
+            sourceTaskId: "task-1-2"
+            columns:
+              - id: "nroRelease"
+                label: "#G88#"
+                type: "number"
+                required: false
+              - id: "rama"
+                label: "#H88#"
+                type: "text"
+                required: false
+              - id: "urlRelease"
+                label: "#I88#"
+                type: "computed-text"
+                template: "{vars.repositoryUrl}/{item}"
+                required: false
+          evidence:
+            type: "text"
+            required: false
+            description: "La tabla de validación de componentes para rollback"
           dependencies: ["task-1-2"]
 
         - id: "task-1-3"
@@ -253,7 +427,7 @@ process:
             type: "text"
             required: false
             description: "Notas sobre disponibilidad del equipo"
-          dependencies: ["task-1-2"]
+          dependencies: ["task-1-2b"]
 
     # ========================================
     # FASE 2: VALIDACIONES PRE-LIBERACIÓN
@@ -657,7 +831,7 @@ process:
           type: "export-excel"
           exportConfig:
             templatePath: "/templates/TEMPLATE_Checklist_Liberacion.xlsx"
-            outputFilename: "Checklist_Liberacion_{fecha}_{rfc}_{notaInstalacion}"
+            outputFilename: "Checklist_Liberacion_{fecha}_{notaInstalacion}_{rfc}"
             autoDownload: true
           evidence:
             type: "text"

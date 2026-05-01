@@ -1,0 +1,315 @@
+# yaml-language-server: $schema=../../../schemas/process.schema.json
+process:
+  id: "pr-master-scm-2026"
+  name: "Pull Request destino master + PRs Master Validados por SCM"
+  description: "Proceso de Integración de Código (PRs) — Servicio SCM. Atención de PRs con destino master, validación de estrategia rollback y datos para nota de instalación."
+  version: "1.0.0"
+  estimatedTime: "1h30m"
+
+  variables:
+    - key: "folioSD"
+      label: "Folio SD (Solicitud del Cliente)"
+      type: "text"
+      required: true
+      placeholder: "ej: SD-123456"
+    - key: "repositoryUrl"
+      label: "URL del Repositorio"
+      type: "text"
+      required: true
+      placeholder: "https://dev.azure.com/org/proj/_git/repo"
+    - key: "branchOrigen"
+      label: "Branch Origen"
+      type: "text"
+      required: true
+      placeholder: "ej: release/1.5.0"
+
+  phases:
+    # ==============================
+    # c1 - VALIDACIÓN
+    # ==============================
+    - id: "phase-c1-validacion"
+      name: "c1 — Validación"
+      description: "Se valida el cumplimiento de la solicitud y la estrategia de rollback antes de proceder a la integración a master."
+      order: 1
+      tasks:
+        - id: "task-c1-input"
+          name: "Recibir Solicitud del Cliente"
+          description: "Registrar el folio SD y datos del PR a master."
+          order: 1
+          type: "standard"
+          evidence:
+            type: "text"
+            required: true
+            description: "Detalle de la solicitud recibida (folio SD, repositorio, branch origen)."
+
+        - id: "task-c1-checks"
+          name: "Validar Criterios de Cumplimiento (DOD)"
+          description: "Verificar el cumplimiento de los criterios estándar antes de integrar a master."
+          order: 2
+          type: "multicheck"
+          checkItems:
+            - id: "check-dod"
+              description: "DOD (Definition of Done) cumplido"
+              required: true
+            - id: "check-branch-strategy"
+              description: "Branch Strategy correcta"
+              required: true
+            - id: "check-politicas"
+              description: "Políticas de repositorio aplicadas"
+              required: true
+            - id: "check-versionamento"
+              description: "Versionamiento correcto"
+              required: true
+            - id: "check-ci-pipe"
+              description: "Configuración CI pipe validada"
+              required: true
+            - id: "check-cd-pipe"
+              description: "Configuración CD pipe validada"
+              required: true
+            - id: "check-config-file"
+              description: "Config File validado"
+              required: true
+            - id: "check-rollback-strategy"
+              description: "Estrategia Rollback validada por SCM"
+              required: true
+          evidence:
+            type: "text"
+            required: false
+            description: "Notas u observaciones sobre la validación."
+          dependencies: ["task-c1-input"]
+
+        - id: "task-c1-imagenes"
+          name: "Verificación de Imágenes Release & Rollback"
+          description: "Capturar URL, Folio e imágenes de Release y Rollback verificadas."
+          order: 3
+          type: "form"
+          formConfig:
+            layout:
+              type: "grid"
+              columns: 2
+              gap: "medium"
+            fields:
+              - id: "releaseImageUrl"
+                label: "URL Imagen Release"
+                type: "text"
+                required: true
+                placeholder: "https://harbor/.../release"
+                colSpan: 1
+              - id: "releaseFolio"
+                label: "Folio Release"
+                type: "text"
+                required: true
+                placeholder: "ej: F-001"
+                colSpan: 1
+              - id: "rollbackImageUrl"
+                label: "URL Imagen Rollback"
+                type: "text"
+                required: true
+                placeholder: "https://harbor/.../rollback"
+                colSpan: 1
+              - id: "rollbackFolio"
+                label: "Folio Rollback"
+                type: "text"
+                required: true
+                placeholder: "ej: F-002"
+                colSpan: 1
+              - id: "verificationImage"
+                label: "Captura de Verificación"
+                type: "image"
+                required: true
+                colSpan: 2
+                maxImages: 4
+          evidence:
+            type: "form"
+            required: true
+            description: "Datos e imágenes de verificación de Release & Rollback."
+          dependencies: ["task-c1-checks"]
+          completionAlert:
+            severity: "warning"
+            title: "Confirmar verificación de imágenes"
+            description: "¿Se confirman las imágenes de Release y Rollback validadas para proceder a la integración?"
+            confirmLabel: "Sí, proceder"
+            cancelLabel: "Revisar"
+
+    # ==============================
+    # c2 - EJECUCIÓN
+    # ==============================
+    - id: "phase-c2-ejecucion"
+      name: "c2 — Ejecución"
+      description: "Se atiende el PR a master y se procede a la creación del release."
+      order: 2
+      tasks:
+        - id: "task-c2-creacion-pr"
+          name: "Creación del Pull Request"
+          description: "Crear el PR desde el branch origen hacia master."
+          order: 1
+          type: "check"
+          checkItem:
+            description: "Pull Request creado correctamente"
+            required: true
+          evidence:
+            type: "image"
+            required: true
+            description: "Captura del PR creado."
+          dependencies: ["task-c1-imagenes"]
+
+        - id: "task-c2-validacion-ci"
+          name: "Validación PR.CI"
+          description: "Verificar ejecución exitosa del pipeline de Continuous Integration sobre el PR."
+          order: 2
+          type: "check"
+          checkItem:
+            description: "Pipeline CI ejecutado y aprobado"
+            required: true
+          evidence:
+            type: "image"
+            required: true
+            description: "Captura del pipeline CI verde."
+          dependencies: ["task-c2-creacion-pr"]
+
+        - id: "task-c2-integracion"
+          name: "Integración del PR"
+          description: "Mergear el PR validado a master."
+          order: 3
+          type: "form"
+          formConfig:
+            layout:
+              type: "vertical"
+            fields:
+              - id: "prUrl"
+                label: "URL del PR Integrado"
+                type: "text"
+                required: true
+                placeholder: "https://dev.azure.com/.../pullrequest/123"
+                description: "URL del PR ya mergeado a master."
+          evidence:
+            type: "form"
+            required: true
+            description: "Datos de integración del PR."
+          dependencies: ["task-c2-validacion-ci"]
+          outputVars:
+            - name: "prUrl"
+              type: "text"
+              source: "formData.prUrl"
+
+        - id: "task-c2-creacion-release"
+          name: "Procede a la Creación del Release"
+          description: "Iniciar la creación del release con base en el PR integrado a master."
+          order: 4
+          type: "check"
+          checkItem:
+            description: "Creación del release iniciada"
+            required: true
+          evidence:
+            type: "text"
+            required: false
+            description: "Notas sobre la creación del release."
+          dependencies: ["task-c2-integracion"]
+
+    # ==============================
+    # c3 - RESULTADO (Datos para Nota de Instalación)
+    # ==============================
+    - id: "phase-c3-resultado"
+      name: "c3 — Resultado"
+      description: "Se comparten los datos para la nota de instalación y se concluye la actividad."
+      order: 3
+      tasks:
+        - id: "task-c3-artifact"
+          name: "Validar Release CD Artifact"
+          description: "Confirmar que el artefacto de Release CD fue validado."
+          order: 1
+          type: "check"
+          checkItem:
+            description: "Release CD Artifact Validado"
+            required: true
+          evidence:
+            type: "image"
+            required: true
+            description: "Captura del artefacto validado."
+          dependencies: ["task-c2-creacion-release"]
+
+        - id: "task-c3-nota-instalacion"
+          name: "Datos para Nota de Instalación"
+          description: "Capturar todos los datos necesarios para la nota de instalación."
+          order: 2
+          type: "form"
+          formConfig:
+            layout:
+              type: "grid"
+              columns: 2
+              gap: "medium"
+            fields:
+              - id: "releaseNumber"
+                label: "Release # (Número)"
+                type: "text"
+                required: true
+                placeholder: "ej: 1234"
+                colSpan: 1
+              - id: "releaseUrl"
+                label: "Release URL"
+                type: "text"
+                required: true
+                placeholder: "https://.../release/1234"
+                colSpan: 1
+              - id: "commitDeploy"
+                label: "Commit Properties Deploy"
+                type: "text"
+                required: true
+                placeholder: "ej: a1b2c3d4"
+                colSpan: 1
+              - id: "rollbackReleaseNumber"
+                label: "Release Rollback #"
+                type: "text"
+                required: true
+                placeholder: "ej: 1233"
+                colSpan: 1
+              - id: "rollbackReleaseUrl"
+                label: "URL Release Rollback"
+                type: "text"
+                required: true
+                placeholder: "https://.../release/1233"
+                colSpan: 1
+              - id: "rollbackStrategy"
+                label: "Estrategia Rollback"
+                type: "select"
+                required: true
+                options:
+                  - "Blue/Green"
+                  - "Canary"
+                  - "Rolling"
+                  - "Recreate"
+                colSpan: 1
+              - id: "commitRollback"
+                label: "Commit Properties Rollback"
+                type: "text"
+                required: true
+                placeholder: "ej: e5f6g7h8"
+                colSpan: 1
+              - id: "folioPRMaster"
+                label: "Folio PR Master"
+                type: "text"
+                required: true
+                placeholder: "ej: SD-123456"
+                colSpan: 1
+          evidence:
+            type: "form"
+            required: true
+            description: "Datos completos para la nota de instalación."
+          dependencies: ["task-c3-artifact"]
+
+        - id: "task-c3-cierre"
+          name: "Actividad Concluida"
+          description: "Cierre formal de la actividad y entrega de la nota de instalación al cliente."
+          order: 3
+          type: "standard"
+          evidence:
+            type: "text"
+            required: true
+            description: "Mensaje de cierre y agradecimiento al cliente en el folio."
+          dependencies: ["task-c3-nota-instalacion"]
+          completionAlert:
+            severity: "critical"
+            title: "Cerrar actividad PR Master"
+            description: "Esta actividad genera la nota de instalación. ¿Confirma el cierre y la entrega al cliente?"
+            confirmLabel: "Cerrar y entregar"
+            cancelLabel: "Revisar"

@@ -10,12 +10,13 @@ export interface ProcessVariableYAML {
   type: 'text' | 'select' | 'number';
   required: boolean;
   placeholder?: string;
-  options?: string[];        // For type: 'select'
+  options?: string[];        // For type: 'select' (static)
+  optionsFrom?: string;      // For type: 'select' (dynamic): key of capturedVariable holding a list
   defaultValue?: string;
 }
 
 export interface CapturedVariables {
-  [key: string]: string;
+  [key: string]: string | string[];
 }
 
 // ============================================
@@ -94,6 +95,21 @@ export interface SubprocessSource {
 
 export type CompletionAlertSeverity = 'info' | 'warning' | 'critical';
 
+// ============================================
+// Task Output Variables
+// ============================================
+
+/**
+ * Declares that a task produces a named output variable upon completion.
+ * The output is written to `capturedVariables` so other tasks/variables can consume it.
+ */
+export interface TaskOutputVar {
+  name: string;                       // Variable name in capturedVariables
+  type: 'text' | 'list' | 'object';   // Output shape
+  source: string;                     // TaskState field path: "listData", "evidence.text", "formData", etc.
+  mapTo?: string;                     // For list type: property to extract from each item (e.g., "value" from ListItem)
+}
+
 /**
  * Optional confirmation dialog shown before a task is finalized.
  * When a task declares `completionAlert`, clicking to complete opens a modal
@@ -114,7 +130,7 @@ export interface TaskYAML {
   name: string;
   description?: string;                 // Optional for check/multicheck (checkItems have descriptions)
   order: number;
-  type?: 'standard' | 'check' | 'multicheck' | 'export-excel' | 'dynamic-list' | 'detail-list' | 'form';  // Default: 'standard'
+  type?: 'standard' | 'check' | 'multicheck' | 'export-excel' | 'dynamic-list' | 'detail-list' | 'detail-table' | 'form';  // Default: 'standard'
   checkItem?: CheckItemYAML;            // For type='check' (single checkbox)
   checkItems?: CheckItemYAML[];         // For type='multicheck' (multiple checkboxes)
   references?: Reference[];
@@ -124,8 +140,10 @@ export interface TaskYAML {
   exportConfig?: ExportExcelConfig;     // For type='export-excel'
   listConfig?: DynamicListConfig;       // For type='dynamic-list'
   detailConfig?: DetailListConfig;      // For type='detail-list'
+  detailTableConfig?: DetailTableConfig; // For type='detail-table'
   formConfig?: FormConfig;              // For type='form'
   completionAlert?: CompletionAlertConfig;  // Optional confirmation dialog before finalize
+  outputVars?: TaskOutputVar[];             // Optional: task produces named output variables
 }
 
 export interface ExportExcelConfig {
@@ -181,46 +199,102 @@ export interface ExportTaskChecklistSource {
   };
 }
 
+export interface ExportTaskDetailTableSource {
+  kind: 'detail-table';
+  sourceTaskId: string;               // id of a detail-table task
+  startRow: number;                   // first row in Excel where data starts
+  columns: Record<string, string>;    // column id -> Excel column letter (e.g., { integracionMaster: "L" })
+  maxRows?: number;                  // optional cap
+}
+
+export interface ExportTaskCellFieldMapping {
+  field: string;                      // dot-notation path: "evidence.text", "checkItems.<id>.checked", "completedAt"
+  cell: CellRef;                      // target cell: "B100", "J50"
+}
+
+export interface ExportTaskCellSource {
+  kind: 'cell';
+  sourceTaskId: string;               // id of any task type
+  fields: ExportTaskCellFieldMapping[]; // field-to-cell mappings
+}
+
 export type ExportTaskSource =
   | ExportTaskListSource
   | ExportTaskDetailSource
   | ExportTaskFormSource
-  | ExportTaskChecklistSource;
+  | ExportTaskChecklistSource
+  | ExportTaskDetailTableSource
+  | ExportTaskCellSource;
+
+// --- Sheet-level source kinds (non-task) ---
+
+export interface ExportVariablesSource {
+  kind: 'variables';
+  mapping: Record<string, CellRef>;    // { torre: "F3", nombreProyecto: "F4" }
+}
+
+export interface ExportStaticSource {
+  kind: 'static';
+  cells: Record<CellRef, string | number | boolean>;  // { "A1": "Reporte", "B1": 42 }
+}
+
+export interface ExportTimeSource {
+  kind: 'time';
+  today?: CellRef;
+  startedAt?: CellRef;
+  completedAt?: CellRef;
+  totalElapsedMinutes?: CellRef;
+  totalElapsedHours?: CellRef;
+}
+
+export interface ExportProcessSource {
+  kind: 'process';
+  id?: CellRef;
+  name?: CellRef;
+  version?: CellRef;
+}
+
+export interface ExportCommentsSource {
+  kind: 'comments';
+  cell: CellRef;
+  template?: string;                  // supports tokens like {process.name}, {vars.xxx}
+}
+
+export interface ExportRangeSource {
+  kind: 'range';
+  range: string;                      // Excel range notation: "H46:L46", "A1:A10"
+  outputVar: string;                  // Variable name in capturedVariables to store result
+  flatten?: boolean;                  // true = string[] (single row), false = string[][] (matrix)
+}
+
+// Union of all source kinds (sheet-level + task-driven)
+export type ExportSource =
+  | ExportVariablesSource
+  | ExportStaticSource
+  | ExportTimeSource
+  | ExportProcessSource
+  | ExportCommentsSource
+  | ExportRangeSource
+  | ExportTaskListSource
+  | ExportTaskDetailSource
+  | ExportTaskFormSource
+  | ExportTaskChecklistSource
+  | ExportTaskDetailTableSource
+  | ExportTaskCellSource;
+
+// A sheet section: groups sources that write to the same worksheet
+export interface ExportSheetSection {
+  sheet: string;                       // Worksheet name in the template
+  sources?: ExportSource[];            // Data sources for this sheet
+  // Log-mode fields (for sheets that record completed tasks)
+  startRow?: number;
+  timestampColumn?: string;
+  nameColumn?: string;
+  maxRows?: number;
+}
 
 export interface ProcessExportMappings {
-  // Variable key (from capturedVariables) -> cell reference
-  variables?: Record<string, CellRef>;
-  // Absolute cell -> literal value (string | number | boolean)
-  staticCells?: Record<CellRef, string | number | boolean>;
-  // Time-tracking related cells
-  time?: {
-    startedAt?: CellRef;
-    completedAt?: CellRef;
-    totalElapsedMinutes?: CellRef;
-    totalElapsedHours?: CellRef;
-    today?: CellRef;                  // current date at export time
-  };
-  // Process metadata cells
-  process?: {
-    id?: CellRef;
-    name?: CellRef;
-    version?: CellRef;
-  };
-  // Task-driven sources
-  taskSources?: ExportTaskSource[];
-  // Free-form comments with template support
-  comments?: {
-    cell: CellRef;
-    template?: string;                // supports tokens like {process.name}, {vars.xxx}
-  };
-  // Optional evidences sheet
-  evidences?: {
-    sheet: string;
-    startRow: number;
-    dateColumn: string;
-    activityColumn: string;
-    maxRows?: number;
-  };
+  sheets: ExportSheetSection[];
 }
 
 export interface ProcessExportConfig {
@@ -228,7 +302,6 @@ export interface ProcessExportConfig {
   templateVersion?: string;
   templateSha256?: string;            // optional integrity hash
   outputFilename?: string;            // token-interpolated pattern
-  sheet?: string;                     // target worksheet name (default: first)
   autoDownload?: boolean;             // default true
   mappings?: ProcessExportMappings;
 }
@@ -258,6 +331,35 @@ export interface ListItem {
 export interface DetailItem {
   sourceItem: string;                   // The item from the source task
   capturedText: string;                 // The captured detail text
+  addedAt: string;                      // ISO timestamp
+}
+
+// ============================================
+// Detail Table Types (structured per-item table)
+// ============================================
+
+export type DetailTableColumnType = 'boolean' | 'date' | 'list' | 'number' | 'text' | 'computed-text';
+
+export interface DetailTableColumn {
+  id: string;                           // Unique column identifier
+  label: string;                        // Column header label
+  type: DetailTableColumnType;          // Cell type
+  required?: boolean;                   // Whether the field is mandatory
+  placeholder?: string;                 // Placeholder for text fields
+  options?: string[];                   // Options for type='list'
+  template?: string;                    // Template for type='computed-text' (supports {vars.xxx}, {item})
+  maxLength?: number;                   // Max length for text fields
+}
+
+export interface DetailTableConfig {
+  sourceTaskId?: string;                // ID of the dynamic-list task to reference
+  sourceVar?: string;                   // Alternative: key of capturedVariable holding a list
+  columns: DetailTableColumn[];         // Column definitions
+}
+
+export interface DetailTableRow {
+  sourceItem: string;                   // The item from the source task (e.g., repo name)
+  values: Record<string, any>;          // Column values keyed by column id
   addedAt: string;                      // ISO timestamp
 }
 
@@ -418,7 +520,7 @@ export interface TaskState {
   name: string;
   description: string;
   order: number;
-  type: 'standard' | 'check' | 'multicheck' | 'export-excel' | 'dynamic-list' | 'detail-list' | 'form';  // Task type
+  type: 'standard' | 'check' | 'multicheck' | 'export-excel' | 'dynamic-list' | 'detail-list' | 'detail-table' | 'form';  // Task type
   checkItems: CheckItemState[];       // Empty for 'standard', 1 for 'check', N for 'multicheck'
   references: Reference[];
   evidenceConfig: EvidenceConfig;
@@ -433,9 +535,12 @@ export interface TaskState {
   listData?: ListItem[];            // Captured list items for 'dynamic-list'
   detailConfig?: DetailListConfig;  // For type='detail-list'
   detailData?: DetailItem[];        // Captured detail items for 'detail-list'
+  detailTableConfig?: DetailTableConfig; // For type='detail-table'
+  detailTableData?: DetailTableRow[];    // Captured table rows for 'detail-table'
   formConfig?: FormConfig;          // For type='form'
   formData?: FormFieldValue[];      // Captured form field values for 'form'
   completionAlert?: CompletionAlertConfig;  // Optional confirmation dialog before finalize
+  outputVars?: TaskOutputVar[];             // Optional: task produces named output variables
 }
 
 export interface CheckItemState {
@@ -501,7 +606,7 @@ export interface TaskExport {
   name: string;
   description: string;
   order: number;
-  type: 'standard' | 'check' | 'multicheck' | 'export-excel' | 'dynamic-list' | 'detail-list' | 'form';
+  type: 'standard' | 'check' | 'multicheck' | 'export-excel' | 'dynamic-list' | 'detail-list' | 'detail-table' | 'form';
   checkItems: CheckItemState[];
   completed: boolean;
   completedAt?: string;
@@ -523,6 +628,9 @@ export interface TaskExport {
   listData?: ListItem[];
   detailConfig?: DetailListConfig;
   detailData?: DetailItem[];
+  detailTableConfig?: DetailTableConfig;
+  detailTableData?: DetailTableRow[];
   formConfig?: FormConfig;
   formData?: FormFieldValue[];
+  outputVars?: TaskOutputVar[];
 }

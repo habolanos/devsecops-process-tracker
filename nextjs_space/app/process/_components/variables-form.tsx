@@ -49,7 +49,8 @@ export default function VariablesForm({ isOpen, onClose }: VariablesFormProps) {
     
     process.variableDefinitions.forEach((variable) => {
       // Solo auto-llenar si el campo está vacío
-      if (!newVariables[variable.key] || newVariables[variable.key].trim() === '') {
+      const curVal = newVariables[variable.key];
+      if (!curVal || (typeof curVal === 'string' && curVal.trim() === '')) {
         const configValue = getValueForVariable(variable.key);
         if (configValue) {
           newVariables[variable.key] = configValue;
@@ -94,17 +95,32 @@ export default function VariablesForm({ isOpen, onClose }: VariablesFormProps) {
   const isFormValid = () => {
     return process.variableDefinitions
       .filter((v) => v.required)
-      .every((v) => localVariables[v.key] && localVariables[v.key].trim() !== '');
+      .every((v) => {
+        const val = localVariables[v.key];
+        if (!val) return false;
+        if (Array.isArray(val)) return val.length > 0;
+        return val.trim() !== '';
+      });
   };
 
   const renderInput = (variable: ProcessVariableYAML) => {
-    const value = localVariables[variable.key] || '';
+    const rawVal = localVariables[variable.key];
+    const value = typeof rawVal === 'string' ? rawVal : (Array.isArray(rawVal) ? rawVal.join(', ') : '');
     const isEmpty = variable.required && !value.trim();
     const wasAutoFilled = autoFilledKeys.has(variable.key);
     
     // Obtener opciones desde config si están disponibles
     const configOptions = getOptionsForVariable(variable.key);
-    const options = variable.options || configOptions;
+    // Resolve dynamic options from optionsFrom (capturedVariable holding a list)
+    const dynamicOptions = variable.optionsFrom
+      ? (() => {
+          const srcVal = process.capturedVariables?.[variable.optionsFrom];
+          if (Array.isArray(srcVal)) return srcVal as string[];
+          if (typeof srcVal === 'string' && srcVal.trim()) return srcVal.split(',').map(s => s.trim()).filter(Boolean);
+          return [];
+        })()
+      : [];
+    const options = variable.options || configOptions || dynamicOptions;
 
     // Si hay opciones (del YAML o de la config), mostrar select
     if (options && options.length > 0) {

@@ -3,7 +3,7 @@
   "$id": "https://github.com/habolanos/devsecops-process-tracker/schemas/v1/process.schema.json",
   "title": "DevSecOps Process YAML",
   "description": "Schema for process definition files consumed by parseYAMLToProcess in lib/yaml-parser.ts. Authoritative contract for YAML authors; the parser is intentionally more lenient on defaults.",
-  "$comment": "Schema version: 1.1.0 - Last synced with develop on 2026-04-21. Covers: 7 task types (standard, check, multicheck, export-excel, dynamic-list, detail-list, form), declarative Excel export (process.export), completionAlert dialogs, subprocesses (github/url/local), activity-level dynamicLinks and images, process variables with select/number/text types.",
+  "$comment": "Schema version: 1.2.0 - Last synced with develop on 2026-04-23. Covers: 8 task types (standard, check, multicheck, export-excel, dynamic-list, detail-list, detail-table, form), declarative Excel export with sheets[] architecture (process.export), outputVars, optionsFrom, sourceVar, kind:range, kind:cell, kind:detail-table, completionAlert dialogs, subprocesses (github/url/local), activity-level dynamicLinks and images, process variables with select/number/text types.",
   "type": "object",
   "additionalProperties": false,
   "required": ["process"],
@@ -108,12 +108,17 @@
         "required":     { "type": "boolean" },
         "placeholder":  { "type": "string" },
         "options":      { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "optionsFrom":  {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "description": "Name of a capturedVariable containing string[] to populate select options dynamically. Only valid for type: select."
+        },
         "defaultValue": { "type": "string" }
       },
       "allOf": [
         {
           "if": { "properties": { "type": { "const": "select" } }, "required": ["type"] },
-          "then": { "required": ["options"] }
+          "then": { "anyOf": [ { "required": ["options"] }, { "required": ["optionsFrom"] } ] }
         }
       ]
     },
@@ -259,8 +264,121 @@
       }
     },
 
+    "DetailTableColumnConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "type", "required"],
+      "properties": {
+        "id":       { "$ref": "#/$defs/Identifier" },
+        "label":    { "type": "string", "minLength": 1, "description": "Column header. Supports #CELL# syntax (e.g. '#H46#') to read from template." },
+        "type":     { "enum": ["boolean", "text", "number", "date", "list", "computed-text"] },
+        "required": { "type": "boolean" },
+        "options":  { "type": "array", "items": { "type": "string" }, "description": "Options for type: list columns." },
+        "template": { "type": "string", "description": "Template for type: computed-text. Supports {item}, {vars.xxx}." }
+      }
+    },
+
+    "DetailTableConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sourceTaskId": { "$ref": "#/$defs/Identifier", "description": "ID of a dynamic-list task to use as row source." },
+        "sourceVar":    {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "description": "Name of a capturedVariable containing string[] to use as row source (alternative to sourceTaskId)."
+        },
+        "columns": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/DetailTableColumnConfig" }
+        }
+      },
+      "anyOf": [
+        { "required": ["sourceTaskId"] },
+        { "required": ["sourceVar"] }
+      ]
+    },
+
+    "TaskOutputVar": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type", "source"],
+      "properties": {
+        "name":  {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "description": "Variable name in capturedVariables."
+        },
+        "type":  { "enum": ["text", "list", "object"], "description": "text=string, list=string[], object=JSON string" },
+        "source": { "type": "string", "description": "Dot-notation path on TaskState (e.g. listData, evidence.text, formData)." },
+        "mapTo":  { "type": "string", "description": "For type: list, property to extract from each item (e.g. 'value')." }
+      }
+    },
+
     "ExportTaskSource": {
       "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "mapping"],
+          "properties": {
+            "kind":    { "const": "variables" },
+            "mapping": {
+              "type": "object",
+              "additionalProperties": { "$ref": "#/$defs/CellRef" },
+              "description": "Map of variable key -> Excel cell reference."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "cells"],
+          "properties": {
+            "kind":  { "const": "static" },
+            "cells": {
+              "type": "object",
+              "propertyNames": { "pattern": "^[A-Z]+[0-9]+$" },
+              "additionalProperties": { "type": ["string", "number", "boolean"] },
+              "description": "Literal values keyed by cell reference."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {
+            "kind":              { "const": "time" },
+            "today":             { "$ref": "#/$defs/CellRef" },
+            "startedAt":         { "$ref": "#/$defs/CellRef" },
+            "completedAt":       { "$ref": "#/$defs/CellRef" },
+            "totalElapsedMinutes": { "$ref": "#/$defs/CellRef" },
+            "totalElapsedHours":   { "$ref": "#/$defs/CellRef" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {
+            "kind":    { "const": "process" },
+            "id":      { "$ref": "#/$defs/CellRef" },
+            "name":    { "$ref": "#/$defs/CellRef" },
+            "version": { "$ref": "#/$defs/CellRef" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "cell"],
+          "properties": {
+            "kind":     { "const": "comments" },
+            "cell":     { "$ref": "#/$defs/CellRef" },
+            "template": { "type": "string", "description": "Interpolable text with {process.name}, {vars.xxx}, {today:FMT}." }
+          }
+        },
         {
           "type": "object",
           "additionalProperties": false,
@@ -327,70 +445,100 @@
               }
             }
           }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "sourceTaskId", "startRow", "columns"],
+          "properties": {
+            "kind":         { "const": "detail-table" },
+            "sourceTaskId": { "$ref": "#/$defs/Identifier" },
+            "startRow":     { "type": "integer", "minimum": 1 },
+            "columns": {
+              "type": "object",
+              "additionalProperties": { "$ref": "#/$defs/ColumnLetter" },
+              "description": "Map of detailTableConfig column id -> Excel column letter."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "sourceTaskId", "fields"],
+          "properties": {
+            "kind":         { "const": "cell" },
+            "sourceTaskId": { "$ref": "#/$defs/Identifier" },
+            "fields": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["field", "cell"],
+                "properties": {
+                  "field": { "type": "string", "description": "Dot-notation path on TaskState (e.g. evidence.text, checkItems.<id>.checked)." },
+                  "cell":  { "$ref": "#/$defs/CellRef" }
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "range", "outputVar"],
+          "properties": {
+            "kind":      { "const": "range" },
+            "range":     {
+              "type": "string",
+              "pattern": "^[A-Z]+[0-9]+:[A-Z]+[0-9]+$",
+              "description": "Excel range in A1:B2 notation. Reads cell values from template."
+            },
+            "outputVar": {
+              "type": "string",
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+              "description": "Name of capturedVariable to store the read values."
+            },
+            "flatten":   {
+              "type": "boolean",
+              "default": true,
+              "description": "true=string[] (non-empty values), false=string[][] (full matrix)."
+            }
+          }
         }
       ]
+    },
+
+    "ExportSheetSection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sheet"],
+      "properties": {
+        "sheet": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Name of the Excel worksheet this section targets."
+        },
+        "sources": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ExportTaskSource" },
+          "description": "Ordered list of data sources to apply to this sheet."
+        },
+        "startRow":          { "type": "integer", "minimum": 1, "description": "For evidence sheets: first data row." },
+        "timestampColumn":   { "$ref": "#/$defs/ColumnLetter", "description": "For evidence sheets: column for timestamps." },
+        "nameColumn":        { "$ref": "#/$defs/ColumnLetter", "description": "For evidence sheets: column for activity names." },
+        "maxRows":           { "type": "integer", "minimum": 1, "description": "For evidence sheets: max rows to write." }
+      }
     },
 
     "ProcessExportMappings": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "variables": {
-          "type": "object",
-          "additionalProperties": { "$ref": "#/$defs/CellRef" },
-          "description": "Map of variable key -> Excel cell reference."
-        },
-        "staticCells": {
-          "type": "object",
-          "propertyNames": { "pattern": "^[A-Z]+[0-9]+$" },
-          "additionalProperties": {
-            "type": ["string", "number", "boolean"]
-          }
-        },
-        "time": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "startedAt":             { "$ref": "#/$defs/CellRef" },
-            "completedAt":           { "$ref": "#/$defs/CellRef" },
-            "totalElapsedMinutes":   { "$ref": "#/$defs/CellRef" },
-            "totalElapsedHours":     { "$ref": "#/$defs/CellRef" },
-            "today":                 { "$ref": "#/$defs/CellRef" }
-          }
-        },
-        "process": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "id":      { "$ref": "#/$defs/CellRef" },
-            "name":    { "$ref": "#/$defs/CellRef" },
-            "version": { "$ref": "#/$defs/CellRef" }
-          }
-        },
-        "taskSources": {
+        "sheets": {
           "type": "array",
-          "items": { "$ref": "#/$defs/ExportTaskSource" }
-        },
-        "comments": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["cell"],
-          "properties": {
-            "cell":     { "$ref": "#/$defs/CellRef" },
-            "template": { "type": "string" }
-          }
-        },
-        "evidences": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["sheet", "startRow", "dateColumn", "activityColumn"],
-          "properties": {
-            "sheet":          { "type": "string", "minLength": 1 },
-            "startRow":       { "type": "integer", "minimum": 1 },
-            "dateColumn":     { "$ref": "#/$defs/ColumnLetter" },
-            "activityColumn": { "$ref": "#/$defs/ColumnLetter" },
-            "maxRows":        { "type": "integer", "minimum": 1 }
-          }
+          "items": { "$ref": "#/$defs/ExportSheetSection" },
+          "description": "Array of sheet sections, each declaring a target sheet and its data sources."
         }
       }
     },
@@ -404,7 +552,6 @@
         "templateVersion": { "type": "string" },
         "templateSha256":  { "type": "string", "pattern": "^[A-Fa-f0-9]{64}$" },
         "outputFilename":  { "type": "string" },
-        "sheet":           { "type": "string" },
         "autoDownload":    { "type": "boolean" },
         "mappings":        { "$ref": "#/$defs/ProcessExportMappings" }
       }
@@ -431,7 +578,7 @@
         "description":  { "type": "string" },
         "order":        { "type": "integer", "minimum": 0 },
         "type": {
-          "enum": ["standard", "check", "multicheck", "export-excel", "dynamic-list", "detail-list", "form"],
+          "enum": ["standard", "check", "multicheck", "export-excel", "dynamic-list", "detail-list", "detail-table", "form"],
           "default": "standard"
         },
         "references": {
@@ -447,7 +594,12 @@
           "type": "array",
           "items": { "$ref": "#/$defs/DynamicLink" }
         },
-        "completionAlert": { "$ref": "#/$defs/CompletionAlert" }
+        "completionAlert": { "$ref": "#/$defs/CompletionAlert" },
+        "outputVars": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/TaskOutputVar" },
+          "description": "Variables to write into capturedVariables when this task completes."
+        }
       }
     },
 
@@ -538,6 +690,14 @@
               "properties": {
                 "type":       { "const": "form" },
                 "formConfig": { "$ref": "#/$defs/FormConfig" }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["type", "detailTableConfig"],
+              "properties": {
+                "type":              { "const": "detail-table" },
+                "detailTableConfig": { "$ref": "#/$defs/DetailTableConfig" }
               }
             }
           ]

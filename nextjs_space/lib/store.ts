@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { produce } from 'immer';
-import { ProcessState, TaskEvidence, CapturedVariables, WorkSession, ListItem, DetailItem, FormFieldValue } from './types';
+import { ProcessState, TaskEvidence, CapturedVariables, WorkSession, ListItem, DetailItem, DetailTableRow, FormFieldValue, TaskOutputVar } from './types';
 import { updateProgress, updateTaskBlockedStatus, getAllDependentTasks } from './helpers';
 import { createCompressedStorage } from './persist-storage';
 import { useUserProfileStore } from './user-profile-store';
@@ -55,6 +55,9 @@ interface ProcessStore {
   
   // Detail List Actions (for detail-list tasks)
   updateDetailData: (phaseId: string, taskId: string, detailData: DetailItem[], activityId?: string) => void;
+
+  // Detail Table Actions (for detail-table tasks)
+  updateDetailTableData: (phaseId: string, taskId: string, detailTableData: DetailTableRow[], activityId?: string) => void;
   
   // Form Actions (for form tasks)
   updateFormData: (phaseId: string, taskId: string, formData: FormFieldValue[], activityId?: string) => void;
@@ -72,6 +75,33 @@ interface ProcessStore {
   resumeProcessTimer: () => void;
   stopProcessTimer: () => void;
   getElapsedTime: () => number;
+}
+
+/**
+ * Compute output variables from a completed task and return them as CapturedVariables.
+ * Resolves the `source` dot-notation path on the task object.
+ */
+function computeOutputVars(task: any, outputVars?: TaskOutputVar[]): CapturedVariables {
+  if (!outputVars || outputVars.length === 0) return {};
+  const result: CapturedVariables = {};
+  for (const ov of outputVars) {
+    const raw = ov.source.split('.').reduce((obj: any, key: string) => obj?.[key], task);
+    if (raw === undefined || raw === null) continue;
+
+    if (ov.type === 'text') {
+      result[ov.name] = typeof raw === 'string' ? raw : String(raw);
+    } else if (ov.type === 'list') {
+      if (Array.isArray(raw)) {
+        const mapped = ov.mapTo
+          ? raw.map((item: any) => item?.[ov.mapTo!] ?? '')
+          : raw.map((item: any) => String(item));
+        result[ov.name] = mapped.filter((s: string) => s !== '');
+      }
+    } else if (ov.type === 'object') {
+      result[ov.name] = JSON.stringify(raw);
+    }
+  }
+  return result;
 }
 
 export const useProcessStore = create<ProcessStore>()(persist(
@@ -288,6 +318,23 @@ export const useProcessStore = create<ProcessStore>()(persist(
 
         // Update blocked status after completion
         updatedProcess = updateTaskBlockedStatus(updatedProcess);
+
+        // Compute outputVars from the completed task and merge into capturedVariables
+        const completedTask = updatedProcess.phases
+          .flatMap((p: any) => [...(p.tasks ?? []), ...((p.activities ?? []).flatMap((a: any) => a.tasks))])
+          .find((t: any) => t?.id === taskId);
+        if (completedTask?.outputVars) {
+          const outputs = computeOutputVars(completedTask, completedTask.outputVars);
+          if (Object.keys(outputs).length > 0) {
+            updatedProcess = {
+              ...updatedProcess,
+              capturedVariables: {
+                ...updatedProcess.capturedVariables,
+                ...outputs,
+              },
+            };
+          }
+        }
 
         return { process: updatedProcess };
       });
@@ -560,6 +607,49 @@ export const useProcessStore = create<ProcessStore>()(persist(
       });
     },
 
+    updateDetailTableData: (phaseId, taskId, detailTableData, activityId) => {
+      set((state) => {
+        if (!state.process) return state;
+
+        const updateTaskDetailTableData = (task: any) => {
+          if (task?.id !== taskId) return task;
+          return {
+            ...task,
+            detailTableData: detailTableData
+          };
+        };
+
+        const updatedPhases = state.process.phases.map((phase) => {
+          if (phase?.id !== phaseId) return phase;
+
+          if (activityId) {
+            return {
+              ...phase,
+              activities: (phase.activities ?? []).map((activity) => {
+                if (activity?.id !== activityId) return activity;
+                return {
+                  ...activity,
+                  tasks: activity.tasks.map(updateTaskDetailTableData)
+                };
+              })
+            };
+          }
+
+          return {
+            ...phase,
+            tasks: (phase.tasks ?? []).map(updateTaskDetailTableData)
+          };
+        });
+
+        return {
+          process: {
+            ...state.process,
+            phases: updatedPhases
+          }
+        };
+      });
+    },
+
     markProcessComplete: () => {
       set((state) => {
         if (!state.process) return state;
@@ -614,7 +704,12 @@ export const useProcessStore = create<ProcessStore>()(persist(
       
       return variableDefinitions
         .filter((v) => v.required)
-        .every((v) => capturedVariables[v.key] && capturedVariables[v.key].trim() !== '');
+        .every((v) => {
+          const val = capturedVariables[v.key];
+          if (!val) return false;
+          if (Array.isArray(val)) return val.length > 0;
+          return val.trim() !== '';
+        });
     },
 
     startProcessTimer: () => {

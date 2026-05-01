@@ -61,7 +61,7 @@ npm run dev
 ## Características principales
 
 - **Procesos declarativos en YAML** validados contra `schemas/process.schema.json` (JSON Schema Draft 2020-12).
-- **7 tipos de tareas**: `standard`, `check`, `multicheck`, `dynamic-list`, `detail-list`, `form`, `export-excel`.
+- **8 tipos de tareas**: `standard`, `check`, `multicheck`, `dynamic-list`, `detail-list`, `detail-table`, `form`, `export-excel`.
 - **Confirmación previa al cierre** (`completionAlert`): diálogo opcional con severidad (`info` / `warning` / `critical`) antes de finalizar tareas críticas.
 - **Dependencias entre tareas** con bloqueo/desbloqueo automático y visualización de estado.
 - **Variables de proceso** parametrizables (texto, select, número) con autofill desde configuración DevOps JSON.
@@ -71,7 +71,7 @@ npm run dev
 - **Visor BPMN 2.0 interactivo** (`bpmn-js`) generado automáticamente desde el estado del proceso. Ver [README.bpmn.md](README.bpmn.md).
 - **Exportación declarativa a Excel**: motor genérico `process.export` que llena templates `.xlsx` sin escribir código. Ver [sección](#exportación-declarativa-a-excel).
 - **Exportación a Word, JSON y XML BPMN** con fidelidad completa (evidencias, tiempos, autor, variables).
-- **Perfil de usuario opcional** con avatares Marvel inline (o nombre personalizado) incluido en exportaciones.
+- **Perfil de usuario opcional** con 12 avatares Marvel inline (o nombre personalizado) incluido en exportaciones.
 - **Evidencias**: texto, imágenes (archivo, URL o `Ctrl+V` desde portapapeles), sanitización XSS y soporte S3/Azure Blob o modo local Base64.
 - **Subprocesos externos** desde GitHub, URL o archivos locales, con propagación de variables.
 - **i18n** (ES/EN) y **tema claro/oscuro** con detección del sistema.
@@ -95,7 +95,7 @@ npm run dev
 | **ExcelJS** | 4.4 | Exportación Excel declarativa |
 | **docx** | 9.6 | Generación Word |
 | **bpmn-js** | 18.14 | Visor BPMN 2.0 (lazy) |
-| **Vitest** | 4.1 | Tests unitarios (529+ pasando) |
+| **Vitest** | 4.1 | Tests unitarios (550+ pasando) |
 | **Playwright** | 1.59 | Tests E2E |
 | **NextAuth** | 4.24 (opcional) | Autenticación |
 | **AWS SDK v3** | — (opcional) | Integración S3 |
@@ -115,7 +115,7 @@ El sistema sigue una arquitectura en capas con lógica de negocio pura (`lib/`),
 - **`session-store.ts`** — bandeja multi-proceso con snapshots comprimidos.
 - **`config-store.ts`** — configuración DevOps JSON para autofill de variables.
 - **`loading-store.ts`** — operaciones async globales con progress bar tipo GitHub.
-- **`user-profile-store.ts`** — identidad del operador (avatares Marvel + nombre).
+- **`user-profile-store.ts`** — identidad del operador (12 avatares Marvel + nombre).
 
 **28 módulos de lógica** en `lib/` (parser YAML, generadores Excel/Word/BPMN, helpers de progreso y dependencias, sanitización, subprocess-loader, i18n, rate-limit, alert-feedback, etc.), todos puros y testables.
 
@@ -130,7 +130,7 @@ El sistema sigue una arquitectura en capas con lógica de negocio pura (`lib/`),
 
 ## Catálogo de procesos
 
-Seis plantillas productivas en `nextjs_space/data/processes/`, todas validadas por `npm run validate:processes`:
+Nueve plantillas productivas en `nextjs_space/data/processes/`, todas validadas por `npm run validate:processes`:
 
 | Proceso | Archivo | Tiempo estimado | Características |
 |---------|---------|-----------------|-----------------|
@@ -140,6 +140,9 @@ Seis plantillas productivas en `nextjs_space/data/processes/`, todas validadas p
 | Pipeline DevOps | `devops-pipeline.yaml` | 1h 30m | Variables + links dinámicos |
 | Validación de Pull Request | `pull-request-validation.yaml` | 45m | 6 fases, 21 tareas, 8 variables |
 | Checklist de Liberación | `release-checklist.yaml` | 45m | Export Excel declarativo completo |
+| **PR destino develop & QA** | `pr-develop-qa.yaml` | 45m | Servicio SCM — DOD, integración, despliegue |
+| **PR destino Release-{version}** | `pr-release-version.yaml` | 1h | Servicio SCM — creación release desde master |
+| **PR destino master + SCM** | `pr-master-scm.yaml` | 1h 30m | Servicio SCM — rollback + nota de instalación |
 
 Para crear procesos propios consulte la [Guía YAML](README.process.md).
 
@@ -154,6 +157,7 @@ Para crear procesos propios consulte la [Guía YAML](README.process.md).
 | `multicheck` | Lista de verificaciones | `checkItems[]` |
 | `dynamic-list` | Captura de N items (repos, URLs…) | `listConfig` |
 | `detail-list` | Detalle por item de una `dynamic-list` | `detailConfig.sourceTaskId` |
+| `detail-table` | Tabla estructurada por item (boolean/date/list/text/computed-text) | `detailTableConfig.sourceTaskId` + `columns[]` |
 | `form` | Formulario con layout grid 1-4 cols | `formConfig.layout` + `fields[]` |
 | `export-excel` | Descarga de reporte `.xlsx` | `exportConfig` / hereda de `process.export` |
 
@@ -165,13 +169,13 @@ Cualquier tarea admite opcionalmente `completionAlert` para mostrar un modal de 
 
 El motor genérico `executeExportPlan` (en `lib/excel-generator.ts`) lee el bloque `process.export` del YAML y llena un template `.xlsx` sin necesidad de escribir código TypeScript por proceso. Permite:
 
-- **Mapeo de variables** a celdas (`variables: { org: "F3" }`).
-- **Celdas estáticas** con literales (`staticCells: { A1: "Reporte" }`).
-- **Metadatos de tiempo** (`time.startedAt`, `time.totalElapsedHours`, `time.today`).
-- **Metadatos de proceso** (`process.id`, `process.name`, `process.version`).
-- **Fuentes de tareas** (`taskSources`): `kind: list | detail | form | checklist`.
-- **Comentarios con templating** de tokens (`{process.name}`, `{vars.xxx}`, `{today:FMT}`).
-- **Hoja de evidencias** con fecha y actividad por fila.
+- **Arquitectura `sheets[]`**: cada sección declara `sheet` (hoja) y `sources[]` (fuentes de datos).
+- **Source kinds**: `variables | static | time | process | comments | range | list | detail | form | checklist | detail-table | cell`.
+- **`kind: range`**: lee rango de celdas del template → variable de proceso (`outputVar`).
+- **Variables de salida de tareas** (`outputVars`): al completar, la tarea escribe en `capturedVariables`.
+- **`optionsFrom`**: variable `select` obtiene opciones dinámicamente desde una variable de salida.
+- **`sourceVar`**: `detail-table` puede leer items desde una variable en vez de `sourceTaskId`.
+- **`CapturedVariables`** soporta `string | string[]` (listas).
 - **Overrides por tarea** (`task.exportConfig` con `inherit: true`).
 
 Ejemplo canónico: `data/processes/release-checklist.yaml`. Detalles completos en [README.process.md](README.process.md#export-excel).
@@ -224,7 +228,7 @@ Sin credenciales, la aplicación opera íntegramente con localStorage comprimido
 
 ## Testing
 
-El proyecto cuenta con **580+ tests unitarios** (Vitest) en 27 archivos y **tests E2E** con Playwright sobre los flujos críticos.
+El proyecto cuenta con **602+ tests unitarios** (Vitest) en 30 archivos y **tests E2E** con Playwright sobre los flujos críticos.
 
 ```bash
 npm run test                # Modo watch

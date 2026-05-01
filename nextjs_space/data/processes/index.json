@@ -62,6 +62,39 @@
       "version": "1.0.0",
       "estimatedTime": "45m",
       "hasVariables": true
+    },
+    {
+      "id": "pr-develop-qa-2026",
+      "name": "Pull Request con destino develop & QA",
+      "description": "Proceso SCM de Integración de Código (PRs) con destino develop & QA — validación DOD, integración y evidencia de despliegue",
+      "category": "devops",
+      "icon": "git-pull-request",
+      "file": "pr-develop-qa.yaml",
+      "version": "1.0.0",
+      "estimatedTime": "45m",
+      "hasVariables": true
+    },
+    {
+      "id": "pr-release-version-2026",
+      "name": "Pull Request con destino Release-{version}",
+      "description": "Proceso SCM de Integración de Código (PRs) con destino branch Release-{version} desde master — incluye creación del release",
+      "category": "devops",
+      "icon": "git-branch",
+      "file": "pr-release-version.yaml",
+      "version": "1.0.0",
+      "estimatedTime": "1h",
+      "hasVariables": true
+    },
+    {
+      "id": "pr-master-scm-2026",
+      "name": "Pull Request destino master + PRs Master Validados por SCM",
+      "description": "Proceso SCM de Integración de Código (PRs) con destino master — validación rollback y datos para nota de instalación",
+      "category": "devops",
+      "icon": "git-merge",
+      "file": "pr-master-scm.yaml",
+      "version": "1.0.0",
+      "estimatedTime": "1h30m",
+      "hasVariables": true
     }
   ]
 }

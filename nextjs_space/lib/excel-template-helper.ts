@@ -15,7 +15,8 @@ import * as ExcelJS from 'exceljs';
 export async function replaceCellTokens(
   text: string,
   valueCell: string | undefined,
-  templatePath: string
+  templatePath: string,
+  sheet?: string
 ): Promise<string> {
   if (!text) return text;
   
@@ -25,7 +26,9 @@ export async function replaceCellTokens(
   const arrayBuffer = await response.arrayBuffer();
   await workbook.xlsx.load(arrayBuffer);
   
-  const worksheet = workbook.worksheets[0];
+  const worksheet = sheet
+    ? workbook.getWorksheet(sheet) ?? workbook.worksheets[0]
+    : workbook.worksheets[0];
   
   let result = text;
   
@@ -95,7 +98,8 @@ export function getOffsetCell(cellRef: string, offset: number): string | null {
  */
 export async function replaceFormConfigTokens(
   formConfig: any,
-  templatePath: string
+  templatePath: string,
+  sheet?: string
 ): Promise<any> {
   if (!formConfig || !formConfig.fields) {
     return formConfig;
@@ -106,7 +110,8 @@ export async function replaceFormConfigTokens(
       const newLabel = await replaceCellTokens(
         field.label || '',
         field.valueCell,
-        templatePath
+        templatePath,
+        sheet
       );
       
       return {

@@ -21,6 +21,8 @@ async function exportTask(task: TaskState): Promise<TaskExport> {
     listData: task.listData || [],
     detailConfig: task.detailConfig,
     detailData: task.detailData || [],
+    detailTableConfig: task.detailTableConfig,
+    detailTableData: task.detailTableData || [],
     formConfig: task.formConfig,
     formData: task.formData || [],
     evidence: {
@@ -129,6 +131,8 @@ function importTask(task: TaskExport, prefix: string): TaskState {
     listData: task.listData || [],
     detailConfig: task.detailConfig,
     detailData: task.detailData || [],
+    detailTableConfig: task.detailTableConfig,
+    detailTableData: task.detailTableData || [],
     formConfig: task.formConfig,
     formData: task.formData || [],
     completed: task.completed || false,
