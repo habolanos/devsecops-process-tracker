@@ -4,7 +4,7 @@ process:
   name: "Pull Request destino master + PRs Master Validados por SCM"
   description: "Proceso de Integración de Código (PRs) — Servicio SCM. Atención de PRs con destino master, validación de estrategia rollback y datos para nota de instalación."
   version: "1.0.0"
-  estimatedTime: "1h30m"
+  estimatedTime: "45m"
 
   variables:
     - key: "folioSD"

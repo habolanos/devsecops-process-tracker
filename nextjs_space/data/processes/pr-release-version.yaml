@@ -4,7 +4,7 @@ process:
   name: "Pull Request con destino Release-{version}"
   description: "Proceso de Integración de Código (PRs) — Servicio SCM. Atención de PRs con destino branch Release-{version}, incluyendo creación del release desde master."
   version: "1.0.0"
-  estimatedTime: "1h"
+  estimatedTime: "30m"
 
   variables:
     - key: "folioSD"
