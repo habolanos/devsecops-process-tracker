@@ -11,11 +11,11 @@ test.describe('Load Process Flow', () => {
     // Wait for templates to load
     await page.waitForSelector('[data-testid="process-template"]', { timeout: 10000 });
     
-    // Click on first template (IT Security Audit)
-    const firstTemplate = page.locator('[data-testid="process-template"]').first();
-    await expect(firstTemplate).toBeVisible();
+    // Click the IT Security Audit template (robust to ordering changes)
+    const auditTemplate = page.locator('[data-testid="process-template"]').filter({ hasText: /Auditoría/ });
+    await expect(auditTemplate).toBeVisible();
     
-    await firstTemplate.click();
+    await auditTemplate.click();
     
     // Wait for navigation to /process
     await page.waitForURL('/process');
