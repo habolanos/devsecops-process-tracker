@@ -1,6 +1,50 @@
 {
   "processes": [
     {
+      "id": "pr-develop-qa-2026",
+      "name": "Pull Request develop & QA",
+      "description": "Proceso SCM de Integración de Código (PRs) con destino develop & QA — validación DOD, integración y evidencia de despliegue",
+      "category": "devops",
+      "icon": "git-pull-request",
+      "file": "pr-develop-qa.yaml",
+      "version": "1.0.0",
+      "estimatedTime": "30m",
+      "hasVariables": true
+    },
+    {
+      "id": "pr-release-version-2026",
+      "name": "Pull Request Release-{version}",
+      "description": "Proceso SCM de Integración de Código (PRs) con destino branch Release-{version} desde master — incluye creación del release",
+      "category": "devops",
+      "icon": "git-branch",
+      "file": "pr-release-version.yaml",
+      "version": "1.0.0",
+      "estimatedTime": "30m",
+      "hasVariables": true
+    },
+    {
+      "id": "pr-master-scm-2026",
+      "name": "Pull Request master + PRs Master Validados por SCM",
+      "description": "Proceso SCM de Integración de Código (PRs) con destino master — validación rollback y datos para nota de instalación",
+      "category": "devops",
+      "icon": "git-merge",
+      "file": "pr-master-scm.yaml",
+      "version": "1.0.0",
+      "estimatedTime": "45m",
+      "hasVariables": true
+    },
+    {
+      "id": "release-checklist-2026",
+      "name": "Checklist de Liberación - BETA",
+      "description": "Proceso de validación y checklist para liberaciones a producción con generación automática de reporte Excel",
+      "category": "devops",
+      "icon": "file-spreadsheet",
+      "file": "release-checklist.yaml",
+      "version": "1.0.0",
+      "estimatedTime": "45m",
+      "hasVariables": true
+    },
+    {
       "id": "it-security-audit-2026",
       "name": "Auditoría de Seguridad IT",
       "description": "Proceso completo de auditoría de seguridad de sistemas de información",
@@ -50,50 +94,6 @@
       "file": "pull-request-validation.yaml",
       "version": "1.0.0",
       "estimatedTime": "45m",
-      "hasVariables": true
-    },
-    {
-      "id": "release-checklist-2026",
-      "name": "Checklist de Liberación",
-      "description": "Proceso de validación y checklist para liberaciones a producción con generación automática de reporte Excel",
-      "category": "devops",
-      "icon": "file-spreadsheet",
-      "file": "release-checklist.yaml",
-      "version": "1.0.0",
-      "estimatedTime": "45m",
-      "hasVariables": true
-    },
-    {
-      "id": "pr-develop-qa-2026",
-      "name": "Pull Request con destino develop & QA",
-      "description": "Proceso SCM de Integración de Código (PRs) con destino develop & QA — validación DOD, integración y evidencia de despliegue",
-      "category": "devops",
-      "icon": "git-pull-request",
-      "file": "pr-develop-qa.yaml",
-      "version": "1.0.0",
-      "estimatedTime": "45m",
-      "hasVariables": true
-    },
-    {
-      "id": "pr-release-version-2026",
-      "name": "Pull Request con destino Release-{version}",
-      "description": "Proceso SCM de Integración de Código (PRs) con destino branch Release-{version} desde master — incluye creación del release",
-      "category": "devops",
-      "icon": "git-branch",
-      "file": "pr-release-version.yaml",
-      "version": "1.0.0",
-      "estimatedTime": "1h",
-      "hasVariables": true
-    },
-    {
-      "id": "pr-master-scm-2026",
-      "name": "Pull Request destino master + PRs Master Validados por SCM",
-      "description": "Proceso SCM de Integración de Código (PRs) con destino master — validación rollback y datos para nota de instalación",
-      "category": "devops",
-      "icon": "git-merge",
-      "file": "pr-master-scm.yaml",
-      "version": "1.0.0",
-      "estimatedTime": "1h30m",
       "hasVariables": true
     }
   ]
