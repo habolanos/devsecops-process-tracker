@@ -4,7 +4,7 @@ process:
   name: "Pull Request con destino develop & QA"
   description: "Proceso de Integración de Código (PRs) — Servicio SCM. Atención de PRs con destino develop & QA, desde validación DOD hasta evidencia de despliegue."
   version: "1.0.0"
-  estimatedTime: "45m"
+  estimatedTime: "30m"
 
   variables:
     - key: "folioSD"
