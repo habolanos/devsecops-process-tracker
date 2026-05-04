@@ -8,7 +8,7 @@ import { ProcessState, ProcessExportJSON } from '@/lib/types';
 import { useProcessStore } from '@/lib/store';
 import { useSessionStore } from '@/lib/session-store';
 import { useI18n } from '@/lib/i18n-context';
-import { Upload, FileText, Globe, Shield, Rocket, AlertTriangle, FolderOpen, GitPullRequest, GitBranch, GitMerge, FileSpreadsheet, Play, Pause, CheckCircle2, XCircle, Layers, Trash2, Download, Github, Linkedin } from 'lucide-react';
+import { Upload, FileText, Globe, Shield, Rocket, AlertTriangle, FolderOpen, GitPullRequest, GitBranch, GitMerge, FileSpreadsheet, Cloud, Play, Pause, CheckCircle2, XCircle, Layers, Trash2, Download, Github, Linkedin } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useLoadingStore } from '@/lib/loading-store';
 import { ProcessTabs } from '@/components/process-tabs';
@@ -109,6 +109,7 @@ export default function HomePage() {
       'git-branch': <GitBranch className="w-8 h-8 text-green-600" />,
       'git-merge': <GitMerge className="w-8 h-8 text-indigo-600" />,
       'file-spreadsheet': <FileSpreadsheet className="w-8 h-8 text-teal-600" />,
+      'cloud': <Cloud className="w-8 h-8 text-sky-600" />,
     };
     return icons[iconName] || <FileText className="w-8 h-8 text-gray-600" />;
   };

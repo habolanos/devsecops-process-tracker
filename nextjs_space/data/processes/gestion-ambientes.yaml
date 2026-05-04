@@ -1,0 +1,587 @@
+# yaml-language-server: $schema=../../../schemas/process.schema.json
+process:
+  id: "gestion-ambientes-2026"
+  name: "Gestión de Ambientes"
+  description: "Proceso de gestión y despliegue de ambientes cloud — análisis, certificación de arquitectura, validación presupuestal FinOps, implementación y configuración. Tiempo estimado: 43.5 a 64.5 días."
+  version: "1.0.0"
+
+  variables:
+    - key: "id_presupuesto"
+      label: "ID de Presupuesto"
+      type: "text"
+      required: true
+      placeholder: "ej: PRES-2026-001"
+    - key: "centro_costo"
+      label: "Núm y Nombre de Centro de Costo"
+      type: "text"
+      required: true
+      placeholder: "ej: 1234 - Centro TI"
+    - key: "sponsor"
+      label: "Sponsor del Proyecto"
+      type: "text"
+      required: true
+      placeholder: "Nombre del sponsor"
+    - key: "id_iniciativa"
+      label: "# de Iniciativa"
+      type: "text"
+      required: true
+      placeholder: "ej: INIT-456"
+    - key: "nombre_division"
+      label: "Nombre de la División"
+      type: "text"
+      required: true
+      placeholder: "ej: División Tecnología"
+    - key: "arq_industria"
+      label: "Arquitecto de Industria"
+      type: "text"
+      required: true
+      placeholder: "Nombre del Arq. Industria"
+    - key: "arq_cloud"
+      label: "Arquitecto Cloud"
+      type: "text"
+      required: true
+      placeholder: "Nombre del Arq. Cloud"
+
+  phases:
+    # ==============================
+    # Fase 1 - Análisis y Definición de Solicitud
+    # ==============================
+    - id: "phase-1-analisis"
+      name: "Análisis y Definición de Solicitud"
+      description: "Responsable: Desarrollo — Levantamiento y documentación de la solicitud de ambiente."
+      order: 1
+      tasks:
+        - id: "task-1-1-requisitos"
+          name: "Levantar y Documentar Requisitos"
+          description: "Recopilar y documentar los requerimientos de la solicitud de ambiente."
+          order: 1
+          type: "standard"
+          evidence:
+            type: "text"
+            required: true
+            description: "Descripción de los requisitos de la solicitud de ambiente."
+
+        - id: "task-1-2-prerrequisitos"
+          name: "Verificar Prerrequisitos del Proyecto"
+          description: "Confirmar que se cuenta con toda la información del listado de prerrequisitos."
+          order: 2
+          type: "multicheck"
+          checkItems:
+            - id: "check-presupuesto"
+              description: "ID de Presupuesto disponible"
+              required: true
+            - id: "check-centro-costo"
+              description: "Núm y Nombre de Centro de Costo definido"
+              required: true
+            - id: "check-sponsor"
+              description: "Sponsor del proyecto identificado"
+              required: true
+            - id: "check-iniciativa"
+              description: "# de Iniciativa registrado"
+              required: true
+            - id: "check-division"
+              description: "Nombre de la División definido"
+              required: true
+            - id: "check-arq-industria"
+              description: "Arquitecto de Industria asignado"
+              required: true
+            - id: "check-arq-cloud"
+              description: "Arquitecto Cloud asignado"
+              required: true
+            - id: "check-propuesta-despliegue"
+              description: "Propuesta de despliegue adjunta"
+              required: true
+            - id: "check-arq-servicio"
+              description: "Arquitectura del servicio adjunta"
+              required: true
+          evidence:
+            type: "text"
+            required: false
+            description: "Observaciones sobre la completitud de prerrequisitos."
+          dependencies: ["task-1-1-requisitos"]
+
+    # ==============================
+    # Fase 2 - Certificación de Arquitectura
+    # ==============================
+    - id: "phase-2-certificacion"
+      name: "Certificación de Arquitectura"
+      description: "Responsable: Arq Industria — Certificación del diseño de solución. Tiempo: 9 días."
+      order: 2
+      tasks:
+        - id: "task-2-1-revision-diseno"
+          name: "Revisar Diseño de la Solución"
+          description: "Revisar y analizar el diseño de la solución presentado (Retail / Serv. Financieros → Arq. Servicios Financieros)."
+          order: 1
+          type: "standard"
+          evidence:
+            type: "both"
+            required: true
+            description: "Documento de diseño revisado y comentarios del arquitecto de industria."
+          dependencies: ["task-1-2-prerrequisitos"]
+
+        - id: "task-2-2-certificar-arq"
+          name: "Certificar Arquitectura"
+          description: "Validar y certificar la arquitectura propuesta según lineamientos de industria."
+          order: 2
+          type: "check"
+          checkItem:
+            description: "Arquitectura certificada y aprobada por Arq Industria"
+            required: true
+          evidence:
+            type: "both"
+            required: true
+            description: "Constancia de certificación de arquitectura."
+          dependencies: ["task-2-1-revision-diseno"]
+          completionAlert:
+            severity: "warning"
+            title: "Confirmar Certificación de Arquitectura"
+            description: "¿Se confirma la certificación de la arquitectura para avanzar a gestión de costos cloud?"
+            confirmLabel: "Certificar y avanzar"
+            cancelLabel: "Revisar"
+
+    # ==============================
+    # Fase 3 - Gestión de Arquitectura Nube y Estimación de Costos
+    # ==============================
+    - id: "phase-3-arq-nube"
+      name: "Gestión de Arquitectura Nube y Estimación de Costos"
+      description: "Responsable: Arq Nube — Definición de arquitectura cloud y estimación de costos. Tiempo: 3 a 16 días."
+      order: 3
+      tasks:
+        - id: "task-3-1-quick-discovery"
+          name: "Revisar Documento Quick Discovery"
+          description: "Analizar el documento Quick Discovery generado por el equipo de Desarrollo."
+          order: 1
+          type: "standard"
+          evidence:
+            type: "text"
+            required: true
+            description: "Observaciones y hallazgos del análisis del Quick Discovery."
+          dependencies: ["task-2-2-certificar-arq"]
+
+        - id: "task-3-2-estimacion-costos"
+          name: "Estimar Costos de Infraestructura Cloud"
+          description: "Calcular y documentar los costos estimados de la infraestructura cloud requerida."
+          order: 2
+          type: "form"
+          formConfig:
+            layout:
+              type: "grid"
+              columns: 2
+            fields:
+              - id: "costoEstimadoMin"
+                label: "Costo Estimado Mínimo (USD/mes)"
+                type: "number"
+                required: true
+                placeholder: "ej: 500"
+              - id: "costoEstimadoMax"
+                label: "Costo Estimado Máximo (USD/mes)"
+                type: "number"
+                required: true
+                placeholder: "ej: 2000"
+              - id: "proveedorCloud"
+                label: "Proveedor Cloud"
+                type: "text"
+                required: true
+                placeholder: "ej: Azure, AWS, GCP, Multicloud"
+              - id: "descripcionArquitectura"
+                label: "Descripción de Arquitectura Propuesta"
+                type: "textarea"
+                required: true
+                placeholder: "Descripción de los componentes de infraestructura cloud..."
+                colSpan: 2
+          evidence:
+            type: "form"
+            required: true
+            description: "Estimación de costos de infraestructura cloud documentada."
+          dependencies: ["task-3-1-quick-discovery"]
+          outputVars:
+            - name: "costoEstimadoMin"
+              type: "text"
+              source: "formData.costoEstimadoMin"
+            - name: "costoEstimadoMax"
+              type: "text"
+              source: "formData.costoEstimadoMax"
+            - name: "proveedorCloud"
+              type: "text"
+              source: "formData.proveedorCloud"
+
+    # ==============================
+    # Fase 4 - Solicitud de Infraestructura
+    # ==============================
+    - id: "phase-4-solicitud-infra"
+      name: "Solicitud de Infraestructura"
+      description: "Responsable: SCM/SRE — Envío formal de solicitud a Oficina DevSecOps SCM y SRE. Tiempo: 0.5 días."
+      order: 4
+      tasks:
+        - id: "task-4-1-envio-solicitud"
+          name: "Enviar Solicitud a Oficina DevSecOps SCM y SRE"
+          description: "Formalizar y enviar la solicitud de infraestructura a la Oficina DevSecOps con el listado de prerrequisitos."
+          order: 1
+          type: "check"
+          checkItem:
+            description: "Solicitud enviada a Oficina DevSecOps SCM y SRE"
+            required: true
+          evidence:
+            type: "both"
+            required: true
+            description: "Evidencia del envío de la solicitud con prerrequisitos adjuntos."
+          dependencies: ["task-3-2-estimacion-costos"]
+
+        - id: "task-4-2-adjuntar-prereqs"
+          name: "Confirmar Documentos Adjuntos"
+          description: "Verificar que se adjuntaron todos los documentos requeridos en la solicitud."
+          order: 2
+          type: "multicheck"
+          checkItems:
+            - id: "check-doc-propuesta"
+              description: "Propuesta de despliegue adjunta"
+              required: true
+            - id: "check-doc-arq"
+              description: "Arquitectura del servicio adjunta"
+              required: true
+            - id: "check-doc-presupuesto"
+              description: "ID de Presupuesto registrado en solicitud"
+              required: true
+            - id: "check-doc-sponsor"
+              description: "Datos del Sponsor incluidos"
+              required: true
+          evidence:
+            type: "text"
+            required: false
+            description: "Notas sobre los documentos adjuntos a la solicitud."
+          dependencies: ["task-4-1-envio-solicitud"]
+
+    # ==============================
+    # Fase 5 - Validación de la Documentación
+    # ==============================
+    - id: "phase-5-validacion-doc"
+      name: "Validación de la Documentación"
+      description: "Responsable: SCM/SRE — Revisión de tecnologías y alineación con Oficina DevSecOps. Tiempo: 1.5 días."
+      order: 5
+      tasks:
+        - id: "task-5-1-revision-tecnologias"
+          name: "Revisar Tecnologías y Alineación DevSecOps"
+          description: "Revisar tecnologías propuestas, alineación con Oficina DevSecOps y completitud de documentación."
+          order: 1
+          type: "multicheck"
+          checkItems:
+            - id: "check-tech-alineacion"
+              description: "Tecnologías alineadas con estándares Oficina DevSecOps"
+              required: true
+            - id: "check-tech-seguridad"
+              description: "Validación de seguridad sobre tecnologías propuestas"
+              required: true
+            - id: "check-tech-costos"
+              description: "Estimación de costos revisada y consistente"
+              required: true
+            - id: "check-tech-documentacion"
+              description: "Documentación completa y sin inconsistencias"
+              required: true
+          evidence:
+            type: "text"
+            required: true
+            description: "Resultado de la revisión de tecnologías y observaciones."
+          dependencies: ["task-4-2-adjuntar-prereqs"]
+
+        - id: "task-5-2-confirmacion-doc"
+          name: "Confirmar Completitud de Documentación"
+          description: "Verificar cumplimiento con la entrega de información. Si no cumple, se regresa a Fase 4."
+          order: 2
+          type: "check"
+          checkItem:
+            description: "¿Cumple con la entrega de información completa?"
+            required: true
+          evidence:
+            type: "text"
+            required: true
+            description: "Resultado de la validación de documentación (cumple / no cumple)."
+          dependencies: ["task-5-1-revision-tecnologias"]
+          completionAlert:
+            severity: "warning"
+            title: "Validación de Documentación"
+            description: "¿La documentación cumple todos los requisitos para avanzar? Si no cumple, regresa a Fase 4 para completar la información."
+            confirmLabel: "Sí, cumple — Avanzar a Fase 6"
+            cancelLabel: "No cumple — Regresar a Fase 4"
+
+    # ==============================
+    # Fase 6 - Validación ID Presupuesto y Autorización de Despliegue
+    # ==============================
+    - id: "phase-6-validacion-presupuesto"
+      name: "Validación ID Presupuesto y Autorización de Despliegue"
+      description: "Responsable: FinOps — Autorización del presupuesto Cloud mediante Servicios de Gestión FinOps. Tiempo: 7 días."
+      order: 6
+      tasks:
+        - id: "task-6-1-validar-id-pres"
+          name: "Validar ID de Presupuesto Cloud"
+          description: "Verificar que el ID de presupuesto es válido y cumple los criterios para el despliegue cloud (→ Servicios de Gestión FinOps)."
+          order: 1
+          type: "multicheck"
+          checkItems:
+            - id: "check-pres-id-valido"
+              description: "ID de Presupuesto válido y activo"
+              required: true
+            - id: "check-pres-centro"
+              description: "Centro de Costo correcto y aprobado"
+              required: true
+            - id: "check-pres-monto"
+              description: "Monto del presupuesto suficiente para el despliegue"
+              required: true
+            - id: "check-pres-periodo"
+              description: "Vigencia del presupuesto cubierta"
+              required: true
+          evidence:
+            type: "both"
+            required: true
+            description: "Validación del ID de presupuesto y documentación FinOps de soporte."
+          dependencies: ["task-5-2-confirmacion-doc"]
+
+        - id: "task-6-2-autorizar-despliegue"
+          name: "Autorizar Presupuesto de Despliegue"
+          description: "Emitir autorización formal del presupuesto cloud. Si no cumple criterios, la solicitud es rechazada."
+          order: 2
+          type: "check"
+          checkItem:
+            description: "¿El ID de presupuesto cumple los criterios para autorización?"
+            required: true
+          evidence:
+            type: "both"
+            required: true
+            description: "Constancia de autorización del presupuesto de despliegue cloud."
+          dependencies: ["task-6-1-validar-id-pres"]
+          completionAlert:
+            severity: "critical"
+            title: "Autorización de Presupuesto"
+            description: "¿Se confirma que el ID de presupuesto cumple todos los criterios? Si NO cumple, la solicitud será RECHAZADA y no podrá continuar."
+            confirmLabel: "Autorizar — Avanzar a Fase 7"
+            cancelLabel: "Rechazar solicitud"
+
+    # ==============================
+    # Fase 7 - Gestionar Kickoff de Proyecto
+    # ==============================
+    - id: "phase-7-kickoff"
+      name: "Gestionar Kickoff de Proyecto"
+      description: "Responsable: SCM/SRE — Coordinación de áreas involucradas y reunión de kickoff. Tiempo: 0.3 días."
+      order: 7
+      tasks:
+        - id: "task-7-1-coordinar-areas"
+          name: "Coordinar Áreas Involucradas"
+          description: "Identificar y notificar a todas las áreas participantes (Desarrollo, Arq Industria, Arq Nube, FinOps, Implementaciones Nube)."
+          order: 1
+          type: "standard"
+          evidence:
+            type: "text"
+            required: true
+            description: "Lista de áreas notificadas y confirmación de participación."
+          dependencies: ["task-6-2-autorizar-despliegue"]
+
+        - id: "task-7-2-reunion-kickoff"
+          name: "Agendar y Realizar Reunión de Kickoff"
+          description: "Programar y ejecutar la reunión de kickoff con todas las partes involucradas."
+          order: 2
+          type: "check"
+          checkItem:
+            description: "Reunión de kickoff realizada con todas las áreas involucradas"
+            required: true
+          evidence:
+            type: "both"
+            required: true
+            description: "Minuta o captura de la reunión de kickoff."
+          dependencies: ["task-7-1-coordinar-areas"]
+
+    # ==============================
+    # Fase 8 - Solicitud de Despliegue de Infraestructura
+    # ==============================
+    - id: "phase-8-solicitud-despliegue"
+      name: "Solicitud de Despliegue de Infraestructura"
+      description: "Responsable: Implementaciones Nube — Solicitud IDM para Alta o Cambio de Proyecto/Cuentas en Nube. Tiempo: 0.2 días."
+      order: 8
+      tasks:
+        - id: "task-8-1-crear-solicitud-idm"
+          name: "Crear Solicitud IDM (Alta o Cambio de Proyecto)"
+          description: "Generar solicitud en IDM (Ingeniería y Despliegue Multicloud) para Alta o Cambio de Proyecto y/o Cuentas en Nube. Se reutilizan datos de Fase 4."
+          order: 1
+          type: "check"
+          checkItem:
+            description: "Solicitud IDM creada y registrada"
+            required: true
+          evidence:
+            type: "both"
+            required: true
+            description: "Número de ticket y captura de la solicitud IDM."
+          dependencies: ["task-7-2-reunion-kickoff"]
+
+        - id: "task-8-2-gestionar-cuentas"
+          name: "Gestionar Cuentas en Nube"
+          description: "Confirmar gestión de cuentas y permisos cloud necesarios para el despliegue."
+          order: 2
+          type: "standard"
+          evidence:
+            type: "text"
+            required: true
+            description: "Detalle de cuentas y permisos gestionados en nube."
+          dependencies: ["task-8-1-crear-solicitud-idm"]
+
+    # ==============================
+    # Fase 9 - Implementación y Despliegue de Infraestructura
+    # ==============================
+    - id: "phase-9-implementacion"
+      name: "Implementación y Despliegue de Infraestructura"
+      description: "Responsable: Implementaciones Nube — Ejecución del despliegue. Tiempo: 11 a 16 días."
+      order: 9
+      tasks:
+        - id: "task-9-1-ejecutar-despliegue"
+          name: "Ejecutar Despliegue de Infraestructura"
+          description: "Realizar el despliegue de la infraestructura cloud conforme a la propuesta aprobada."
+          order: 1
+          type: "standard"
+          evidence:
+            type: "both"
+            required: true
+            description: "Evidencia del despliegue ejecutado (logs, capturas, confirmaciones)."
+          dependencies: ["task-8-2-gestionar-cuentas"]
+
+        - id: "task-9-2-documentar-componentes"
+          name: "Documentar Componentes Desplegados"
+          description: "Registrar todos los componentes de infraestructura desplegados para su posterior validación."
+          order: 2
+          type: "dynamic-list"
+          listConfig:
+            label: "Componentes Desplegados"
+            placeholder: "ej: VM-Produccion-01, BD-MySQL-02, LB-App-01"
+            minItems: 1
+          evidence:
+            type: "text"
+            required: false
+            description: "Notas adicionales sobre los componentes desplegados."
+          dependencies: ["task-9-1-ejecutar-despliegue"]
+          outputVars:
+            - name: "componentesDespliegue"
+              type: "list"
+              source: "listData"
+
+        - id: "task-9-3-verificar-entrega"
+          name: "Verificar Entrega del Despliegue"
+          description: "Confirmar que todos los componentes han sido desplegados correctamente por Implementaciones Nube."
+          order: 3
+          type: "check"
+          checkItem:
+            description: "Despliegue completado y verificado por Implementaciones Nube"
+            required: true
+          evidence:
+            type: "image"
+            required: true
+            description: "Captura de confirmación del despliegue completado."
+          dependencies: ["task-9-2-documentar-componentes"]
+
+    # ==============================
+    # Fase 10 - Validación de Despliegue
+    # ==============================
+    - id: "phase-10-validacion-despliegue"
+      name: "Validación de Despliegue"
+      description: "Responsable: SCM/SRE — Comparación propuesta vs componentes desplegados. Tiempo: 1 día."
+      order: 10
+      tasks:
+        - id: "task-10-1-comparar-propuesta"
+          name: "Comparar Propuesta vs Componentes Desplegados"
+          description: "Verificar que los componentes desplegados coinciden con la propuesta de despliegue aprobada."
+          order: 1
+          type: "multicheck"
+          checkItems:
+            - id: "check-desp-componentes"
+              description: "Componentes desplegados coinciden con la propuesta"
+              required: true
+            - id: "check-desp-versiones"
+              description: "Versiones de componentes correctas"
+              required: true
+            - id: "check-desp-red"
+              description: "Configuración de red según propuesta"
+              required: true
+            - id: "check-desp-seguridad"
+              description: "Políticas de seguridad aplicadas"
+              required: true
+          evidence:
+            type: "both"
+            required: true
+            description: "Resultado de la comparación propuesta vs despliegue real."
+          dependencies: ["task-9-3-verificar-entrega"]
+
+        - id: "task-10-2-confirmar-validacion"
+          name: "Confirmar Validación de Despliegue"
+          description: "Emitir validación formal del despliegue. Si no cumple, regresa a Fase 9 para correcciones."
+          order: 2
+          type: "check"
+          checkItem:
+            description: "¿El despliegue cumple con la propuesta aprobada?"
+            required: true
+          evidence:
+            type: "text"
+            required: true
+            description: "Resultado de la validación y observaciones finales."
+          dependencies: ["task-10-1-comparar-propuesta"]
+          completionAlert:
+            severity: "warning"
+            title: "Validación de Despliegue"
+            description: "¿El despliegue cumple íntegramente con la propuesta aprobada? Si no cumple, se regresará a Fase 9 para correcciones."
+            confirmLabel: "Sí, cumple — Avanzar a Fase 11"
+            cancelLabel: "No cumple — Regresar a Fase 9"
+
+    # ==============================
+    # Fase 11 - Gestión de Configuración
+    # ==============================
+    - id: "phase-11-configuracion"
+      name: "Gestión de Configuración"
+      description: "Responsable: SCM/SRE — Plan de trabajo, ambientación y configuración de aplicativos, rutas, versiones y permisos. Tiempo: 10 a 20 días."
+      order: 11
+      tasks:
+        - id: "task-11-1-recibir-plantilla"
+          name: "Recibir Plantilla de Configuración"
+          description: "Obtener la plantilla con datos sobre aplicativos, rutas, versiones, permisos, etc."
+          order: 1
+          type: "standard"
+          evidence:
+            type: "both"
+            required: true
+            description: "Plantilla de configuración recibida con datos completos."
+          dependencies: ["task-10-2-confirmar-validacion"]
+
+        - id: "task-11-2-configurar-componentes"
+          name: "Configurar Aplicativos, Rutas y Permisos"
+          description: "Ejecutar la configuración de aplicativos, rutas de red, versiones y permisos de acceso según la plantilla."
+          order: 2
+          type: "standard"
+          evidence:
+            type: "both"
+            required: true
+            description: "Evidencia de la configuración ejecutada (capturas de consola/portal)."
+          dependencies: ["task-11-1-recibir-plantilla"]
+
+        - id: "task-11-3-plan-trabajo"
+          name: "Definir Plan de Trabajo de Ambientación"
+          description: "Documentar el plan de trabajo con actividades, tiempos y responsables para la ambientación completa."
+          order: 3
+          type: "standard"
+          evidence:
+            type: "text"
+            required: true
+            description: "Plan de trabajo documentado con actividades y tiempos."
+          dependencies: ["task-11-2-configurar-componentes"]
+
+        - id: "task-11-4-cierre"
+          name: "Cierre y Entrega del Ambiente"
+          description: "Entrega formal del ambiente configurado con validación y aceptación del solicitante."
+          order: 4
+          type: "check"
+          checkItem:
+            description: "Ambiente entregado y aceptado por el solicitante"
+            required: true
+          evidence:
+            type: "both"
+            required: true
+            description: "Constancia de entrega y aceptación formal del ambiente."
+          dependencies: ["task-11-3-plan-trabajo"]
+          completionAlert:
+            severity: "info"
+            title: "Cierre del Proceso"
+            description: "¿Confirma la entrega y aceptación del ambiente configurado? Esta acción finaliza el proceso de Gestión de Ambientes."
+            confirmLabel: "Confirmar entrega y cerrar"
+            cancelLabel: "Revisar"
