@@ -130,7 +130,7 @@ El sistema sigue una arquitectura en capas con lógica de negocio pura (`lib/`),
 
 ## Catálogo de procesos
 
-Nueve plantillas productivas en `nextjs_space/data/processes/`, todas validadas por `npm run validate:processes`:
+Diez plantillas productivas en `nextjs_space/data/processes/`, todas validadas por `npm run validate:processes`:
 
 | Proceso | Archivo | Tiempo estimado | Características |
 |---------|---------|-----------------|-----------------|
@@ -143,6 +143,7 @@ Nueve plantillas productivas en `nextjs_space/data/processes/`, todas validadas 
 | **PR destino develop & QA** | `pr-develop-qa.yaml` | 45m | Servicio SCM — DOD, integración, despliegue |
 | **PR destino Release-{version}** | `pr-release-version.yaml` | 1h | Servicio SCM — creación release desde master |
 | **PR destino master + SCM** | `pr-master-scm.yaml` | 1h 30m | Servicio SCM — rollback + nota de instalación |
+| **Gestión de Ambientes** | `gestion-ambientes.yaml` | 43.5–64.5 días | 11 fases, FinOps, Arq Nube, Implementaciones Nube |
 
 Para crear procesos propios consulte la [Guía YAML](README.process.md).
 

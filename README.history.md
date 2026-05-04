@@ -6,6 +6,7 @@ Historial completo de versiones y cambios del DevSecOps Process Tracker.
 
 | Fecha | Versión | Descripción |
 |-------|---------|-------------|
+| 2026-05-04 | **2.1.7** | **Nuevo proceso: Gestión de Ambientes** (11 fases, 7 variables, 10 procesos en catálogo): Proceso completo para gestión y despliegue de ambientes cloud con flujo de 43.5–64.5 días. Responsables: Desarrollo, Arq Industria, Arq Nube, SCM/SRE, FinOps, Implementaciones Nube. Fases: 1-Análisis y Definición de Solicitud (prerrequisitos DOD), 2-Certificación de Arquitectura (9d), 3-Arq Nube y Estimación de Costos (3–16d) con form+outputVars (costoMin, costoMax, proveedor), 4-Solicitud de Infraestructura (0.5d), 5-Validación de Documentación (1.5d) con retorno a F4, 6-Validación ID Presupuesto FinOps (7d) con rechazo crítico, 7-Kickoff de Proyecto (0.3d), 8-Solicitud IDM Multicloud (0.2d), 9-Implementación/Despliegue (11–16d) con dynamic-list+outputVar, 10-Validación de Despliegue (1d) con retorno a F9, 11-Gestión de Configuración (10–20d). 5 `completionAlert` (info/warning/critical). Variables: id_presupuesto, centro_costo, sponsor, id_iniciativa, nombre_division, arq_industria, arq_cloud. Ícono `cloud` (sky-600) agregado al icon map. Posición 4 en index.json. Test unitario `gestion-ambientes-yaml.test.ts` (38 aserciones). |
 | 2026-04-30 | **2.1.6** | **Fix E2E Playwright `load-process.spec.ts`**: El test `should load process from template and display tasks` fallaba porque asumía que la primera tarjeta de plantilla siempre era "Auditoría de Seguridad IT". Tras agregar los 3 procesos PR al inicio de `index.json`, la primera posición cambió a "Pull Request develop & QA". Se reemplazó el selector `.first()` por un filtro `.filter({ hasText: /Auditoría/ })` para localizar la plantilla objetivo por contenido de texto en lugar de depender del orden del array. Esto hace el test robusto ante reordenamientos futuros del catálogo de procesos. |
 | 2026-04-30 | **2.1.5** | **CodeQL fixes (GitHub Advanced Security)**: Dos sugerencias aplicadas. 1) `detail-table-input.tsx`: eliminado import no usado `Label` desde `@/components/ui/label` — el componente nunca se renderiza, las columnas usan `<th>` directo. 2) `cell-export.test.ts` mock `setCell`: eliminado guard redundante `value === undefined` — CodeQL detectó dead code porque `applyCellSource` pre-filtra `undefined` antes de invocar el mock, por lo que ese brazo nunca se evalúa en los tests. Comentario del mock actualizado a "Adapted from" con justificación de la divergencia respecto al `setCell` real de `excel-generator.ts`. 6/6 tests de `cell-export` pasan. |
 | 2026-04-30 | **2.1.4** | **3 nuevos procesos PR (Servicio SCM) + Avatares Marvel reducidos a 12**: Tres plantillas YAML nuevas para el proceso de Integración de Código (PRs) del servicio SCM: `pr-develop-qa.yaml` (PR destino develop & QA, 45m), `pr-release-version.yaml` (PR destino Release-{version} con creación desde master, 1h), `pr-master-scm.yaml` (PR destino master con validación rollback y datos para nota de instalación, 1h30m). Cada proceso modela las 3 fases del flujo SCM: c1-Validación (DOD, Branch Strategy, Políticas, Versionamento, CI/CD pipes, Config File), c2-Ejecución (Creación PR, Validación PR.CI, Integración, Despliegue/Release), c3-Resultado (Release CD Artifact, URL Release, prueba pod / nota de instalación). Iconos `git-branch`, `git-merge` y `file-spreadsheet` agregados al icon map de la página principal. **Avatares**: reducidos de 20 héroes mixtos (Marvel + DC + otros) a **12 héroes Marvel** exclusivos: Iron Man, Spider-Man, Capitán América, Thor, Hulk, Black Widow, Doctor Strange, Black Panther, Capitana Marvel, Wolverine, Scarlet Witch, Loki. Eliminados: Batman, Superman, Wonder Woman, Green Lantern, Aquaman, Star-Lord, Valkiria, Gru. Grid del selector cambiado de 5 a 4 columnas (3×4=12). Index.json actualizado con 9 procesos productivos. 13 YAMLs validados contra schema. |
@@ -59,8 +60,8 @@ Historial completo de versiones y cambios del DevSecOps Process Tracker.
 
 ## 📈 Estadísticas de Versiones
 
-- **Total de versiones**: 45+
-- **Última release**: 2.1.6 (2026-04-30)
+- **Total de versiones**: 46+
+- **Última release**: 2.1.7 (2026-05-04)
 - **Próxima (Unreleased)**: confirmación de cierre + consolidación documental (2026-04-21)
 - **Primer lanzamiento**: 1.0.0 (2026-03-01)
 - **Periodo de desarrollo**: ~51 días
@@ -193,5 +194,5 @@ Historial completo de versiones y cambios del DevSecOps Process Tracker.
 
 ---
 
-**Última actualización:** 2026-04-30
-**Versión del documento:** 1.2.0
+**Última actualización:** 2026-05-04
+**Versión del documento:** 1.3.0
