@@ -34,17 +34,6 @@
       "hasVariables": true
     },
     {
-      "id": "release-checklist-2026",
-      "name": "Checklist de Liberación - BETA",
-      "description": "Proceso de validación y checklist para liberaciones a producción con generación automática de reporte Excel",
-      "category": "devops",
-      "icon": "file-spreadsheet",
-      "file": "release-checklist.yaml",
-      "version": "1.0.0",
-      "estimatedTime": "45m",
-      "hasVariables": true
-    },
-    {
       "id": "gestion-ambientes-2026",
       "name": "Gestión de Ambientes",
       "description": "Proceso de gestión y despliegue de ambientes cloud — análisis, certificación de arquitectura, validación presupuestal FinOps, implementación y configuración. 43.5–64.5 días.",
@@ -53,6 +42,17 @@
       "file": "gestion-ambientes.yaml",
       "version": "1.0.0",
       "estimatedTime": "65d",
+      "hasVariables": true
+    },
+    {
+      "id": "release-checklist-2026",
+      "name": "Checklist de Liberación - BETA",
+      "description": "Proceso de validación y checklist para liberaciones a producción con generación automática de reporte Excel",
+      "category": "devops",
+      "icon": "file-spreadsheet",
+      "file": "release-checklist.yaml",
+      "version": "1.0.0",
+      "estimatedTime": "45m",
       "hasVariables": true
     },
     {
