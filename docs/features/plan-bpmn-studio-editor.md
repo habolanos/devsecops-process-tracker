@@ -370,6 +370,348 @@ En el editor se ofrece un modo de vista **compacta** para multicheck con muchos 
 
 ---
 
+### 4.8 Diseño de Alertas de Confirmación en el Editor BPMN
+
+Las `completionAlert` del YAML son el punto donde el usuario debe tomar una **decisión consciente** antes de continuar. En el editor BPMN cada severidad (`info`, `warning`, `critical`) tiene una representación visual, un patrón estructural y un flujo de creación diferente. Esta sección describe cómo el diseñador del proceso las crea y configura en el editor.
+
+---
+
+#### 4.8.1 Alerta Informativa (`severity: info`)
+
+**Semántica:** Confirmación de cierre o avance sin riesgo. El usuario solo confirma que leyó y está de acuerdo. **No hay flujo de retorno** ni posibilidad de cancelación — siempre avanza.
+
+**Patrón BPMN:** `userTask` → `intermediateThrowEvent (message)` → siguiente tarea
+
+```xml
+<userTask id="task-11-4-cierre" name="Cierre y Entrega del Ambiente">
+  <extensionElements>
+    <yaml:taskConfig>
+      <yaml:completionAlert severity="info"
+        title="Cierre del Proceso"
+        description="¿Confirma la entrega y aceptación del ambiente?"
+        confirmLabel="Confirmar entrega y cerrar"
+        cancelLabel="Revisar"/>
+    </yaml:taskConfig>
+  </extensionElements>
+</userTask>
+
+<!-- Intermediate message event: representa la notificación de cierre -->
+<intermediateThrowEvent id="msg-task-11-4-close"
+                        name="Proceso Cerrado">
+  <messageEventDefinition messageRef="msg-closure-confirmed"/>
+</intermediateThrowEvent>
+
+<message id="msg-closure-confirmed" name="ClosureConfirmed"/>
+
+<sequenceFlow sourceRef="task-11-4-cierre"
+              targetRef="msg-task-11-4-close"/>
+<sequenceFlow sourceRef="msg-task-11-4-close"
+              targetRef="end-process-completed"/>
+
+<endEvent id="end-process-completed" name="Proceso Completado"/>
+```
+
+**Representación visual en el editor:**
+
+```
+[task-11-4]  ──→  ✉ "Proceso Cerrado"  ──→  ◉ "Proceso Completado"
+                  (intermediate msg)        (end event verde)
+```
+
+**Codificación visual:**
+
+| Elemento | Color | Icono | Borde |
+|---|---|---|---|
+| Tarea con `info` alert | Fondo azul cielo (#e0f2fe) | `ℹ` badge | Azul (#0284c7) |
+| IntermediateThrowEvent | Fondo blanco | Sobre azul | Azul |
+| End event | Fondo verde (#dcfce7) | `✓` | Verde (#16a34a) |
+| Sequence flow | Azul sólido | → | — |
+
+**Flujo de creación en el editor (GatewayWizard):**
+
+```
+1. Diseñador selecciona una tarea en el canvas
+2. Click derecho → "Agregar Alerta de Confirmación"
+3. GatewayWizard muestra selector de tipo:
+   ┌─────────────────────────────────────────────────────┐
+   │  Selecciona el tipo de alerta                       │
+   │                                                     │
+   │  ○ ℹ  Informativa  — Solo confirma, siempre avanza  │
+   │  ○ ⚠  Advertencia  — Puede regresar a paso anterior │
+   │  ○ ⛔ Crítica       — Rechazo termina el proceso     │
+   └─────────────────────────────────────────────────────┘
+4. Selecciona "Informativa"
+5. Panel de propiedades muestra campos:
+   - Título de la alerta
+   - Descripción (texto del modal)
+   - Etiqueta botón Confirmar
+   - Etiqueta botón Cancelar (texto solo, sin flujo de retorno)
+6. Al confirmar, el editor genera automáticamente:
+   - IntermediateThrowEvent conectado a la tarea
+   - EndEvent "Proceso Completado" conectado al throw event
+   - extensionElements yaml:completionAlert severity="info"
+```
+
+---
+
+#### 4.8.2 Alerta de Advertencia (`severity: warning`)
+
+**Semántica:** Punto de decisión con **posibilidad de retroceso**. Si el resultado no es satisfactorio, el flujo regresa a una tarea o fase anterior para corrección. Es el tipo más común en los procesos de validación.
+
+**Patrón BPMN:** `userTask` → `exclusiveGateway (XOR)` → [flujo positivo adelante] / [flujo negativo hacia atrás]
+
+```xml
+<userTask id="task-10-2-confirmar-validacion"
+          name="Confirmar Validación de Despliegue">
+  <extensionElements>
+    <yaml:taskConfig>
+      <yaml:completionAlert severity="warning"
+        title="Validación de Despliegue"
+        description="¿El despliegue cumple con la propuesta aprobada?"
+        confirmLabel="Sí, cumple — Avanzar a Fase 11"
+        cancelLabel="No cumple — Regresar a Fase 9"
+        returnTargetRef="task-9-1-ejecutar-despliegue"/>
+    </yaml:taskConfig>
+  </extensionElements>
+</userTask>
+
+<!-- XOR gateway de decisión -->
+<exclusiveGateway id="gw-task-10-2-decision"
+                  name="¿Validación exitosa?"
+                  gatewayDirection="Diverging"/>
+
+<!-- Flujo positivo: avanza al siguiente paso -->
+<sequenceFlow id="sf-10-2-yes"
+              name="Sí, cumple"
+              sourceRef="gw-task-10-2-decision"
+              targetRef="task-11-1-recibir-plantilla">
+  <conditionExpression>${validacionExitosa == true}</conditionExpression>
+</sequenceFlow>
+
+<!-- Flujo negativo: regresa a fase 9 (flecha hacia atrás) -->
+<sequenceFlow id="sf-10-2-no"
+              name="No cumple"
+              sourceRef="gw-task-10-2-decision"
+              targetRef="task-9-1-ejecutar-despliegue">
+  <conditionExpression>${validacionExitosa == false}</conditionExpression>
+</sequenceFlow>
+```
+
+**Representación visual en el editor:**
+
+```
+                ┌───────────────── flujo de retorno (naranja, curva) ──────┐
+                ↓                                                           │
+[task-9-1] ... [task-10-2] ──→ ◇XOR "¿Validación exitosa?"                │
+                                   ├── "Sí, cumple" ──→ [task-11-1]        │
+                                   └── "No cumple"  ──────────────────────┘
+                                       (naranja, discontinua)
+```
+
+**Codificación visual:**
+
+| Elemento | Color | Icono | Borde |
+|---|---|---|---|
+| Tarea con `warning` alert | Fondo ámbar (#fef3c7) | `⚠` badge | Ámbar (#d97706) |
+| ExclusiveGateway | Fondo amarillo (#fef9c3) | `◇` estándar | Ámbar |
+| Flujo positivo (confirmLabel) | Verde (#16a34a) | `→` sólida | — |
+| Flujo negativo (cancelLabel) | Naranja (#ea580c) | `→` discontinua | — |
+| Flecha de retorno | Naranja curva | `↩` | — |
+
+**Flujo de creación en el editor (GatewayWizard):**
+
+```
+1. Diseñador selecciona la tarea y activa GatewayWizard
+2. Selecciona "Advertencia (Warning)"
+3. Panel de configuración:
+   ┌──────────────────────────────────────────────────────────┐
+   │  ⚠  Alerta de Advertencia                               │
+   │  ─────────────────────────────────────────────────────  │
+   │  Título:        [Validación de Despliegue          ]    │
+   │  Descripción:   [¿El despliegue cumple con...?     ]    │
+   │  Botón Confirmar: [Sí, cumple — Avanzar a Fase 11  ]    │
+   │  Botón Cancelar:  [No cumple — Regresar a Fase 9   ]    │
+   │                                                          │
+   │  Destino si NO cumple:                                   │
+   │  [ Selector de tarea del proceso ▼ ]                    │
+   │  → task-9-1-ejecutar-despliegue                         │
+   └──────────────────────────────────────────────────────────┘
+4. El editor genera automáticamente:
+   - ExclusiveGateway tras la tarea
+   - SequenceFlow positivo (verde) → tarea siguiente en el flujo
+   - SequenceFlow negativo (naranja, discontinuo) → tarea seleccionada
+   - Actualiza extensionElements con returnTargetRef
+```
+
+**Propiedad YAML adicional sugerida:** `returnTargetRef` — almacena la tarea destino del flujo de retorno, para que el Executor pueda mostrar el botón "Regresar" funcionalmente.
+
+---
+
+#### 4.8.3 Alerta Crítica (`severity: critical`)
+
+**Semántica:** Punto de NO retorno. Si el resultado es negativo, el proceso **se cancela o termina definitivamente**. No hay posibilidad de corrección. Se usa para aprobaciones formales donde el rechazo implica inicio de un proceso nuevo desde cero (ej: rechazo de presupuesto FinOps, rechazo de arquitectura).
+
+**Patrón BPMN:** `userTask` → `exclusiveGateway (XOR)` → [flujo positivo adelante] / [flujo negativo → `endEvent terminante`] + `boundaryEvent (error)` adjunto a la tarea
+
+```xml
+<userTask id="task-6-2-autorizar-despliegue"
+          name="Autorizar Presupuesto de Despliegue">
+  <extensionElements>
+    <yaml:taskConfig>
+      <yaml:completionAlert severity="critical"
+        title="Autorización de Presupuesto"
+        description="¿El ID de presupuesto cumple todos los criterios?"
+        confirmLabel="Autorizar — Avanzar a Fase 7"
+        cancelLabel="Rechazar solicitud"
+        cancellationReason="Budget rejected by FinOps"/>
+    </yaml:taskConfig>
+  </extensionElements>
+</userTask>
+
+<!-- XOR gateway de decisión -->
+<exclusiveGateway id="gw-task-6-2-decision"
+                  name="¿Presupuesto aprobado?"
+                  gatewayDirection="Diverging"/>
+
+<!-- Flujo positivo: avanza normalmente -->
+<sequenceFlow id="sf-6-2-yes"
+              name="Autorizar"
+              sourceRef="gw-task-6-2-decision"
+              targetRef="task-7-1-coordinar-areas">
+  <conditionExpression>${presupuestoAprobado == true}</conditionExpression>
+</sequenceFlow>
+
+<!-- Flujo negativo: termina el proceso -->
+<sequenceFlow id="sf-6-2-no"
+              name="Rechazar solicitud"
+              sourceRef="gw-task-6-2-decision"
+              targetRef="end-process-rejected">
+  <conditionExpression>${presupuestoAprobado == false}</conditionExpression>
+</sequenceFlow>
+
+<!-- End event de cancelación (terminate) -->
+<endEvent id="end-process-rejected" name="Solicitud Rechazada">
+  <terminateEventDefinition/>
+  <extensionElements>
+    <yaml:endReason>Budget rejected by FinOps</yaml:endReason>
+  </extensionElements>
+</endEvent>
+
+<!-- BoundaryEvent de error (captura rechazos por excepción) -->
+<boundaryEvent id="be-task-6-2-error"
+               name="Error de Autorización"
+               attachedToRef="task-6-2-autorizar-despliegue"
+               cancelActivity="true">
+  <errorEventDefinition errorRef="error-authorization-failed"/>
+</boundaryEvent>
+
+<error id="error-authorization-failed"
+       name="AuthorizationFailed"
+       errorCode="CRITICAL_REJECTION"/>
+
+<sequenceFlow sourceRef="be-task-6-2-error"
+              targetRef="end-process-rejected"/>
+```
+
+**Representación visual en el editor:**
+
+```
+[task-6-2] ──→ ◇XOR "¿Presupuesto aprobado?"
+  ⊙ (err)         ├── "Autorizar"  (verde) ──→ [task-7-1]
+  │               └── "Rechazar"   (rojo)  ──→ ⊛ "Solicitud Rechazada"
+  └────────────────────────────────────────→ ⊛ (terminate, rojo)
+```
+
+**Codificación visual:**
+
+| Elemento | Color | Icono | Borde |
+|---|---|---|---|
+| Tarea con `critical` alert | Fondo rojo claro (#fee2e2) | `⛔` badge | Rojo (#dc2626) |
+| ExclusiveGateway | Fondo rojo claro | `◇` con `!` | Rojo |
+| BoundaryEvent (error) | Fondo rojo | `⚡` | Rojo grueso |
+| Flujo positivo (confirmLabel) | Verde (#16a34a) sólido | `→` | — |
+| Flujo negativo (cancelLabel) | Rojo (#dc2626) grueso | `→` | — |
+| EndEvent terminante | Fondo rojo (#dc2626) | `⊛` relleno | Rojo |
+
+**Flujo de creación en el editor (GatewayWizard):**
+
+```
+1. Diseñador selecciona la tarea y activa GatewayWizard
+2. Selecciona "Crítica"
+3. Panel de configuración con advertencia visual:
+   ┌──────────────────────────────────────────────────────────┐
+   │  ⛔ Alerta Crítica — El rechazo TERMINA el proceso       │
+   │  ─────────────────────────────────────────────────────   │
+   │  Título:         [Autorización de Presupuesto      ]     │
+   │  Descripción:    [¿El ID de presupuesto cumple...? ]     │
+   │  Botón Confirmar: [Autorizar — Avanzar a Fase 7    ]     │
+   │  Botón Rechazar:  [Rechazar solicitud               ]    │
+   │                                                           │
+   │  Razón de cancelación:                                    │
+   │  [Budget rejected by FinOps                         ]    │
+   │                                                           │
+   │  Nombre del End Event:                                    │
+   │  [Solicitud Rechazada                               ]    │
+   │                                                           │
+   │  ⚠ Se generará un BoundaryEvent de error y un           │
+   │    EndEvent terminante. Esta acción no es reversible     │
+   │    en el contexto del proceso.                            │
+   └──────────────────────────────────────────────────────────┘
+4. El editor genera automáticamente:
+   - ExclusiveGateway tras la tarea (color rojo)
+   - SequenceFlow positivo (verde) → tarea siguiente
+   - SequenceFlow negativo (rojo) → EndEvent terminante
+   - BoundaryEvent de error adjunto a la tarea
+   - EndEvent con terminateEventDefinition (color rojo)
+   - <error> definido a nivel de proceso con errorCode
+```
+
+---
+
+#### 4.8.4 Comparativa Visual de los Tres Tipos
+
+```
+─────────────────────────────────────────────────────────────────────────────
+   INFO                  WARNING                  CRITICAL
+─────────────────────────────────────────────────────────────────────────────
+
+ [tarea]                [tarea]                  [tarea]
+   ℹ badge               ⚠ badge                  ⛔ badge
+ fondo azul            fondo ámbar              fondo rojo claro
+    │                     │                    ⊙ boundary (rojo)
+    │                     ↓                         │
+    ↓               ◇XOR (ámbar)              ◇XOR (rojo)
+ ✉ msg event         /         \              /         \
+    │            [Sí] verde  [No] naranja  [Sí] verde  [No] rojo
+    ↓               │           │              │           │
+ ◉ end (verde)   [next]     [prev task]     [next]      ⊛ terminate
+                             (retorno)                   (rojo)
+
+ Flujo:          Flujo:                    Flujo:
+ Solo avanza     Avanza O regresa          Avanza O TERMINA
+
+ YAML severity:  YAML severity:            YAML severity:
+   info            warning                   critical
+─────────────────────────────────────────────────────────────────────────────
+```
+
+#### 4.8.5 Propiedades Panel por Tipo de Alerta
+
+Al seleccionar la tarea o el gateway en el canvas, el panel de propiedades muestra campos específicos según el `severity`:
+
+| Campo | INFO | WARNING | CRITICAL |
+|---|---|---|---|
+| `title` | ✅ | ✅ | ✅ |
+| `description` | ✅ | ✅ | ✅ |
+| `confirmLabel` | ✅ | ✅ | ✅ |
+| `cancelLabel` | ✅ (solo texto) | ✅ | ✅ |
+| `returnTargetRef` | ❌ | ✅ selector tarea | ❌ |
+| `cancellationReason` | ❌ | ❌ | ✅ texto libre |
+| End event name | ❌ | ❌ | ✅ |
+| BoundaryEvent errorCode | ❌ | ❌ | ✅ auto-generado |
+
+---
+
 ### 4.6 Tabla Resumen de Gateways
 
 | BPMN Gateway | YAML Origen | Generación | Transformación Inversa |
