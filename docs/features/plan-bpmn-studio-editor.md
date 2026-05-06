@@ -118,6 +118,315 @@ outputVars[]                    →  <dataOutputAssociation>
 
 ---
 
+### 3.4 Elementos Faltantes en el Mapeo Inicial
+
+El schema `process.schema.json` v1.2.0 contiene estructuras no cubiertas en las tablas anteriores. Esta sección los documenta con su equivalente BPMN.
+
+#### 3.4.1 Jerarquía Proceso → Fase → Actividad → Tarea
+
+El schema soporta **tres niveles** de anidamiento bajo una fase, no solo dos:
+
+```
+Process
+└── phases[]           → <process> + <laneSet>
+    └── Phase
+        ├── tasks[]    → <userTask> directamente en <lane>   (nivel 2)
+        └── activities[]  → sub-<lane> o <subProcess>        (nivel 3)
+            └── Activity
+                ├── tasks[]
+                ├── dynamicLinks[]
+                └── images[]
+```
+
+**BPMN generado para `Activity`:**
+
+```xml
+<!-- Opción A: Activity como sub-lane dentro del lane de la fase -->
+<lane id="lane-{phase.id}-{activity.id}"
+      name="{phase.name} / {activity.name}"
+      parentRef="lane-{phase.id}">
+  <flowNodeRef>task-{task.id}</flowNodeRef>
+</lane>
+
+<!-- Opción B (recomendada para claridad): Activity como subProcess colapsado -->
+<subProcess id="sub-{activity.id}" name="{activity.name}"
+            trisotech:collapsed="true">
+  <extensionElements>
+    <yaml:activityConfig>
+      <yaml:phaseId>{phase.id}</yaml:phaseId>
+      <yaml:order>{activity.order}</yaml:order>
+    </yaml:activityConfig>
+  </extensionElements>
+  <!-- tasks del activity como userTasks dentro del subProcess -->
+</subProcess>
+```
+
+#### 3.4.2 DynamicLink — Presente en Fase, Actividad y Tarea
+
+```yaml
+# YAML — presente en phases[].dynamicLinks, activities[].dynamicLinks, tasks[].dynamicLinks
+dynamicLinks:
+  - label: "GitHub Repository"
+    urlTemplate: "https://github.com/{organization}/{repository}"
+    behavior: "auto"      # auto | click
+    delay: 2              # segundos antes de activar (solo behavior:auto)
+    newTab: true
+    requiresVariables: ["organization", "repository"]
+```
+
+**BPMN → `extensionElements`:**
+
+```xml
+<extensionElements>
+  <yaml:dynamicLinks>
+    <yaml:link label="GitHub Repository"
+               urlTemplate="https://github.com/{organization}/{repository}"
+               behavior="auto"
+               delay="2"
+               newTab="true">
+      <yaml:requiresVariable>organization</yaml:requiresVariable>
+      <yaml:requiresVariable>repository</yaml:requiresVariable>
+    </yaml:link>
+  </yaml:dynamicLinks>
+</extensionElements>
+```
+
+**Nota de transformación inversa:** Al importar BPMN externo sin este namespace, los `dynamicLinks` se pierden. El editor debe advertir al usuario si detecta `<documentation>` con URLs y sugerir convertirlos a `dynamicLinks`.
+
+#### 3.4.3 ActivityImage — Solo en `Activity`
+
+```yaml
+images:
+  - id: "img-arquitectura-cloud"
+    name: "Diagrama Arquitectura Cloud"
+    url: "/images/arch-cloud-v2.png"    # uri-reference
+    caption: "Arquitectura propuesta para el ambiente multi-cloud"
+```
+
+**Sin equivalente BPMN nativo** — se almacena en `extensionElements` del `<subProcess>` o `<lane>`:
+
+```xml
+<extensionElements>
+  <yaml:images>
+    <yaml:image id="img-arquitectura-cloud"
+                name="Diagrama Arquitectura Cloud"
+                url="/images/arch-cloud-v2.png"
+                caption="Arquitectura propuesta..."/>
+  </yaml:images>
+</extensionElements>
+```
+
+**En el editor:** las imágenes aparecen como un attachment icon (📎) en el elemento BPMN. Al hacer click se abre un panel lateral mostrando la imagen con caption.
+
+#### 3.4.4 Task.references[] — Links de documentación
+
+```yaml
+references:
+  - label: "NPM Audit Docs"
+    url: "https://docs.npmjs.com/cli/v8/commands/npm-audit"
+  - label: "SonarQube Docs"
+    url: "https://docs.sonarqube.org/latest/"
+```
+
+**BPMN → `<documentation>`** (estándar BPMN 2.0, no requiere extensión):
+
+```xml
+<userTask id="task-1-2" name="Revisar Dependencias">
+  <documentation>
+    REF:NPM Audit Docs:https://docs.npmjs.com/cli/v8/commands/npm-audit
+    REF:SonarQube Docs:https://docs.sonarqube.org/latest/
+  </documentation>
+</userTask>
+```
+
+**Transformación inversa:** Parser detecta líneas con prefijo `REF:` en `<documentation>` → genera `references[]`.
+
+#### 3.4.5 Process.subprocesses[] — Procesos embebidos externos
+
+```yaml
+subprocesses:
+  - id: "sub-onboarding"
+    name: "Onboarding de Ambiente"
+    order: 1
+    source:
+      type: "github"          # github | url | local
+      url: "https://raw.githubusercontent.com/org/repo/main/onboarding.yaml"
+      ref: "main"
+    variables:
+      ambiente: "{vars.proveedorCloud}"
+    optional: true
+```
+
+**BPMN → `<callActivity>`** (estándar BPMN 2.0):
+
+```xml
+<callActivity id="call-sub-onboarding"
+              name="Onboarding de Ambiente"
+              calledElement="proc-onboarding">
+  <extensionElements>
+    <yaml:subprocessSource type="github"
+                           url="https://raw.githubusercontent.com/..."
+                           ref="main"/>
+    <yaml:optional>true</yaml:optional>
+  </extensionElements>
+  <dataInputAssociation>
+    <sourceRef>proveedorCloud</sourceRef>
+    <targetRef>ambiente</targetRef>
+  </dataInputAssociation>
+</callActivity>
+```
+
+**En el editor:** Los `callActivity` tienen una paleta propia "Subproceso Externo" con un selector de fuente (GitHub URL / URL directa / local). El editor muestra un badge con el tipo de fuente (`GH`, `URL`, `LOCAL`).
+
+#### 3.4.6 ProcessVariable — Tipos Completos
+
+El schema define tres tipos con restricciones propias:
+
+| Tipo | Campos adicionales | Constraint |
+|---|---|---|
+| `text` | `placeholder`, `defaultValue` | — |
+| `number` | `placeholder`, `defaultValue` | — |
+| `select` | `options[]` ó `optionsFrom` (exclusivos) | Si `type: select` → DEBE tener `options` o `optionsFrom` |
+
+**`optionsFrom`** es una clave de `capturedVariable` (generada por `outputVar` de una tarea previa) que contiene `string[]` para poblar las opciones dinámicamente en tiempo de ejecución.
+
+**BPMN → `<dataObject>`:**
+
+```xml
+<!-- Variable tipo select con opciones estáticas -->
+<dataObject id="var-environment" name="environment" itemSubjectRef="item-environment"/>
+<itemDefinition id="item-environment" structureRef="xsd:string"/>
+<extensionElements>
+  <yaml:variable type="select" required="true" label="Ambiente de Despliegue">
+    <yaml:option>development</yaml:option>
+    <yaml:option>staging</yaml:option>
+    <yaml:option>production</yaml:option>
+  </yaml:variable>
+</extensionElements>
+
+<!-- Variable tipo select con opciones dinámicas (optionsFrom) -->
+<dataObject id="var-componenteSeleccionado" name="componenteSeleccionado"/>
+<extensionElements>
+  <yaml:variable type="select" optionsFrom="componentesDisponibles"/>
+</extensionElements>
+```
+
+#### 3.4.7 Restricción del Tipo Duration
+
+El campo `estimatedTime` en `process` y `task` acepta **exclusivamente horas, minutos y segundos**. El patrón es `^(\d+(?:\.\d+)?[hms])+$`.
+
+```yaml
+estimatedTime: "1h30m"    ✅ válido
+estimatedTime: "45m"      ✅ válido
+estimatedTime: "1.5h"     ✅ válido
+estimatedTime: "65d"      ❌ inválido — 'd' (días) NO está soportado
+```
+
+**Implicación para el editor BPMN:** Los `<timerEventDefinition>` con duración en días (`P9D` BPMN ISO 8601) deben convertirse a horas al generar YAML (`P9D → 216h`), o bien omitir `estimatedTime` si el proceso es multi-día (como `gestion-ambientes.yaml`).
+
+#### 3.4.8 CompletionAlert — Schema Real vs. Propuestas del Plan
+
+El schema actual define exactamente estos campos:
+
+```typescript
+CompletionAlert {
+  severity?:     'info' | 'warning' | 'critical'   // default: 'info'
+  title?:        string
+  description:   string   // REQUERIDO
+  confirmLabel?: string
+  cancelLabel?:  string
+}
+```
+
+> **Importante:** Los campos `returnTargetRef` y `cancellationReason` mencionados en la sección 4.8 del plan **no existen en el schema actual**. Son **propuestas de extensión** que deben añadirse al schema en un sprint de extensión del YAML. En el `extensionElements` BPMN se pueden almacenar anticipadamente; el YAML solo los usará una vez que el schema se actualice.
+
+---
+
+### 3.5 Catálogo Completo de 8 Tipos de Tarea — Mapeo BPMN
+
+| YAML `type` | Config requerida | BPMN Element | Notas BPMN |
+|---|---|---|---|
+| `standard` | ninguna | `<userTask>` | Tipo por defecto |
+| `check` | `checkItem: {description, required}` | `<userTask>` + `<exclusiveGateway>` si `completionAlert` | Un solo check item; gateway generado si tiene `completionAlert` |
+| `multicheck` | `checkItems: [{id, description, required}]` | `<subProcess>` + `<inclusiveGateway>` converging | SubProcess colapsable con OR join |
+| `form` | `formConfig: {layout, fields[]}` | `<userTask>` + `<dataInputAssociation>` por campo | 10 tipos de campo: text/number/email/date/time/datetime/boolean/textarea/image/select |
+| `dynamic-list` | `listConfig: {label, placeholder, minItems, maxItems, allowDuplicates, separators[], trimItems}` | `<userTask>` + `<dataObject isCollection="true">` | `separators` es array; genera `outputVars` si se define `listData` |
+| `detail-list` | `detailConfig: {sourceTaskId, placeholder, maxLength}` | `<userTask>` + `<dataInputAssociation sourceRef>` | Depende de una `dynamic-list` previa; `sourceTaskId` genera una `<dataAssociation>` |
+| `detail-table` | `detailTableConfig: {sourceTaskId\|sourceVar, columns[]}` | `<userTask>` + table en `extensionElements` | `columns[].type`: boolean/text/number/date/list/computed-text; `computed-text` usa `{item}`, `{vars.xxx}`; labels soportan `#CELL#` syntax |
+| `export-excel` | `exportConfig: {templatePath, outputFilename, autoDownload, inherit, mappings}` | `<serviceTask>` (no humano) | El único tipo que NO es `<userTask>` — es automatizado |
+
+**Representación BPMN del `export-excel`:**
+
+```xml
+<!-- export-excel es automático → serviceTask, no userTask -->
+<serviceTask id="task-7-export" name="Generar Reporte Excel"
+             implementation="##WebService">
+  <extensionElements>
+    <yaml:taskConfig>
+      <yaml:type>export-excel</yaml:type>
+      <yaml:exportConfig templatePath="/templates/TEMPLATE.xlsx"
+                         outputFilename="Reporte_{today:DDMMYYYY}.xlsx"
+                         autoDownload="true"
+                         inherit="false"/>
+    </yaml:taskConfig>
+  </extensionElements>
+</serviceTask>
+```
+
+**Representación BPMN del `form` con `formConfig`:**
+
+```xml
+<userTask id="task-3-2-estimacion" name="Estimar Costos Cloud">
+  <extensionElements>
+    <yaml:taskConfig>
+      <yaml:type>form</yaml:type>
+      <yaml:formConfig>
+        <yaml:layout type="grid" columns="2"/>
+        <yaml:field id="costoEstimadoMin" label="Costo Mín (USD/mes)"
+                    type="number" required="true"/>
+        <yaml:field id="costoEstimadoMax" label="Costo Máx (USD/mes)"
+                    type="number" required="true"/>
+        <yaml:field id="proveedorCloud" label="Proveedor Cloud"
+                    type="text" required="true"/>
+        <yaml:field id="descripcionArquitectura" label="Descripción"
+                    type="textarea" required="true" colSpan="2"/>
+      </yaml:formConfig>
+    </yaml:taskConfig>
+  </extensionElements>
+  <!-- outputVars generados desde campos del form -->
+  <dataOutputAssociation>
+    <sourceRef>formData.costoEstimadoMin</sourceRef>
+    <targetRef>var-costoEstimadoMin</targetRef>
+  </dataOutputAssociation>
+</userTask>
+```
+
+**Representación BPMN del `detail-table`:**
+
+```xml
+<userTask id="task-1-2a-validacion" name="Validación PR y Deuda Técnica">
+  <extensionElements>
+    <yaml:taskConfig>
+      <yaml:type>detail-table</yaml:type>
+      <yaml:detailTableConfig sourceTaskId="task-1-2">
+        <!-- label "#H46#" = leer valor de celda H46 del template Excel -->
+        <yaml:column id="integracionMaster" label="#H46#"
+                     type="boolean" required="false"/>
+        <yaml:column id="urlRepo" label="#L46#"
+                     type="computed-text"
+                     template="{vars.repositoryUrl}/{item}" required="false"/>
+      </yaml:detailTableConfig>
+    </yaml:taskConfig>
+  </extensionElements>
+  <!-- sourceTaskId genera dataAssociation implícita -->
+  <dataInputAssociation>
+    <sourceRef>task-1-2.listData</sourceRef>
+  </dataInputAssociation>
+</userTask>
+```
+
+---
+
 ## 4. Diseño Detallado de Gateways
 
 Los gateways son el componente más crítico de la transformación, ya que en YAML son implícitos dentro de tareas (`completionAlert`, `type: check`) mientras que en BPMN son elementos explícitos y estructurados. Este capítulo describe cada tipo, su renderizado y su transformación.
@@ -1195,7 +1504,176 @@ npx vitest run --coverage
 
 ---
 
-## 9. Riesgos y Mitigaciones
+## 9. Arquitectura de Exportación Excel (`process.export`)
+
+El schema `process.schema.json` incluye un sistema completo de exportación declarativa Excel que es **crítico para la compatibilidad** del YAML generado por el editor. Sin este soporte, procesos como `release-checklist.yaml` no pueden representarse fielmente.
+
+---
+
+### 9.1 Estructura de `process.export`
+
+Se define a **nivel de proceso** (no de tarea) y controla la generación completa del archivo Excel:
+
+```yaml
+process:
+  export:
+    templatePath: "/templates/TEMPLATE_Checklist.xlsx"   # REQUERIDO
+    templateVersion: "1.0.0"
+    templateSha256: "abc123..."    # hash SHA-256 del template (64 hex chars)
+    outputFilename: "Checklist_{today:DDMMYYYY}_RFC{vars.rfc}_{process.name}"
+    autoDownload: true
+    mappings:
+      sheets:
+        - sheet: "Checklist"
+          sources: [...]
+        - sheet: "Evidencias"
+          startRow: 3
+          timestampColumn: B
+          nameColumn: C
+          maxRows: 50
+```
+
+**Tokens en `outputFilename`:**
+
+| Token | Resuelve a |
+|---|---|
+| `{today:DDMMYYYY}` | Fecha actual formateada |
+| `{today:YYYY-MM-DD}` | Fecha actual ISO |
+| `{now:HHmm}` | Hora actual |
+| `{vars.rfc}` | Valor de la variable de proceso `rfc` |
+| `{process.name}` | Nombre del proceso |
+| `{process.version}` | Versión del proceso |
+| `{process.id}` | ID del proceso |
+
+**BPMN → `extensionElements` a nivel de `<process>`:**
+
+```xml
+<process id="proc-release-checklist">
+  <extensionElements>
+    <yaml:exportConfig
+      templatePath="/templates/TEMPLATE_Checklist.xlsx"
+      templateVersion="1.0.0"
+      outputFilename="Checklist_{today:DDMMYYYY}_RFC{vars.rfc}_{process.name}"
+      autoDownload="true">
+      <yaml:mappings>
+        <yaml:sheet name="Checklist">
+          <!-- sources declaradas aquí -->
+        </yaml:sheet>
+        <yaml:sheet name="Evidencias" startRow="3"
+                    timestampColumn="B" nameColumn="C"/>
+      </yaml:mappings>
+    </yaml:exportConfig>
+  </extensionElements>
+</process>
+```
+
+---
+
+### 9.2 Los 12 Tipos de `ExportTaskSource` (kinds)
+
+Cada `sheet` contiene un array `sources[]` donde cada source tiene un `kind`:
+
+| `kind` | Descripción | Campos clave |
+|---|---|---|
+| `variables` | Mapea `capturedVariables` a celdas Excel | `mapping: {varKey: "CellRef"}` |
+| `static` | Valores literales a celdas específicas | `cells: {"A1": "valor", "B2": 42}` |
+| `time` | Timestamps del proceso a celdas | `today`, `startedAt`, `completedAt`, `totalElapsedMinutes`, `totalElapsedHours` |
+| `process` | Metadatos del proceso a celdas | `id`, `name`, `version` → `CellRef` |
+| `comments` | Texto interpolado a una sola celda | `cell: CellRef`, `template: "texto {vars.xxx}"` |
+| `list` | Lista de `dynamic-list` → columna Excel | `sourceTaskId`, `column`, `startRow`, `endRow`, `maxItems` |
+| `detail` | Lista de `detail-list` → múltiples columnas | `sourceTaskId`, `sections[]` con `column, startRow, endRow` |
+| `form` | Datos de tarea `form` → celdas via `valueCell` | `sourceTaskId` |
+| `checklist` | CheckItems de `multicheck` → filas Excel | `sourceTaskId`, `startRow`, `maxRows`, `columns: {aplica, validado, url, nombre}` |
+| `detail-table` | Tabla `detail-table` → columnas mapeadas | `sourceTaskId`, `startRow`, `columns: {colId: "ColumnLetter"}` |
+| `cell` | Campos específicos de cualquier tarea → celdas | `sourceTaskId`, `fields: [{field: "dot.path", cell: CellRef}]` |
+| `range` | **Lee** rango del template Excel → `capturedVariable` | `range: "A1:B10"`, `outputVar: "varName"`, `flatten: true` |
+
+> **`kind: range` es especial:** es el único source que **lee del template hacia la app** (inverso). Permite pre-cargar opciones desde celdas del Excel.
+
+**Ejemplo completo de sheet con múltiples sources:**
+
+```yaml
+- sheet: "Checklist"
+  sources:
+    - kind: variables
+      mapping:
+        torre: "F3"
+        rfc: "F14"
+        tipoLiberacion: "F86"
+    - kind: time
+      today: "U3"
+      startedAt: "S86"
+      completedAt: "S87"
+    - kind: process
+      id: "F84"
+    - kind: comments
+      cell: "B100"
+      template: "Proceso: {process.name} - RFC: {vars.rfc}"
+    - kind: list
+      sourceTaskId: task-1-2
+      column: F
+      startRow: 5
+      endRow: 13
+    - kind: detail-table
+      sourceTaskId: task-1-2a
+      startRow: 47
+      columns:
+        integracionMaster: H
+        deudaTecnica: I
+        urlRepo: L
+    - kind: cell
+      sourceTaskId: task-7-1b
+      fields:
+        - field: "evidence.text"
+          cell: "B110"
+        - field: "checkItems.check-presupuesto.checked"
+          cell: "D15"
+```
+
+---
+
+### 9.3 Implicaciones para el Editor BPMN
+
+El editor debe poder **representar visualmente** la configuración de exportación y **generarla** en el YAML. Las implicaciones:
+
+1. **Panel de exportación del proceso**: cuando se selecciona el pool/proceso en el canvas, el panel de propiedades muestra la sección `export` con campos para `templatePath`, `outputFilename`, `autoDownload`.
+
+2. **Configurador de sheets**: UI para agregar/editar sheets con `sources[]`. Cada source type tiene su propio sub-formulario.
+
+3. **Vinculación tarea → export source**: al seleccionar una tarea con `type: dynamic-list`, el editor sugiere automáticamente agregar un source `kind: list` en el export config, con el `sourceTaskId` ya pre-completado.
+
+4. **`kind: range` en el editor**: representado como un `<dataInputAssociation>` desde el proceso hacia la tarea que usará esos datos. Es el único flujo de datos "de vuelta" en el diagrama.
+
+5. **Validación del templatePath**: el editor valida que el `templatePath` apunta a un archivo existente (si es `local`) o advierte que debe existir en el servidor.
+
+6. **No hay equivalente BPMN estándar para el export completo**: todo el `process.export` se serializa en `<extensionElements>` a nivel de `<process>`. Herramientas externas lo ignorarán gracefully.
+
+---
+
+### 9.4 Unit Tests del Motor de Exportación
+
+```typescript
+// __tests__/unit/lib/bpmn-transformer/export-config.test.ts
+
+describe('yamlToBpmn() - process.export', () => {
+  it('embeds exportConfig in process extensionElements')
+  it('generates yaml:sheet elements for each sheet in mappings')
+  it('preserves all 12 source kind types in extensionElements')
+  it('serializes outputFilename tokens without modification')
+})
+
+describe('bpmnToYaml() - process.export round-trip', () => {
+  it('extracts exportConfig from process extensionElements')
+  it('round-trip preserves all sources for release-checklist.yaml export')
+  it('round-trip preserves kind:range outputVar and flatten flag')
+  it('round-trip preserves detail-table columns mapping')
+  it('round-trip preserves comments template string')
+})
+```
+
+---
+
+## 10. Riesgos y Mitigaciones
 
 | Riesgo | Impacto | Mitigación |
 |---|---|---|
@@ -1205,10 +1683,13 @@ npx vitest run --coverage
 | `extensionElements` no reconocidos por otras tools | Bajo | Documentar namespace `yaml:` + fallback graceful |
 | Multicheck con 20+ items satura el subprocess | Bajo | Vista compacta + toggle expandir/colapsar |
 | Round-trip no preserva 100% fidelidad | Medio | Tests de fidelidad semántica (no igualdad textual) |
+| `process.export` no tiene equivalente BPMN estándar | Medio | Serializar todo en `extensionElements`; documentar pérdida al exportar a tools externas |
+| `kind: range` (lectura inversa Excel→app) sin representación BPMN | Bajo | Modelar como `dataInputAssociation` desde `<dataStore>` hacia proceso |
+| Activities (nivel 3) complejizan auto-layout | Medio | Usar subProcess colapsado por defecto; expandir bajo demanda |
 
 ---
 
-## 10. Impacto sobre el Código Existente
+## 11. Impacto sobre el Código Existente
 
 | Área | Impacto | Acción |
 |---|---|---|
@@ -1220,7 +1701,7 @@ npx vitest run --coverage
 
 ---
 
-## 11. Dependencias a Agregar
+## 12. Dependencias a Agregar
 
 ```json
 {
