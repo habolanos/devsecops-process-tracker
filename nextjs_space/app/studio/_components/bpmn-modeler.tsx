@@ -2,6 +2,11 @@
 
 import { useEffect, useRef, useImperativeHandle, forwardRef, useState } from 'react';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
+// bpmn-js CSS — imported here (client-only) to guarantee load order after Tailwind
+import 'bpmn-js/dist/assets/diagram-js.css';
+import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-embedded.css';
+import 'bpmn-js-token-simulation/assets/css/bpmn-js-token-simulation.css';
 
 // ============================================================
 // Blank BPMN template for new processes
@@ -70,6 +75,8 @@ export interface BpmnModelerHandle {
   fitViewport: () => void;
   zoomIn: () => void;
   zoomOut: () => void;
+  toggleSimulation: () => void;
+  isSimulating: () => boolean;
 }
 
 // ============================================================
@@ -91,6 +98,7 @@ const BpmnModeler = forwardRef<BpmnModelerHandle, BpmnModelerProps>(
     const modelerRef = useRef<any>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [simulating, setSimulating] = useState(false);
     const onChangeRef = useRef(onChange);
     onChangeRef.current = onChange;
 
@@ -98,8 +106,11 @@ const BpmnModeler = forwardRef<BpmnModelerHandle, BpmnModelerProps>(
     useImperativeHandle(ref, () => ({
       getXml: async () => {
         if (!modelerRef.current) return '';
-        const { xml } = await modelerRef.current.saveXML({ format: true });
-        return xml ?? '';
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const result: any = await modelerRef.current.saveXML({ format: true });
+          return (result?.xml as string | undefined) ?? '';
+        } catch { return ''; }
       },
       getSvg: async () => {
         if (!modelerRef.current) return '';
@@ -122,6 +133,16 @@ const BpmnModeler = forwardRef<BpmnModelerHandle, BpmnModelerProps>(
         const canvas = modelerRef.current?.get('canvas');
         if (canvas) canvas.zoom(canvas.zoom() / 1.25, 'auto');
       },
+      toggleSimulation: () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const toggleMode = modelerRef.current?.get('toggleMode') as any;
+        if (toggleMode) toggleMode.toggleMode();
+      },
+      isSimulating: () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const toggleMode = modelerRef.current?.get('toggleMode') as any;
+        return toggleMode?.active ?? false;
+      },
     }));
 
     // ── Initialize modeler ─────────────────────────────────
@@ -136,46 +157,32 @@ const BpmnModeler = forwardRef<BpmnModelerHandle, BpmnModelerProps>(
           setIsLoading(true);
           setError(null);
 
-          // Inject bpmn-js CSS once
-          if (!document.getElementById('bpmn-modeler-css')) {
-            const link = document.createElement('link');
-            link.id = 'bpmn-modeler-css';
-            link.rel = 'stylesheet';
-            link.href = '/bpmn-js.css';
-            document.head.appendChild(link);
-
-            // Inline fallback styles for the modeler UI
+          // Inject one-time override styles (powered-by hide + polish)
+          if (!document.getElementById('bpmn-modeler-inline')) {
             const style = document.createElement('style');
             style.id = 'bpmn-modeler-inline';
-            style.textContent = `
-              .bjs-powered-by { display: none !important; }
-              .djs-palette { border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-              .djs-context-pad { border-radius: 6px; }
-              .bpmn-icon-start-event-none:before { content: "\\e800"; }
-            `;
+            style.textContent = [
+              '.bjs-powered-by { display: none !important; }',
+              '.djs-palette { border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,.15); }',
+              '.djs-context-pad { border-radius: 6px; }',
+            ].join('\n');
             document.head.appendChild(style);
           }
 
           // Dynamic import — no SSR
-          const BpmnJsModelerModule = await import(
-            /* webpackChunkName: "bpmn-modeler" */
-            'bpmn-js/lib/Modeler'
-          );
+          const [BpmnJsModelerModule, TokenSimModule] = await Promise.all([
+            import(/* webpackChunkName: "bpmn-modeler" */ 'bpmn-js/lib/Modeler'),
+            import('bpmn-js-token-simulation'),
+          ]);
           const BpmnJsModeler = BpmnJsModelerModule.default;
-
-          // Also import CSS from bpmn-js dist
-          await import(
-            /* webpackChunkName: "bpmn-js-css" */
-            'bpmn-js/dist/assets/bpmn-js.css' as string
-          ).catch(() => {
-            // CSS import may fail in some bundler setups — not critical
-          });
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const TokenSimulationModule = (TokenSimModule as any).default ?? TokenSimModule;
 
           if (!isMounted || !containerRef.current) return;
 
           modeler = new BpmnJsModeler({
             container: containerRef.current,
-            keyboard: { bindTo: document },
+            additionalModules: [TokenSimulationModule],
           });
           modelerRef.current = modeler;
 
@@ -185,15 +192,58 @@ const BpmnModeler = forwardRef<BpmnModelerHandle, BpmnModelerProps>(
 
           modeler.get('canvas').zoom('fit-viewport', 'auto');
 
-          // Subscribe to changes → notify parent
-          modeler.on('commandStack.changed', async () => {
+          // ── Track simulation toggle state ──────────────────
+          modeler.on('tokenSimulation.toggleMode', (event: { active: boolean }) => {
+            if (!isMounted) return;
+            setSimulating(event.active ?? false);
+          });
+
+          // ── Helper: save XML and notify parent ─────────────
+          const flushXmlUpdate = async () => {
             if (!isMounted || !onChangeRef.current) return;
             try {
-              const { xml } = await modeler.saveXML({ format: true });
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const result: any = await modeler.saveXML({ format: true });
+              // bpmn-js v18 may return {error} OR throw — handle both
+              if (result?.error) {
+                console.error('[Studio:modeler] saveXML result.error:', result.error);
+                return;
+              }
+              const xml: string | undefined = result?.xml;
               if (xml) onChangeRef.current(xml);
-            } catch {
-              // ignore transient save errors
+            } catch (err) {
+              console.error('[Studio:modeler] saveXML threw:', err);
             }
+          };
+
+          // Populate YAML panel immediately after load
+          await flushXmlUpdate();
+
+          // ── Debounce helper (avoids async reentrancy on rapid edits) ──
+          let pending: ReturnType<typeof setTimeout> | null = null;
+          const scheduleUpdate = () => {
+            if (pending) clearTimeout(pending);
+            pending = setTimeout(() => {
+              pending = null;
+              flushXmlUpdate();
+            }, 150);
+          };
+
+          // Guard: prevent duplicating the root participant/pool
+          modeler.on('commandStack.changed', () => {
+            if (!isMounted) return;
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const elementRegistry = modeler.get('elementRegistry') as any;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const participants = elementRegistry.filter((el: any) => el.type === 'bpmn:Participant');
+            if (participants.length > 1) {
+              modeler.get('commandStack').undo();
+              toast.error('No se puede duplicar el proceso completo');
+              return;
+            }
+
+            scheduleUpdate();
           });
 
           setIsLoading(false);
@@ -240,10 +290,18 @@ const BpmnModeler = forwardRef<BpmnModelerHandle, BpmnModelerProps>(
           </div>
         )}
 
-        {/* Modeler container */}
+        {/* Simulation mode banner */}
+        {simulating && (
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-amber-400 text-amber-900 text-xs font-semibold px-3 py-1 rounded-full shadow pointer-events-none select-none">
+            <span className="w-2 h-2 rounded-full bg-amber-700 animate-pulse" />
+            Modo Simulación activo
+          </div>
+        )}
+
+        {/* Modeler container — absolute fill gives bpmn-js concrete pixel dimensions */}
         <div
           ref={containerRef}
-          className="flex-1 w-full rounded-lg border border-border bg-white"
+          className="absolute inset-0 rounded-lg border border-border bg-white overflow-hidden"
           data-testid="bpmn-modeler-container"
           data-readonly={readOnly}
         />

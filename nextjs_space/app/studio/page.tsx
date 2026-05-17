@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useCallback, Suspense } from 'react';
+import { useRef, useState, useCallback, useEffect, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
@@ -36,13 +36,13 @@ export default function StudioPage() {
   const router = useRouter();
   const modelerRef = useRef<BpmnModelerHandle>(null);
 
-  const [yaml, setYaml] = useState<string>(() => {
-    try { return bpmnToYaml(BLANK_BPMN); } catch { return ''; }
-  });
+  const [yaml, setYaml] = useState<string>('');
   const [yamlUpdating, setYamlUpdating] = useState(false);
   const [processName, setProcessName] = useState<string | undefined>('Nuevo Proceso');
   const [showImport, setShowImport] = useState(false);
   const [showCatalog, setShowCatalog] = useState(false);
+  const [autoSync, setAutoSync] = useState(false);
+  const [simulating, setSimulating] = useState(false);
 
   // ── Derive validation from yaml ───────────────────────────
   const yamlValid = yaml ? validateYamlString(yaml).valid : false;
@@ -61,7 +61,15 @@ export default function StudioPage() {
         if (name) setProcessName(name);
       } catch { /* ignore */ }
     } catch (e) {
-      console.warn('[Studio] bpmnToYaml error:', e);
+      const msg = (e as Error).message ?? String(e);
+      setYaml(
+        `# ⚠ No se pudo generar YAML desde el diagrama actual\n` +
+        `# Motivo: ${msg}\n` +
+        `#\n` +
+        `# Asegúrese de que:\n` +
+        `#   - Las tareas estén dentro de un lane (fase)\n` +
+        `#   - Exista al menos un lane con al menos una tarea\n`
+      );
     } finally {
       setYamlUpdating(false);
     }
@@ -139,6 +147,44 @@ export default function StudioPage() {
     [updateYamlFromXml]
   );
 
+  // ── Simulation toggle ────────────────────────────────────
+  const handleSimulate = useCallback(() => {
+    const handle = modelerRef.current;
+    if (!handle) return;
+    handle.toggleSimulation();
+    setSimulating(handle.isSimulating());
+  }, []);
+
+  // ── Manual sync ───────────────────────────────────────────
+  const handleSync = useCallback(async () => {
+    const handle = modelerRef.current;
+    if (!handle) { toast.error('El editor aún no está listo'); return; }
+    try {
+      const xml = await handle.getXml();
+      if (xml) {
+        updateYamlFromXml(xml);
+        toast.success('YAML sincronizado');
+      } else {
+        toast.error('No se pudo obtener el XML del diagrama');
+      }
+    } catch (e) {
+      toast.error('Error al sincronizar: ' + (e as Error).message);
+    }
+  }, [updateYamlFromXml]);
+
+  // ── Auto-sync polling: only when enabled ───────────────────────
+  useEffect(() => {
+    if (!autoSync) return;
+    const id = setInterval(() => {
+      const handle = modelerRef.current;
+      if (!handle) return;
+      handle.getXml().then((xml) => {
+        if (xml) updateYamlFromXml(xml);
+      }).catch(() => { /* modeler not ready */ });
+    }, 800);
+    return () => clearInterval(id);
+  }, [autoSync, updateYamlFromXml]);
+
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-background">
       {/* Toolbar */}
@@ -152,6 +198,8 @@ export default function StudioPage() {
         onZoomOut={() => modelerRef.current?.zoomOut()}
         onFit={() => modelerRef.current?.fitViewport()}
         onBack={() => router.push('/')}
+        onSimulate={handleSimulate}
+        simulating={simulating}
         processName={processName}
         yamlValid={yamlValid}
       />
@@ -180,7 +228,14 @@ export default function StudioPage() {
           {/* Right: YAML Preview */}
           <Panel defaultSize={32} minSize={20} className="flex flex-col">
             <Suspense fallback={<div className="flex-1 bg-slate-950 rounded-lg" />}>
-              <YamlPreview yaml={yaml} isUpdating={yamlUpdating} />
+              <YamlPreview
+                yaml={yaml}
+                isUpdating={yamlUpdating}
+                onSync={handleSync}
+                autoSync={autoSync}
+                onToggleAutoSync={() => setAutoSync((v) => !v)}
+                onYamlChange={setYaml}
+              />
             </Suspense>
           </Panel>
         </PanelGroup>

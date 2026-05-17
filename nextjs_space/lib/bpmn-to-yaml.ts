@@ -149,7 +149,8 @@ export function parseBpmnXml(xml: string): ParsedYamlProcess {
   });
 
   // ── Task elements ─────────────────────────────────────────
-  const taskTagNames = ['userTask', 'serviceTask', 'manualTask'];
+  // Include generic 'task' — bpmn-js palette creates bpmn:Task by default
+  const taskTagNames = ['task', 'userTask', 'serviceTask', 'manualTask', 'scriptTask', 'businessRuleTask', 'sendTask', 'receiveTask'];
   const allTaskEls: Element[] = [];
   for (const tag of taskTagNames) {
     allTaskEls.push(...getByTagNS(processEl, tag));
@@ -274,15 +275,28 @@ export function parseBpmnXml(xml: string): ParsedYamlProcess {
         const cleanId = (rawId: string) =>
           rawId.replace(/^Task_/i, '').toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
 
+        // completionAlert: use existing or provide empty scaffold
+        const alert = completionAlert ?? {
+          severity: 'info',
+          title: '',
+          description: '',
+          confirmLabel: '',
+          cancelLabel: '',
+        };
+
         return {
           id: cleanId(tid) || `task-${laneIdx + 1}-${tIdx + 1}`,
           name: tname,
-          ...(tdesc && { description: tdesc }),
+          description: tdesc ?? '',
           order: tIdx + 1,
-          ...(type !== 'standard' && { type }),
+          type,                                     // always emit (standard|check|multicheck|export-excel|…)
           ...(deps.length > 0 && { dependencies: deps.map(cleanId) }),
-          evidence,
-          ...(completionAlert && { completionAlert }),
+          evidence: {
+            type: evidence?.type ?? 'text',         // text|file|image|link
+            required: evidence?.required ?? true,
+            description: evidence?.description ?? '',
+          },
+          completionAlert: alert,
           ...(checkItem && { checkItem }),
         };
       });
@@ -293,7 +307,7 @@ export function parseBpmnXml(xml: string): ParsedYamlProcess {
       return {
         id: cleanLaneId(laneId) || `phase-${laneIdx + 1}`,
         name: laneName,
-        ...(laneDesc && { description: laneDesc }),
+        description: laneDesc ?? '',
         order: laneIdx + 1,
         tasks,
       } as ParsedYamlPhase;
@@ -306,7 +320,7 @@ export function parseBpmnXml(xml: string): ParsedYamlProcess {
       name: processName,
       description: processDesc,
       version: '1.0.0',
-      ...(variables.length > 0 && { variables }),
+      variables: variables.length > 0 ? variables : [],   // always emit for editing
       phases,
     },
   };

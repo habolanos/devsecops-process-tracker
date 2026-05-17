@@ -1,24 +1,68 @@
 'use client';
 
-import { useMemo } from 'react';
-import { CheckCircle2, AlertCircle, Copy, Download } from 'lucide-react';
+import { useMemo, useState, useCallback } from 'react';
+import { CheckCircle2, AlertCircle, Copy, Download, RefreshCw, Pencil, Check, X } from 'lucide-react';
 import { validateYamlString, YamlValidationResult } from '@/lib/bpmn-to-yaml';
 import { toast } from 'sonner';
 
 interface YamlPreviewProps {
   yaml: string;
   isUpdating?: boolean;
+  onSync?: () => void;
+  autoSync?: boolean;
+  onToggleAutoSync?: () => void;
+  onYamlChange?: (yaml: string) => void;
 }
 
-export default function YamlPreview({ yaml, isUpdating = false }: YamlPreviewProps) {
-  const validation: YamlValidationResult = useMemo(
+export default function YamlPreview({
+  yaml,
+  isUpdating = false,
+  onSync,
+  autoSync = false,
+  onToggleAutoSync,
+  onYamlChange,
+}: YamlPreviewProps) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+
+  const liveValidation: YamlValidationResult = useMemo(
     () => (yaml ? validateYamlString(yaml) : { valid: false, errors: ['Sin contenido YAML'] }),
     [yaml]
   );
 
+  const draftValidation: YamlValidationResult = useMemo(
+    () => (draft ? validateYamlString(draft) : { valid: false, errors: ['Sin contenido YAML'] }),
+    [draft]
+  );
+
+  const validation = editing ? draftValidation : liveValidation;
+
+  const handleApply = useCallback(() => {
+    onYamlChange?.(draft);
+    setEditing(false);
+    toast.success('YAML actualizado');
+  }, [draft, onYamlChange]);
+
+  const handleCancel = useCallback(() => {
+    setEditing(false);
+  }, []);
+
+  const handleTabKey = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key !== 'Tab') return;
+    e.preventDefault();
+    const ta = e.currentTarget;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const next = draft.substring(0, start) + '  ' + draft.substring(end);
+    setDraft(next);
+    requestAnimationFrame(() => {
+      ta.selectionStart = ta.selectionEnd = start + 2;
+    });
+  }, [draft]);
+
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(yaml);
+      await navigator.clipboard.writeText(editing ? draft : yaml);
       toast.success('YAML copiado al portapapeles');
     } catch {
       toast.error('No se pudo copiar el YAML');
@@ -26,7 +70,7 @@ export default function YamlPreview({ yaml, isUpdating = false }: YamlPreviewPro
   };
 
   const handleDownload = () => {
-    const blob = new Blob([yaml], { type: 'text/yaml;charset=utf-8' });
+    const blob = new Blob([editing ? draft : yaml], { type: 'text/yaml;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -47,9 +91,65 @@ export default function YamlPreview({ yaml, isUpdating = false }: YamlPreviewPro
           )}
         </div>
         <div className="flex items-center gap-1">
+          {/* Edit / Apply / Cancel */}
+          {!editing ? (
+            <button
+              onClick={() => { setDraft(yaml); setEditing(true); }}
+              title="Editar YAML manualmente"
+              className="flex items-center gap-1 px-2 py-1 rounded text-xs text-slate-400 hover:text-blue-400 hover:bg-slate-700 transition-colors"
+            >
+              <Pencil className="w-3 h-3" />
+              <span>Editar</span>
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={handleApply}
+                title="Aplicar cambios del YAML"
+                className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-emerald-400 hover:bg-slate-700 transition-colors"
+              >
+                <Check className="w-3 h-3" />
+                <span>Aplicar</span>
+              </button>
+              <button
+                onClick={handleCancel}
+                title="Cancelar edición"
+                className="flex items-center gap-1 px-2 py-1 rounded text-xs text-red-400 hover:bg-slate-700 transition-colors"
+              >
+                <X className="w-3 h-3" />
+                <span>Cancelar</span>
+              </button>
+            </>
+          )}
+
+          <div className="w-px h-4 bg-slate-700 mx-0.5" />
+
+          {!editing && onToggleAutoSync && (
+            <label
+              title={autoSync ? 'Auto-sync activo — click para detener' : 'Activar auto-sync (cada 800 ms)'}
+              className="flex items-center gap-1 cursor-pointer select-none px-1.5 py-1 rounded hover:bg-slate-700 transition-colors"
+            >
+              <input
+                type="checkbox"
+                checked={autoSync}
+                onChange={onToggleAutoSync}
+                className="w-3 h-3 accent-emerald-400 cursor-pointer"
+              />
+              <span className={`text-xs ${autoSync ? 'text-emerald-400' : 'text-slate-500'}`}>Auto</span>
+            </label>
+          )}
+          {!editing && onSync && (
+            <button
+              onClick={onSync}
+              title="Sincronizar YAML desde el diagrama"
+              className="p-1.5 rounded text-slate-400 hover:text-emerald-400 hover:bg-slate-700 transition-colors"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+            </button>
+          )}
           <button
             onClick={handleCopy}
-            disabled={!yaml}
+            disabled={!yaml && !draft}
             title="Copiar YAML"
             className="p-1.5 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-colors disabled:opacity-40"
           >
@@ -57,7 +157,7 @@ export default function YamlPreview({ yaml, isUpdating = false }: YamlPreviewPro
           </button>
           <button
             onClick={handleDownload}
-            disabled={!yaml}
+            disabled={!yaml && !draft}
             title="Descargar process.yaml"
             className="p-1.5 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-colors disabled:opacity-40"
           >
@@ -92,15 +192,24 @@ export default function YamlPreview({ yaml, isUpdating = false }: YamlPreviewPro
         )}
       </div>
 
-      {/* YAML content */}
-      <div className="flex-1 overflow-auto">
-        {yaml ? (
+      {/* YAML content / editor */}
+      <div className="flex-1 overflow-auto relative">
+        {editing ? (
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={handleTabKey}
+            spellCheck={false}
+            className="w-full h-full min-h-full p-4 text-xs font-mono text-slate-200 bg-slate-950 resize-none outline-none leading-relaxed"
+            placeholder="# Edita el YAML aquí…"
+          />
+        ) : yaml ? (
           <pre className="text-xs font-mono text-slate-300 p-4 leading-relaxed whitespace-pre">
             {applySimpleSyntaxHighlight(yaml)}
           </pre>
         ) : (
           <div className="flex items-center justify-center h-full text-slate-500 text-sm">
-            Edita el diagrama para ver el YAML generado
+            Edita el diagrama o presiona 🔄 para generar el YAML
           </div>
         )}
       </div>

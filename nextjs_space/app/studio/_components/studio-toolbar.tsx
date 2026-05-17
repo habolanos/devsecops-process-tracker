@@ -11,6 +11,8 @@ import {
   Maximize2,
   ArrowLeft,
   FileText,
+  Play,
+  Square,
 } from 'lucide-react';
 
 interface StudioToolbarProps {
@@ -23,6 +25,8 @@ interface StudioToolbarProps {
   onZoomOut: () => void;
   onFit: () => void;
   onBack: () => void;
+  onSimulate: () => void;
+  simulating?: boolean;
   processName?: string;
   yamlValid?: boolean;
 }
@@ -37,6 +41,8 @@ export default function StudioToolbar({
   onZoomOut,
   onFit,
   onBack,
+  onSimulate,
+  simulating = false,
   processName,
   yamlValid,
 }: StudioToolbarProps) {
@@ -105,6 +111,23 @@ export default function StudioToolbar({
             <span className="hidden sm:inline">Exportar YAML</span>
           </button>
         </div>
+
+        {/* Divider */}
+        <div className="w-px h-6 bg-border" />
+
+        {/* Simulate */}
+        <button
+          onClick={onSimulate}
+          title={simulating ? 'Detener simulación' : 'Simular proceso (token simulation)'}
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+            simulating
+              ? 'bg-amber-500 text-white hover:bg-amber-600'
+              : 'bg-violet-600 text-white hover:bg-violet-700'
+          }`}
+        >
+          {simulating ? <Square className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+          <span className="hidden sm:inline">{simulating ? 'Detener' : 'Simular'}</span>
+        </button>
 
         {/* Spacer */}
         <div className="flex-1" />
