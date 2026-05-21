@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { useUserProfileStore } from '@/lib/user-profile-store';
-import { HeroAvatar, HeroGrid, getHeroById } from '@/components/avatars';
+import { HeroAvatar, HeroGrid, getHeroById, getRandomHero, HEROES } from '@/components/avatars';
 import { Dices, Save, Pencil, User, RotateCcw } from 'lucide-react';
 
 interface UserProfilePopoverProps {
@@ -16,13 +16,14 @@ export function UserProfilePopover({ language = 'es' }: UserProfilePopoverProps)
   const initProfile = useUserProfileStore((s) => s.initProfile);
   const updateName = useUserProfileStore((s) => s.updateName);
   const updateAvatar = useUserProfileStore((s) => s.updateAvatar);
-  const randomizeHero = useUserProfileStore((s) => s.randomizeHero);
   const resetName = useUserProfileStore((s) => s.resetName);
 
   const [isOpen, setIsOpen] = useState(false);
   const [editName, setEditName] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [scanId, setScanId] = useState<string | null>(null);
+  const [isPopping, setIsPopping] = useState(false);
 
   useEffect(() => {
     initProfile();
@@ -38,6 +39,46 @@ export function UserProfilePopover({ language = 'es' }: UserProfilePopoverProps)
     }
   }
 
+  const handleRandomize = useCallback(() => {
+    if (isAnimating) return;
+    setIsEditing(false);
+    setIsAnimating(true);
+
+    // Pre-pick winner (avoid repeating current hero)
+    const currentId = profile?.avatarId;
+    let winner = getRandomHero();
+    for (let i = 0; winner.id === currentId && i < 10; i++) winner = getRandomHero();
+
+    // Build slot-machine step sequence (exponential deceleration)
+    const heroIds = HEROES.map((h) => h.id);
+    const steps: Array<{ heroId: string; delay: number }> = [];
+    let elapsed = 0;
+    let interval = 30;
+    while (elapsed < 1300) {
+      steps.push({
+        heroId: heroIds[Math.floor(Math.random() * heroIds.length)],
+        delay: elapsed,
+      });
+      elapsed += interval;
+      interval = Math.min(interval * 1.2, 180);
+    }
+
+    // Schedule scan highlights
+    steps.forEach(({ heroId, delay }) => setTimeout(() => setScanId(heroId), delay));
+
+    // Land on winner at 1300ms
+    setTimeout(() => setScanId(winner.id), 1300);
+
+    // Finalize at 1500ms: update store, clear scan, trigger avatar pop
+    setTimeout(() => {
+      setScanId(null);
+      updateAvatar(winner.id);
+      setIsAnimating(false);
+      setIsPopping(true);
+      setTimeout(() => setIsPopping(false), 550);
+    }, 1500);
+  }, [isAnimating, profile, updateAvatar]);
+
   if (!profile) return null;
 
   const hero = getHeroById(profile.avatarId);
@@ -52,13 +93,6 @@ export function UserProfilePopover({ language = 'es' }: UserProfilePopoverProps)
       setIsEditing(false);
     }
   };
-
-  const handleRandomize = useCallback(() => {
-    randomizeHero();
-    setIsEditing(false);
-    setIsAnimating(true);
-    setTimeout(() => setIsAnimating(false), 650);
-  }, [randomizeHero]);
 
   const handleAvatarSelect = (heroId: string) => {
     updateAvatar(heroId);
@@ -90,7 +124,7 @@ export function UserProfilePopover({ language = 'es' }: UserProfilePopoverProps)
         <div className="space-y-4">
           {/* Header with avatar and name */}
           <div className="flex items-center gap-3">
-            <div className={isAnimating ? 'animate-avatar-pop' : ''}>
+            <div className={isPopping ? 'animate-avatar-pop' : ''}>
               <HeroAvatar heroId={profile.avatarId} size="lg" />
             </div>
             <div className="flex-1 min-w-0">
@@ -173,6 +207,7 @@ export function UserProfilePopover({ language = 'es' }: UserProfilePopoverProps)
             <HeroGrid
               selectedId={profile.avatarId}
               onSelect={handleAvatarSelect}
+              scanningId={scanId}
             />
           </div>
         </div>

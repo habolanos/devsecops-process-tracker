@@ -108,30 +108,39 @@ export function HeroAvatar({ heroId, size = 'md', className = '' }: HeroAvatarPr
 interface HeroGridProps {
   selectedId: string;
   onSelect: (heroId: string) => void;
+  scanningId?: string | null;
 }
 
-export function HeroGrid({ selectedId, onSelect }: HeroGridProps) {
+export function HeroGrid({ selectedId, onSelect, scanningId }: HeroGridProps) {
+  const isScanning = scanningId != null;
   return (
     <div className="grid grid-cols-4 gap-1.5">
-      {HEROES.map((hero) => (
-        <button
-          key={hero.id}
-          onClick={() => onSelect(hero.id)}
-          className={`
-            relative rounded-lg p-1.5 transition-all duration-150
-            ${selectedId === hero.id
-              ? 'ring-2 ring-primary bg-accent scale-110'
-              : 'hover:bg-accent hover:scale-105'
-            }
-          `}
-          title={hero.name}
-        >
-          <HeroAvatar heroId={hero.id} size="md" />
-          {selectedId === hero.id && (
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full border-2 border-background" />
-          )}
-        </button>
-      ))}
+      {HEROES.map((hero) => {
+        const active = scanningId === hero.id;
+        const selected = !isScanning && selectedId === hero.id;
+        return (
+          <button
+            key={hero.id}
+            onClick={() => !isScanning && onSelect(hero.id)}
+            disabled={isScanning}
+            className={[
+              'relative rounded-lg p-1.5',
+              active
+                ? 'ring-2 ring-amber-400 bg-amber-400/15 scale-110 shadow-[0_0_10px_rgba(251,191,36,0.55)]'
+                : selected
+                  ? 'ring-2 ring-primary bg-accent scale-110 transition-all duration-150'
+                  : 'hover:bg-accent hover:scale-105 transition-all duration-150',
+              isScanning && !active ? 'opacity-40' : '',
+            ].join(' ')}
+            title={hero.name}
+          >
+            <HeroAvatar heroId={hero.id} size="md" />
+            {selected && (
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full border-2 border-background" />
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }
