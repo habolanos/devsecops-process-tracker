@@ -5,7 +5,7 @@
 [![Open Source](https://badgen.net/badge/Open%20Source/Yes/green?icon=github)](https://github.com/habolanos/devsecops-process-tracker)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-> **Plataforma profesional para ejecutar, auditar y exportar procesos DevSecOps.** Define procesos en YAML, captura evidencias con trazabilidad completa y genera reportes Word, Excel (declarativo), JSON y diagramas BPMN 2.0 — todo sin escribir código TypeScript.
+> **Plataforma profesional para ejecutar, auditar y exportar procesos DevSecOps.** Define procesos en YAML, captura evidencias con trazabilidad completa y genera reportes Word, Excel (declarativo), JSON y diagramas BPMN 2.0 — todo sin escribir código TypeScript. Incluye **BPMN Studio Editor** para diseñar procesos visualmente y exportar a YAML.
 
 Pensado para equipos de **DevOps, Seguridad, Auditoría y Compliance** que necesitan estandarizar procedimientos, controlar dependencias entre tareas y mantener un registro auditable de cada ejecución.
 

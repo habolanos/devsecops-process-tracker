@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUserProfileStore } from '@/lib/user-profile-store';
-import { HeroAvatar, HeroGrid, getHeroById } from '@/components/avatars';
+import { HeroAvatar, HeroGrid, getHeroById, getRandomHero, HEROES } from '@/components/avatars';
 import { Dices, Save, Pencil, User, RotateCcw } from 'lucide-react';
 
 interface UserProfilePopoverProps {
@@ -17,12 +16,14 @@ export function UserProfilePopover({ language = 'es' }: UserProfilePopoverProps)
   const initProfile = useUserProfileStore((s) => s.initProfile);
   const updateName = useUserProfileStore((s) => s.updateName);
   const updateAvatar = useUserProfileStore((s) => s.updateAvatar);
-  const randomizeHero = useUserProfileStore((s) => s.randomizeHero);
   const resetName = useUserProfileStore((s) => s.resetName);
 
   const [isOpen, setIsOpen] = useState(false);
   const [editName, setEditName] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [scanId, setScanId] = useState<string | null>(null);
+  const [isPopping, setIsPopping] = useState(false);
 
   useEffect(() => {
     initProfile();
@@ -38,6 +39,46 @@ export function UserProfilePopover({ language = 'es' }: UserProfilePopoverProps)
     }
   }
 
+  const handleRandomize = useCallback(() => {
+    if (isAnimating) return;
+    setIsEditing(false);
+    setIsAnimating(true);
+
+    // Pre-pick winner (avoid repeating current hero)
+    const currentId = profile?.avatarId;
+    let winner = getRandomHero();
+    for (let i = 0; winner.id === currentId && i < 10; i++) winner = getRandomHero();
+
+    // Build slot-machine step sequence (exponential deceleration)
+    const heroIds = HEROES.map((h) => h.id);
+    const steps: Array<{ heroId: string; delay: number }> = [];
+    let elapsed = 0;
+    let interval = 30;
+    while (elapsed < 1300) {
+      steps.push({
+        heroId: heroIds[Math.floor(Math.random() * heroIds.length)],
+        delay: elapsed,
+      });
+      elapsed += interval;
+      interval = Math.min(interval * 1.2, 180);
+    }
+
+    // Schedule scan highlights
+    steps.forEach(({ heroId, delay }) => setTimeout(() => setScanId(heroId), delay));
+
+    // Land on winner at 1300ms
+    setTimeout(() => setScanId(winner.id), 1300);
+
+    // Finalize at 1500ms: update store, clear scan, trigger avatar pop
+    setTimeout(() => {
+      setScanId(null);
+      updateAvatar(winner.id);
+      setIsAnimating(false);
+      setIsPopping(true);
+      setTimeout(() => setIsPopping(false), 550);
+    }, 1500);
+  }, [isAnimating, profile, updateAvatar]);
+
   if (!profile) return null;
 
   const hero = getHeroById(profile.avatarId);
@@ -51,11 +92,6 @@ export function UserProfilePopover({ language = 'es' }: UserProfilePopoverProps)
       updateName(trimmed);
       setIsEditing(false);
     }
-  };
-
-  const handleRandomize = () => {
-    randomizeHero();
-    setIsEditing(false);
   };
 
   const handleAvatarSelect = (heroId: string) => {
@@ -88,7 +124,9 @@ export function UserProfilePopover({ language = 'es' }: UserProfilePopoverProps)
         <div className="space-y-4">
           {/* Header with avatar and name */}
           <div className="flex items-center gap-3">
-            <HeroAvatar heroId={profile.avatarId} size="lg" />
+            <div className={isPopping ? 'animate-avatar-pop' : ''}>
+              <HeroAvatar heroId={profile.avatarId} size="lg" />
+            </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-foreground truncate">{profile.name}</h3>
@@ -117,14 +155,13 @@ export function UserProfilePopover({ language = 'es' }: UserProfilePopoverProps)
                   className="h-8 text-sm"
                   autoFocus
                 />
-                <Button
+                <button
                   onClick={handleSaveName}
-                  size="sm"
-                  className="h-8 px-2"
                   disabled={!editName.trim()}
+                  className="h-8 px-2.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center"
                 >
                   <Save className="w-3.5 h-3.5" />
-                </Button>
+                </button>
               </div>
             ) : (
               <div
@@ -151,20 +188,16 @@ export function UserProfilePopover({ language = 'es' }: UserProfilePopoverProps)
                   </button>
                 )}
                 <Pencil className="w-3 h-3 text-muted-foreground" />
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleRandomize(); }}
+                  title={language === 'es' ? 'Héroe aleatorio' : 'Random hero'}
+                  className="p-1 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                >
+                  <Dices className={`w-3.5 h-3.5 ${isAnimating ? 'animate-dice-roll' : ''}`} />
+                </button>
               </div>
             )}
           </div>
-
-          {/* Randomize button */}
-          <Button
-            onClick={handleRandomize}
-            variant="outline"
-            size="sm"
-            className="w-full"
-          >
-            <Dices className="w-4 h-4 mr-2" />
-            {language === 'es' ? 'Héroe Aleatorio' : 'Random Hero'}
-          </Button>
 
           {/* Avatar grid */}
           <div className="space-y-2">
@@ -174,6 +207,7 @@ export function UserProfilePopover({ language = 'es' }: UserProfilePopoverProps)
             <HeroGrid
               selectedId={profile.avatarId}
               onSelect={handleAvatarSelect}
+              scanningId={scanId}
             />
           </div>
         </div>
