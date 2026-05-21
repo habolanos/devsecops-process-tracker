@@ -158,9 +158,9 @@ describe('parseBpmnXml()', () => {
     expect(result.process.phases[0].tasks[0].type).toBe('export-excel');
   });
 
-  it('maps userTask without type annotation to standard (no type key)', () => {
+  it('maps userTask without type annotation to standard', () => {
     const result = parseBpmnXml(SIMPLE_BPMN);
-    expect(result.process.phases[0].tasks[0].type).toBeUndefined();
+    expect(result.process.phases[0].tasks[0].type).toBe('standard');
   });
 
   it('extracts completionAlert from extensionElements', () => {
@@ -181,9 +181,9 @@ describe('parseBpmnXml()', () => {
     expect(task.evidence?.required).toBe(true);
   });
 
-  it('defaults evidence to text/required when not in extensionElements', () => {
+  it('defaults evidence to text/required/empty-description when not in extensionElements', () => {
     const result = parseBpmnXml(SIMPLE_BPMN);
-    expect(result.process.phases[0].tasks[0].evidence).toEqual({ type: 'text', required: true });
+    expect(result.process.phases[0].tasks[0].evidence).toEqual({ type: 'text', required: true, description: '' });
   });
 
   it('throws on invalid XML', () => {
