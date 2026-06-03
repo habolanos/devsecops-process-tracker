@@ -9,7 +9,7 @@
 
 | ✅ Implementado | 🚧 Parcial | 📋 Planificado | 🔍 Backlog |
 |:-:|:-:|:-:|:-:|
-| 4 | 1 | 2 | 1 |
+| 4 | 1 | 2 | 3 |
 
 ---
 
@@ -57,6 +57,8 @@
 | 6 | Social Authentication | 📋 Planificado | — | — | 🔴 Alta | `L` | `L` | OAuth 2.0 vía NextAuth (Google, Microsoft, Facebook, X). Identidad real persistida en sesión y exportaciones Word. `next-auth` v4 ya instalado. Requiere configurar providers y AuthStore Zustand. | [📄](docs/features/social-authentication-plan.md) |
 | 7 | Colaboración Multi-Usuario | 📋 Planificado | — | 2026-05-04 | 🔴 Alta | `XL` | `XL` | Tiempo real multi-usuario con Prisma backend, sync optimista (CRDT), BPMN Collaboration model, RBAC por rol (admin / editor / reviewer / viewer). Depende de Social Auth. | [📄](docs/features/plan-colaboracion-multi-usuario.md) |
 | 8 | Mejoras Clase Mundial | 🔍 Backlog | — | — | 🟡 Media | `XL` | `XL` | 8 áreas: arquitectura/persistencia, seguridad (CSP, RBAC, audit log), bundle optimization, rendimiento (RSC, streaming), observabilidad (Sentry, OTel), testing (a11y, visual regression), CI/CD DevSecOps (SAST/DAST/SBOM), motor de procesos formal. | [📄](docs/features/propuestas-mejora-clase-mundial.md) |
+| 9 | Catálogo Empresarial + 4 Perfiles + Monetización | 🔍 Backlog | — | 2026-06-02 | 🔴 Alta | `XL` | `XL` | Multi-tenant con Turso + Prisma. 4 perfiles (Free/Profesional/Equipo/Empresarial), Open Core, tabla comparativa. Programa de referidos: créditos 1:1 por día, código personalizable DEVSEC-{slug}, bonos por hitos (Embajador 🏅/Evangelizador ⭐), social sharing con créditos, tope 90/año. Modelo de datos: ReferralCode, CreditLedger, subsidizedUntil en Org. 17 decisiones pendientes §18. | [📄](docs/features/propuesta-catalogo-empresarial.md) |
+| 10 | Monetización Social — Social-First Revenue Engine | 🔍 Backlog | — | 2026-06-02 | 🟡 Media | `M→XL` | `S→L` | 16 modelos rankeados por invasividad. **Nivel 1** (sin backend, semanas 1-4): "Powered by" en reportes, OG meta tags, ShareCompletionModal LinkedIn/Twitter prefill, BPMN export PNG, GitHub Sponsors. **Nivel 2** (GitHub CDN, meses 2-4): Community Marketplace, Contributor profiles, LinkedIn Certification Badges, "Process of the Week", sponsored slots ($250-300/mes). Target: $250 MRR mes 3 → $750 MRR mes 6. | [📄](docs/features/propuesta-monetizacion-social.md) |
 
 ---
 
@@ -74,10 +76,19 @@ v3.0.1       └── YAML enriquecido + Editor YAML inline
 v3.0.2       └── Animaciones de perfil (dado + avatar)
 v3.0.3       └── Slot-machine hero selection
             │
-  ??    ──○── [🚧] Tareas de Decisión (Sí/No)          ⌨️ M · 🧪 S
-  ??    ──○── [📋] Social Authentication               ⌨️ L · 🧪 L
+  ??    ──○── [🚧] Tareas de Decisión (Sí/No)          ⌨️ M  · 🧪 S
+  ??    ──○── [📋] Social Authentication               ⌨️ L  · 🧪 L
   ??    ──○── [📋] Colaboración Multi-Usuario          ⌨️ XL · 🧪 XL
   ??    ──◌── [🔍] Mejoras Clase Mundial               ⌨️ XL · 🧪 XL
+  ??    ──◌── [🔍] Catálogo Empresarial + 4 Perfiles   ⌨️ XL · 🧪 XL
+             ├── Turso multi-tenant + Prisma schema
+             └── Programa de Referidos (ReferralCode + CreditLedger)
+  ??    ──◌── [🔍] Monetización Social Nivel 1         ⌨️ S  · 🧪 S
+             ├── "Powered by" reportes + OG tags + GitHub Sponsors
+             └── ShareCompletionModal + BPMN export PNG
+  ??    ──◌── [🔍] Monetización Social Nivel 2         ⌨️ L  · 🧪 M
+             ├── Community Marketplace (GitHub CDN)
+             └── Contributor profiles + LinkedIn Badges
 ```
 
 ---
@@ -86,15 +97,29 @@ v3.0.3       └── Slot-machine hero selection
 
 ```
 Social Authentication
-    └──► Colaboración Multi-Usuario   (requiere identidad real verificada)
-    └──► User Profile (mejora)        (reemplaza avatar local por identidad OAuth)
+    └──► Colaboración Multi-Usuario       (requiere identidad real verificada)
+    └──► User Profile (mejora)            (reemplaza avatar local por identidad OAuth)
+    └──► Catálogo Empresarial (habilita)  (Profesional/Equipo/Empresa requieren auth)
 
 Tareas de Decisión
-    └──► completionAlert (extiende)   (mismo flujo de intercepción en task-card)
+    └──► completionAlert (extiende)       (mismo flujo de intercepción en task-card)
 
 Mejoras Clase Mundial
-    └──► Colaboración (habilita)      (persistencia + seguridad necesarias como base)
-    └──► Social Auth (habilita)       (RBAC y audit log requieren identidad real)
+    └──► Colaboración (habilita)          (persistencia + seguridad necesarias como base)
+    └──► Social Auth (habilita)           (RBAC y audit log requieren identidad real)
+
+Catálogo Empresarial + 4 Perfiles
+    └──► Social Authentication (requiere) (org/perfil binding necesita identidad)
+    └──► Colaboración (habilita extensión) (teams sobre el mismo multi-tenant)
+    └──► Programa de Referidos (incluido)  (ReferralCode + CreditLedger en mismo schema)
+
+Monetización Social Nivel 1
+    └──► Sin dependencias externas         (implementable hoy sobre el sistema actual)
+
+Monetización Social Nivel 2
+    └──► Community Marketplace (requiere)  (repo comunitario + /contributors page)
+    └──► Social Authentication (mejora)    (perfil público vinculado a identidad OAuth)
+    └──► Catálogo Empresarial (complementa)(sponsored slots del marketplace)
 ```
 
 ---
@@ -110,7 +135,9 @@ Mejoras Clase Mundial
 | [`social-authentication-plan.md`](docs/features/social-authentication-plan.md) | Plan de autenticación OAuth multi-proveedor | — |
 | [`plan-colaboracion-multi-usuario.md`](docs/features/plan-colaboracion-multi-usuario.md) | Plan de colaboración en tiempo real | 2026-05-04 |
 | [`propuestas-mejora-clase-mundial.md`](docs/features/propuestas-mejora-clase-mundial.md) | Análisis de 8 áreas de mejora estructural | — |
+| [`propuesta-catalogo-empresarial.md`](docs/features/propuesta-catalogo-empresarial.md) | Catálogo Empresarial: Turso multi-tenant, 4 perfiles, Open Core, programa de referidos v0.3 | 2026-06-02 |
+| [`propuesta-monetizacion-social.md`](docs/features/propuesta-monetizacion-social.md) | Monetización Social: 16 modelos escalados por invasividad, estrategia Nivel 1 y Nivel 2 v1.0 | 2026-06-02 |
 
 ---
 
-*Última actualización: 2026-06-02 · Versión actual: v3.0.3*
+*Última actualización: 2026-06-02 · Versión actual: v3.0.3 · Features documentados: 10*
