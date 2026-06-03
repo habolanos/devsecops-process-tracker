@@ -2,7 +2,7 @@
 
 **Estado:** 🔍 Análisis / Pre-diseño  
 **Fecha:** 2026-06-02  
-**Actualización:** 2026-06-02 — análisis de Turso como proveedor de BD incorporado  
+**Actualización:** 2026-06-02 v0.2 — estrategia de monetización + 4 perfiles de usuario incorporados  
 **Versión base:** v3.0.3  
 **Autor:** Cascade (a solicitud del mantenedor)
 
@@ -25,12 +25,13 @@ Hoy el catálogo es **global y único** para todos los usuarios: 10 procesos en 
 
 ### ¿A quién beneficia?
 
-| Actor | Beneficio |
-|---|---|
-| **Empresa cliente** | Catálogo propio con branding, procesos privados + selección de oficiales |
-| **Administrador de empresa** | Gestiona qué procesos están disponibles para su equipo |
-| **Ejecutor de proceso** | Ve solo procesos relevantes a su organización |
-| **Plataforma (nosotros)** | Habilitación de modelo SaaS multi-tenant con licenciamiento |
+| Perfil | Actor | Beneficio |
+|---|---|---|
+| 🟢 **Free** | Cualquier individuo | Acceso completo al catálogo oficial sin registro |
+| 🟡 **Profesional** | Consultor / Auditor freelance | Catálogo propio + compartir procesos con clientes por link |
+| 🟠 **Equipo** | Equipo DevOps/Seguridad (2-15 personas) | Catálogo compartido + branding de equipo |
+| 🔴 **Empresarial** | Organización multi-equipo | Gobernanza centralizada + RBAC + SSO + analytics org |
+| ⭐ **Plataforma** | Nosotros | Modelo SaaS freemium con márgenes > 99% (Turso) |
 
 ---
 
@@ -242,7 +243,229 @@ graph TB
 
 ---
 
-## 4. Definición de la Propuesta
+## 4. Estrategia de Monetización
+
+### Filosofía: Open Core
+
+El **núcleo de la plataforma es y será siempre gratuito y open source** (GPL v3). La monetización ocurre exclusivamente en la capa SaaS de valor agregado para perfiles, equipos y organizaciones.
+
+```
+┌──────────────────────────────────────────────────────────┐
+│   Capa Open Source (GPL v3) — SIEMPRE GRATIS         │
+│   Motor de ejecución · 8 tipos de tarea · Catlogo    │
+│   oficial · Export Word/Excel/JSON · BPMN Studio      │
+│   Evidencias · Timer · Dependencias · i18n · Temas   │
+└──────────────────────────────────────────────────────────┘
+                         +
+┌──────────────────────────────────────────────────────────┐
+│   Capa SaaS — GENERA INGRESOS                         │
+│   Procesos propios en nube · Catálogo compartido       │
+│   Branding en reportes · Links de cliente (tokens)    │
+│   Multi-usuario · RBAC · SSO · Analytics · SLA       │
+└──────────────────────────────────────────────────────────┘
+```
+
+### Modelo de precios: Freemium por perfil (no por usuario)
+
+El eje de monetización es **por perfil**, no por asiento. Esto es menos punitivo para equipos y más fácil de vender:
+
+| Perfil | Precio mensual | Precio anual | Unidad de cobro |
+|---|:---:|:---:|---|
+| 🟢 Gratuito | $0 | $0 | Siempre gratis |
+| 🟡 Profesional | $12 | $129 (−10%) | Por persona (1 usuario) |
+| 🟠 Equipo | $39 | $399 (−14%) | Por equipo (hasta 15 personas) |
+| 🔴 Empresarial | $149 | $1,499 (−16%) | Por organización (ilimitado) |
+
+> 💡 **Margen operacional:** Turso Developer ($4.99/mes) cubre las DBs de **todas las organizaciones** en la plataforma. El costo marginal por nuevo cliente es prácticamente $0.
+
+### Embudo de conversión
+
+```mermaid
+graph LR
+    A["Descubre la plataforma\n(Open Source / Docker)"] -->|"necesita procesos\npropios en la nube"| B
+    A -->|"necesita compartir\ncon su equipo"| C
+    B["🟡 Profesional\n$12/mes"] -->|"más de 1 persona\nen el equipo"| C
+    C["🟠 Equipo\n$39/mes"] -->|"múltiples equipos\ngobernanza central"| D
+    D["🔴 Empresarial\n$149/mes"]
+    A -->|"usa solo el\ncatálogo oficial"| E["🟢 Free\n$0 — siempre"]
+    E -.->|"crece el equipo\no necesita compartir"| B
+```
+
+### Diferenciador clave: El Profesional como canal de distribución
+
+El perfil **Profesional** convierte al consultor en **evangelizador orgánico** de la plataforma:
+
+```
+Consultor paga $12/mes
+ └── Crea procesos con BPMN Studio (su propiedad intelectual)
+ └── Los guarda en su catálogo personal (nube Turso)
+ └── Genera link temporal con token para Cliente X
+      └── Cliente X ejecuta el proceso sin cuenta ni pago
+      └── Descarga reporte con logo del consultor
+      └── Ve el valor → potencial conversión a cliente propio
+```
+
+### Proyección de ingresos (escenario conservador)
+
+| Hito | Profesionales | Equipos | Empresas | MRR | ARR |
+|---|:---:|:---:|:---:|:---:|:---:|
+| **Lanzamiento (mes 6)** | 20 | 5 | 1 | $584 | — |
+| **Tracción (mes 12)** | 80 | 20 | 5 | $2,495 | ~$30K |
+| **Escala (mes 24)** | 250 | 75 | 20 | $8,975 | ~$108K |
+
+---
+
+## 5. Los 4 Perfiles
+
+### 🟢 Gratuito — Free
+
+**¿Quién es?** Cualquier persona: developer, SRE, auditor, estudiante. Sin registro ni tarjeta.
+
+**Sus dolores:** ejecuta procesos manuales sin estandarización, sin evidencia auditable, sin reportes automáticos.
+
+**Lo que obtiene:**
+- Acceso completo al catálogo oficial (10+ procesos de plataforma).
+- Ejecución con evidencias, timer y dependencias entre tareas.
+- Export Word, Excel y JSON sin marca de plataforma.
+- BPMN Studio en modo visualización (no creación).
+- Funciona **sin cuenta** — 100% localStorage, completamente offline.
+
+**Restricciones:** sin procesos propios en nube · sin catolog compartido · sin branding · sin BPMN Studio para crear/guardar.
+
+**Precio:** $0 · Sin tarjeta · Sin registro · Para siempre
+
+---
+
+### 🟡 Profesional — Professional
+
+**¿Quién es?** Consultor independiente, arquitecto DevSecOps, auditor freelance que **implementa procesos en organizaciones cliente** y trabaja con múltiples empresas simultáneamente.
+
+**Sus dolores:**
+- Recrea los mismos procesos para cada nuevo cliente desde cero.
+- Los reportes que entrega no llevan su marca profesional.
+- Para compartir un proceso con un cliente debe darle acceso a toda su cuenta.
+- Sus clientes necesitan soporte para usar la herramienta.
+
+**Lo que obtiene:**
+- **Catálogo propio (nube):** hasta 10 procesos YAML guardados en su Turso DB personal.
+- **BPMN Studio completo:** crear, editar y guardar sus propios procesos.
+- **Compartir por link temporal (`ProcessShare`):** genera URL con token para que un cliente ejecute un proceso específico sin cuenta ni pago. Expira en N días, uso máximo configurable.
+- **Branding personal:** su logo y nombre en portada Word y header Excel.
+- **Suscripciones:** elige cuáles procesos del catálogo oficial incluir.
+- **Historial cloud:** ejecuciones completadas persistidas en la nube.
+
+**Precio:** $12/mes · $129/año · 1 usuario
+
+---
+
+### 🟠 Equipo — Team
+
+**¿Quién es?** Equipo de DevOps, Seguridad, SRE o Compliance dentro de una organización (2-15 personas) que necesita un catálogo común y procesos estandarizados para todos.
+
+**Sus dolores:**
+- Cada miembro tiene su versión del proceso ("el YAML de María" vs "el YAML de Juan").
+- Cuando alguien abandona el equipo, los procesos desaparecen con él.
+- Los reportes de auditoría necesitan mostrar el branding corporativo.
+- No hay fuente única de verdad para los procedimientos del equipo.
+
+**Lo que obtiene:**
+- Todo lo del plan Profesional, para todos los miembros.
+- **Hasta 15 miembros** con roles: Admin · Editor · Viewer.
+- **Catálogo compartido de equipo:** todos ven y ejecutan los mismos procesos.
+- **Hasta 30 procesos propios** del equipo en la nube (Turso DB del equipo).
+- **Admin de equipo:** gestiona miembros, procesos y suscripciones al catálogo oficial.
+- **Branding del equipo:** logo único en reportes de todos los miembros.
+- **Dashboard de equipo:** quién ejecutó qué proceso, cuándo y con qué resultado.
+
+**Precio:** $39/mes · $399/año · Hasta 15 miembros (precio fijo por equipo, no por persona)
+
+---
+
+### 🔴 Empresarial — Enterprise
+
+**¿Quién es?** Organización con múltiples equipos que requiere gobernanza centralizada. CTO, CISO, Director de TI que necesita estandarizar procedimientos a nivel corporativo.
+
+**Sus dolores:**
+- Múltiples equipos con catálogos separados y sin coherencia entre sí.
+- Auditorías exigen evidencia de que TODOS los equipos siguen el mismo proceso aprobado.
+- Sin control central sobre qué procesos están autorizados corporativamente.
+- El logo y colores corporativos deben aparecer en TODOS los reportes, sin excepción.
+- Los usuarios deben autenticarse con sus credenciales corporativas (SSO/Azure AD).
+
+**Lo que obtiene:**
+- Todo lo del plan Equipo, sin límites de tamaño.
+- **Equipos ilimitados** bajo una organización central (una Turso DB por org).
+- **Catálogo corporativo:** procesos aprobados a nivel org disponibles para todos los equipos.
+- **Procesos ilimitados** propios de la organización.
+- **Miembros ilimitados** con RBAC completo: Owner · Org-Admin · Team-Admin · Editor · Viewer.
+- **Branding corporativo completo:** logo, colores primarios, template Word propio, dominio custom.
+- **Analytics organizacional:** dashboard de uso por equipo, proceso y usuario.
+- **Social Auth / SSO:** Google, GitHub, Azure Active Directory.
+- **SLA de uptime 99.9%.**
+- **Soporte prioritario** con tiempo de respuesta < 24h.
+
+**Precio:** $149/mes · $1,499/año · Equipos y usuarios ilimitados
+
+---
+
+## 6. Tabla Comparativa de Features
+
+| Feature | 🟢 Free | 🟡 Profesional | 🟠 Equipo | 🔴 Empresarial |
+|---|:---:|:---:|:---:|:---:|
+| **Catálogo oficial (10+ procesos)** | ✅ | ✅ | ✅ | ✅ |
+| **Ejecución completa (timer, deps, evidencias)** | ✅ | ✅ | ✅ | ✅ |
+| **Export Word · Excel · JSON sin límites** | ✅ | ✅ | ✅ | ✅ |
+| **Modo offline / localStorage** | ✅ | ✅ | ✅ | ✅ |
+| **BPMN Studio — visualización** | ✅ | ✅ | ✅ | ✅ |
+| **BPMN Studio — crear y guardar** | ❌ | ✅ | ✅ | ✅ |
+| **Procesos propios en la nube** | ❌ | ✅ Hasta 10 | ✅ Hasta 30 | ✅ Ilimitados |
+| **Suscripción al catálogo oficial** | ❌ | ✅ Personal | ✅ Equipo | ✅ Org |
+| **Compartir proceso por link (ProcessShare)** | ❌ | ✅ | ✅ | ✅ |
+| **Catálogo compartido** | ❌ | ❌ Personal | ✅ Equipo | ✅ Org + Equipos |
+| **Miembros** | 1 | 1 | Hasta 15 | Ilimitados |
+| **Roles (RBAC)** | ❌ | ❌ | ✅ Básico | ✅ Completo |
+| **Branding en reportes** | ❌ | ✅ Personal | ✅ Equipo | ✅ Corporativo |
+| **Colores + logo + dominio custom** | ❌ | Logo | Logo + colores | Logo + colores + dominio |
+| **Historial de ejecuciones (cloud)** | ❌ Local | ✅ Personal | ✅ Equipo | ✅ Org-wide |
+| **Dashboard de uso** | ❌ | ✅ Personal | ✅ Equipo | ✅ Org + equipos |
+| **Social Auth / SSO** | ❌ | Opcional | ✅ | ✅ + Azure AD |
+| **SLA uptime** | ❌ | ❌ | ❌ | ✅ 99.9% |
+| **Soporte** | Comunidad | Email | Email | Prioritario < 24h |
+| **💰 Precio mensual** | **$0** | **$12** | **$39** | **$149** |
+| **💰 Precio anual** | $0 | $129 | $399 | $1,499 |
+
+```mermaid
+graph LR
+    subgraph FREE["🟢 Free · $0"]
+        F1["✅ Catálogo oficial"]
+        F2["✅ Ejecución completa"]
+        F3["✅ Export Word/Excel"]
+        F4["✅ Offline / sin registro"]
+    end
+    subgraph PRO["🟡 Profesional · $12/mes"]
+        P1["+10 procesos propios en nube"]
+        P2["+BPMN Studio (crear)"]
+        P3["+Compartir por link al cliente"]
+        P4["+Branding personal en reportes"]
+    end
+    subgraph TEAM["🟠 Equipo · $39/mes"]
+        T1["+30 procesos + 15 miembros"]
+        T2["+Catálogo compartido"]
+        T3["+Dashboard de equipo"]
+        T4["+Roles Admin/Editor/Viewer"]
+    end
+    subgraph ENT["🔴 Empresarial · $149/mes"]
+        E1["+Equipos + usuarios ilimitados"]
+        E2["+Catálogo corporativo"]
+        E3["+SSO / Azure AD"]
+        E4["+Analytics org + SLA 99.9%"]
+    end
+    FREE --> PRO --> TEAM --> ENT
+```
+
+---
+
+## 7. Concepto Técnico de la Propuesta
 
 ### Concepto central
 
@@ -270,7 +493,7 @@ Una **Organización** tiene:
 
 ---
 
-## 4. Mapa de Impacto
+## 8. Mapa de Impacto
 
 Áreas del sistema afectadas por este feature:
 
@@ -318,7 +541,7 @@ graph TB
 
 ---
 
-## 5. Opciones de Implementación
+## 9. Opciones de Implementación
 
 Se proponen **tres enfoques** con diferentes niveles de complejidad y valor entregado:
 
@@ -424,7 +647,7 @@ Prisma schema:
 
 ---
 
-## 6. Modelo de Datos Propuesto (Opción C)
+## 10. Modelo de Datos (Turso + Prisma)
 
 ```mermaid
 classDiagram
@@ -434,7 +657,10 @@ classDiagram
         +name: string
         +logoUrl: string
         +primaryColor: string
-        +plan: OrgPlan
+        +plan: PlanType
+        +maxMembers: int
+        +maxProcesses: int
+        +customDomain: string
         +createdAt: DateTime
         +updatedAt: DateTime
     }
@@ -481,12 +707,23 @@ classDiagram
         +isPublic: boolean
     }
 
-    class OrgPlan {
+    class PlanType {
         <<enumeration>>
         FREE
-        STARTER
         PROFESSIONAL
+        TEAM
         ENTERPRISE
+    }
+
+    class ProcessShare {
+        +id: string
+        +token: string
+        +orgProcessId: string
+        +createdBy: string
+        +expiresAt: DateTime
+        +maxUses: int
+        +usedCount: int
+        +isActive: boolean
     }
 
     class OrgRole {
@@ -500,13 +737,14 @@ classDiagram
     Organization "1" --> "*" OrgMember
     Organization "1" --> "*" OrgProcess
     Organization "1" --> "*" CatalogSubscription
+    OrgProcess "1" --> "*" ProcessShare
     CatalogSubscription "*" --> "1" PlatformProcess
     OrgMember "*" --> "1" Organization
 ```
 
 ---
 
-## 7. Cambios Arquitectónicos (Delta)
+## 11. Cambios Arquitectónicos (Delta)
 
 ### Flujo actual vs. propuesto para cargar el catálogo:
 
@@ -544,7 +782,7 @@ graph LR
 
 ---
 
-## 8. Nuevos Flujos de Usuario
+## 12. Nuevos Flujos de Usuario
 
 ### Flujo A — Admin configura catálogo de empresa
 
@@ -605,7 +843,7 @@ sequenceDiagram
 
 ---
 
-## 9. Impacto en Features Existentes
+## 13. Impacto en Features Existentes
 
 | Feature | Impacto | Cambio requerido |
 |---|---|---|
@@ -623,7 +861,7 @@ sequenceDiagram
 
 ---
 
-## 10. Matriz de Riesgos
+## 14. Matriz de Riesgos
 
 | Riesgo | Probabilidad | Impacto | Mitigación |
 |---|---|:---:|:---:|
@@ -641,7 +879,7 @@ sequenceDiagram
 
 ---
 
-## 11. Estimación de Esfuerzo por Fase
+## 15. Estimación de Esfuerzo por Fase
 
 ### Leyenda: `XS` < 2d · `S` 3-5d · `M` 1-2sem · `L` 3-4sem · `XL` > 1mes
 
@@ -659,7 +897,7 @@ sequenceDiagram
 
 ---
 
-## 12. Propuesta de Fases (Roadmap)
+## 16. Propuesta de Fases (Roadmap)
 
 ```
 Fase 0        Fase 1 (opcional)     Fase 2               Fase 3               Fase 4       Fase 5
@@ -674,7 +912,7 @@ migrate-all   YAML upload           subscriptions         OrgProcess CRUD       
 
 ---
 
-## 13. Dependencias
+## 17. Dependencias
 
 ```
 Este feature REQUIERE (bloqueadores para fase completa):
@@ -696,31 +934,47 @@ Este feature ES COMPATIBLE CON (sin cambios):
 
 ---
 
-## 14. Decisiones Pendientes
+## 18. Decisiones Pendientes
 
 Antes de crear el plan de implementación, se deben resolver:
 
 | # | Decisión | Opciones | Impacto |
 |:---:|---|---|---|
-| 1 | **¿Qué opción de BD?** | B (localStorage, 0 costo, sin compartir), D (Turso, $0-$4.99, multi-device), C (Postgres, más potente) | **Define arquitectura entera** — Turso recomendado |
-| 2 | **¿Self-hosted o SaaS?** | Docker propio → Opción A/B viable · Vercel SaaS → Opción D/C requerida | Define si filesystem es opción |
-| 3 | **¿Procesos propios son editables en la UI?** | Solo upload YAML, BPMN Studio, o editor inline | Alcance del Studio |
-| 4 | **¿Acceso a orgs sin autenticación?** | Pública por slug (read), protegida por token, o solo con Auth | Seguridad del MVP |
-| 5 | **¿Puede una empresa modificar un proceso de plataforma?** | No (solo alias), Fork local, o PR al repo | Modelo de suscripción |
-| 6 | **¿Cómo se crea una org en MVP?** | Config JSON manual, formulario en UI, o invitación | UX del onboarding |
-| 7 | **¿Cuántos procesos propios por plan?** | Ilimitado, cuota por plan | Modelo de negocio |
+**Tecnológicas:**
+
+| # | Decisión | Opciones | Impacto |
+|:---:|---|---|---|
+| 1 | **¿Qué opción de BD?** | B (localStorage), D (Turso ★), C (Postgres) | **Define arquitectura entera** |
+| 2 | **¿Self-hosted o SaaS?** | Docker propio → A/B viable · Vercel SaaS → D/C requerida | Define si filesystem es opción |
+| 3 | **¿Procesos propios editables en UI?** | Solo upload YAML · BPMN Studio · Editor inline | Alcance del Studio |
+| 4 | **¿Acceso sin autenticación?** | Pública por slug (read), protegida por token, solo con Auth | Seguridad del MVP |
+| 5 | **¿Modificación de proceso oficial?** | No (solo alias) · Fork local · PR al repo | Modelo de suscripción |
+| 6 | **¿Onboarding de nueva org?** | Config JSON manual · Formulario en UI · Invitación por email | UX del onboarding |
+
+**De monetización (nuevas):**
+
+| # | Decisión | Opciones | Impacto |
+|:---:|---|---|---|
+| 7 | **¿Precios finales?** | Propuesta: $12/$39/$149 · Validar contra competencia y disposición a pagar | Define plan de monetización |
+| 8 | **¿Período de prueba gratuita?** | Sin trial · 7 días · 14 días · 30 días | Velocidad de conversión |
+| 9 | **¿ProcessShare expiry?** | 7 días · 30 días · Configurable por profesional | Experiencia del cliente final |
+| 10 | **¿Payment provider?** | Stripe · Paddle · LemonSqueezy | Implementación de billing |
+| 11 | **¿Límite de procesos propios?** | Free=0 · Pro=10 · Team=30 · Enterprise=∞ (propuesto) | Valor diferenciador por plan |
+| 12 | **¿Free puede subir YAMLs locales?** | Sí (solo localStorage) · No (solo catálogo oficial) | Complejidad del Free tier |
 
 ---
 
-## 15. Próximos Pasos Recomendados
+## 19. Próximos Pasos Recomendados
 
-1. **Tomar decisión sobre BD** (ver sección 14, decisión #1): se recomienda **Turso Opción D** para MVP real o **Opción B** para validar UX en días.
-2. **Si Turso:** crear cuenta en [turso.tech](https://turso.tech) → instalar CLI → provisionar DB `platform` + schema inicial.
-3. **Definir Prisma schema** (`Organization`, `OrgProcess`, `CatalogSubscription`) con tipos SQLite-compatibles + script `migrate-all-orgs.mjs`.
-4. **Crear `plan-company-process-catalog.md`** con spec técnica detallada (API routes, UI flows, tests) tras tomar las decisiones del punto 14.
-5. **Actualizar `README.features.md`** para incluir este feature con estado 📋 Planificado.
-6. **Variables de entorno**: agregar `TURSO_DATABASE_URL` y `TURSO_AUTH_TOKEN` al `.env.example` del proyecto.
+1. **Resolver decisiones de monetización** (sección 18, items 7-12): precios, trial, ProcessShare expiry y payment provider antes de comenzar implementación.
+2. **Tomar decisión sobre BD** (sección 18, decisión #1): se recomienda **Turso Opción D** para MVP real o **Opción B** para validar UX en días.
+3. **Si Turso:** crear cuenta en [turso.tech](https://turso.tech) → instalar CLI → provisionar DB `platform` + schema inicial.
+4. **Definir Prisma schema** (`Organization`, `OrgProcess`, `CatalogSubscription`, `ProcessShare`) con tipos SQLite-compatibles + script `migrate-all-orgs.mjs`.
+5. **Elegir payment provider** (decisión #10): integrar Stripe o LemonSqueezy para billing por perfil.
+6. **Crear `plan-company-process-catalog.md`** con spec técnica detallada (API routes, UI flows, tests, billing hooks) tras tomar las decisiones del punto 18.
+7. **Actualizar `README.features.md`** para incluir este feature con estado 📋 Planificado.
+8. **Variables de entorno**: agregar `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` y `STRIPE_SECRET_KEY` al `.env.example`.
 
 ---
 
-*Documento de análisis pre-diseño · v0.1 · 2026-06-02*
+*Documento de análisis pre-diseño · v0.2 · 2026-06-02 — estrategia de monetización + 4 perfiles (Free, Profesional, Equipo, Empresarial) + Turso analysis*
