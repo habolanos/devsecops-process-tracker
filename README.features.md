@@ -1,0 +1,116 @@
+# 📋 Features — DevSecOps Process Tracker
+
+> Inventario centralizado de todas las features documentadas: estado de implementación,
+> versión de entrega, prioridad, esfuerzo estimado y referencia al documento de diseño.
+
+---
+
+## 📊 Estado General
+
+| ✅ Implementado | 🚧 Parcial | 📋 Planificado | 🔍 Backlog |
+|:-:|:-:|:-:|:-:|
+| 4 | 1 | 2 | 1 |
+
+---
+
+## 🏷️ Leyenda
+
+### Estado
+
+| Badge | Significado |
+|---|---|
+| ✅ **Implementado** | Feature en producción con tests cubiertos |
+| 🚧 **Parcial** | Una parte implementada, resto pendiente |
+| 📋 **Planificado** | Diseñado y priorizado, pendiente de sprint |
+| 🔍 **Backlog** | Análisis documentado, sin roadmap fijo |
+
+### Esfuerzo (⌨️ Código · 🧪 Testing)
+
+| Talla | Código | Testing |
+|:---:|---|---|
+| `XS` | < 2 días | < 1 día |
+| `S` | 3–5 días | 1–2 días |
+| `M` | 1–2 semanas | 3–5 días |
+| `L` | 3–4 semanas | 1–2 semanas |
+| `XL` | > 1 mes | > 2 semanas |
+| `—` | Ya entregado | Ya entregado |
+
+### Prioridad
+
+| Badge | Nivel |
+|---|---|
+| 🔴 | Alta — bloquea otras features o tiene deuda técnica activa |
+| 🟡 | Media — mejora significativa sin bloqueo |
+| 🟢 | Baja — nice-to-have o largo plazo |
+
+---
+
+## 🗂️ Inventario de Features
+
+| # | Feature | Estado | Versión | Fecha Doc | Prioridad | ⌨️ Código | 🧪 Testing | Resumen | Doc |
+|:---:|---|:---:|:---:|:---:|:---:|:---:|:---:|---|:---:|
+| 1 | User Profile & Author Capture | ✅ Implementado | v2.0.5 | 2026-04-17 | — | — | — | Perfil local con 12 avatares Marvel SVG inline. Captura nombre/avatar del ejecutor en exportaciones JSON y Word. Store Zustand persistido con compresión. Animaciones slot-machine en selección aleatoria. | [📄](docs/features/user-profile-author-plan.md) |
+| 2 | YAML Schema + Soporte IDE | ✅ Implementado | v2.1.x | 2026-04-20 | — | — | — | JSON Schema 2020-12 con discriminador `oneOf` por `task.type`. 14 snippets VS Code. Validación CI `npm run validate:processes`. 10/10 archivos pasan. Integración Red Hat YAML Language Server. | [📄](docs/features/yaml-schema-analysis.md) |
+| 3 | Alertas de Confirmación (`completionAlert`) | ✅ Implementado | v2.1.3 | 2026-04-20 | — | — | — | Diálogo modal opcional (info / warning / critical) antes de finalizar tareas irreversibles. 100% declarativo vía YAML, reutiliza `alert-dialog` de shadcn/Radix. | [📄](docs/features/completion-alerts-and-decision-tasks.md) |
+| 4 | BPMN Studio Editor | ✅ Implementado | v3.0.0–v3.0.3 | 2026-05-06 | — | — | — | Editor visual BPMN ↔ YAML bidireccional con `bpmn-js`. Token simulation, auto-sync configurable, editor YAML inline con validación en tiempo real, toolbar completa. | [📄](docs/features/plan-bpmn-studio-editor.md) |
+| 5 | Tareas de Decisión (Sí/No) | 🚧 Parcial | — | 2026-04-20 | 🔴 Alta | `M` | `S` | Ramificación condicional del flujo según respuesta del usuario. YAML y diseño listos (mismo doc que `completionAlert`); UI de bifurcación y lógica de salto de tareas pendientes. | [📄](docs/features/completion-alerts-and-decision-tasks.md) |
+| 6 | Social Authentication | 📋 Planificado | — | — | 🔴 Alta | `L` | `L` | OAuth 2.0 vía NextAuth (Google, Microsoft, Facebook, X). Identidad real persistida en sesión y exportaciones Word. `next-auth` v4 ya instalado. Requiere configurar providers y AuthStore Zustand. | [📄](docs/features/social-authentication-plan.md) |
+| 7 | Colaboración Multi-Usuario | 📋 Planificado | — | 2026-05-04 | 🔴 Alta | `XL` | `XL` | Tiempo real multi-usuario con Prisma backend, sync optimista (CRDT), BPMN Collaboration model, RBAC por rol (admin / editor / reviewer / viewer). Depende de Social Auth. | [📄](docs/features/plan-colaboracion-multi-usuario.md) |
+| 8 | Mejoras Clase Mundial | 🔍 Backlog | — | — | 🟡 Media | `XL` | `XL` | 8 áreas: arquitectura/persistencia, seguridad (CSP, RBAC, audit log), bundle optimization, rendimiento (RSC, streaming), observabilidad (Sentry, OTel), testing (a11y, visual regression), CI/CD DevSecOps (SAST/DAST/SBOM), motor de procesos formal. | [📄](docs/features/propuestas-mejora-clase-mundial.md) |
+
+---
+
+## 🗓️ Roadmap Visual
+
+```
+v2.0.5  ──●── [✅] User Profile & Author Capture
+            │
+v2.1.x  ──●── [✅] YAML Schema + Soporte IDE
+            │
+v2.1.3  ──●── [✅] Alertas de Confirmación (completionAlert)
+            │
+v3.0.0  ──●── [✅] BPMN Studio Editor
+v3.0.1       └── YAML enriquecido + Editor YAML inline
+v3.0.2       └── Animaciones de perfil (dado + avatar)
+v3.0.3       └── Slot-machine hero selection
+            │
+  ??    ──○── [🚧] Tareas de Decisión (Sí/No)          ⌨️ M · 🧪 S
+  ??    ──○── [📋] Social Authentication               ⌨️ L · 🧪 L
+  ??    ──○── [📋] Colaboración Multi-Usuario          ⌨️ XL · 🧪 XL
+  ??    ──◌── [🔍] Mejoras Clase Mundial               ⌨️ XL · 🧪 XL
+```
+
+---
+
+## 🔗 Dependencias entre Features
+
+```
+Social Authentication
+    └──► Colaboración Multi-Usuario   (requiere identidad real verificada)
+    └──► User Profile (mejora)        (reemplaza avatar local por identidad OAuth)
+
+Tareas de Decisión
+    └──► completionAlert (extiende)   (mismo flujo de intercepción en task-card)
+
+Mejoras Clase Mundial
+    └──► Colaboración (habilita)      (persistencia + seguridad necesarias como base)
+    └──► Social Auth (habilita)       (RBAC y audit log requieren identidad real)
+```
+
+---
+
+## 📁 Documentos de Diseño
+
+| Archivo | Descripción | Fecha |
+|---|---|:---:|
+| [`user-profile-author-plan.md`](docs/features/user-profile-author-plan.md) | Plan e implementación del sistema de perfil de usuario | 2026-04-17 |
+| [`yaml-schema-analysis.md`](docs/features/yaml-schema-analysis.md) | Análisis del schema YAML y soporte IDE | 2026-04-20 |
+| [`completion-alerts-and-decision-tasks.md`](docs/features/completion-alerts-and-decision-tasks.md) | Diseño de alertas y tareas de decisión | 2026-04-20 |
+| [`plan-bpmn-studio-editor.md`](docs/features/plan-bpmn-studio-editor.md) | Plan completo del BPMN Studio Editor | 2026-05-06 |
+| [`social-authentication-plan.md`](docs/features/social-authentication-plan.md) | Plan de autenticación OAuth multi-proveedor | — |
+| [`plan-colaboracion-multi-usuario.md`](docs/features/plan-colaboracion-multi-usuario.md) | Plan de colaboración en tiempo real | 2026-05-04 |
+| [`propuestas-mejora-clase-mundial.md`](docs/features/propuestas-mejora-clase-mundial.md) | Análisis de 8 áreas de mejora estructural | — |
+
+---
+
+*Última actualización: 2026-06-02 · Versión actual: v3.0.3*
