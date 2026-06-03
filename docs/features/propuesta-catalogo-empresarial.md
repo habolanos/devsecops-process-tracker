@@ -315,6 +315,84 @@ Consultor paga $12/mes
 
 ---
 
+### 4.4 Programa de Referidos — Crecimiento Viral
+
+El crecimiento orgánico se incentiva con un **sistema bidireccional de créditos**: quien refiere gana días gratis en su plan; quien es referido obtiene ventajas en el primer período y en sus renovaciones. Las publicaciones en redes sociales también generan créditos.
+
+#### Código de referido personalizable
+
+Cada usuario registrado (incluido Free) recibe un código único que puede personalizar libremente:
+
+```
+Código por defecto:    DEVSEC-A3F7X2
+Código personalizado:  DEVSEC-johnsmith
+URL de referido:       https://[platform]/?ref=johnsmith
+
+Se puede compartir en:
+    LinkedIn · X / Twitter · GitHub README · Email · Presentaciones
+    (cada plataforma usa UTM source diferente para tracking)
+```
+
+#### Beneficios para el referido
+
+Quien se registra usando un código de referido recibe:
+- **+15 días de trial adicionales** sobre el trial estándar del plan elegido.
+- **10% de descuento en el primer año** si suscribe plan anual.
+- Este descuento aplica únicamente al período inicial de suscripción.
+
+#### Cómo gana créditos el referidor
+
+> **1 crédito = 1 día de plan actual subsidisado** (aplica para cualquier tier).
+
+| Evento generador | Créditos | Equivale a |
+|---|:---:|---|
+| Referido se registra (Free) | 7 | 7 días gratis |
+| Referido suscribe Profesional | 30 | 1 mes gratis |
+| Referido suscribe Equipo | 30 | 1 mes gratis |
+| Referido suscribe Empresarial | 30 | 1 mes gratis |
+| Referido **renueva** su plan (2.º año o mes) | 15 | 15 días adicionales |
+| Post verificado en LinkedIn | 15 | 15 días gratis |
+| Post verificado en X / Twitter | 10 | 10 días gratis |
+| Post en GitHub (README, perfil o repo) | 20 | 20 días gratis |
+| Mención en newsletter o blog con link | 20 | 20 días gratis |
+
+> Los créditos de redes sociales se otorgan al verificar la URL pública del post (revisión semiautomática + UTM tracking). Los créditos se acumulan en el `CreditLedger` y extienden `subsidizedUntil` en el perfil del referidor.
+
+#### Bonos por hitos — cuanto más refiere, más gana
+
+| Hito acumulado (referidos de pago) | Créditos bonus | Badge |
+|---|---|:---:|
+| 1.er referido de pago | — (solo los 30 base) | — |
+| 3 referidos de pago | +30 créditos extra | — |
+| 5 referidos de pago | +60 créditos extra | 🏅 Embajador |
+| 10 referidos de pago | +90 créditos extra | ⭐ Evangelizador |
+| Cada 5 adicionales | +60 créditos extra | — |
+
+> El tope máximo de subsidio es **3 meses gratis por año** (90 créditos/año). Al superarlo, los créditos adicionales se convierten en **descuento porcentual en la renovación** en lugar de días gratis. Los badges aparecen en el perfil y se pueden compartir en redes sociales.
+
+#### Flujo completo del sistema de referidos
+
+```mermaid
+sequenceDiagram
+    actor A as Consultor (Profesional)
+    actor B as Nuevo usuario
+    participant PLAT as Plataforma
+
+    A->>PLAT: Personaliza código "johnsmith"
+    A->>B: Comparte /?ref=johnsmith en LinkedIn
+    PLAT->>PLAT: ReferralCode.clickCount++
+    B->>PLAT: Se registra con código "johnsmith"
+    PLAT->>B: Trial +15 días extra
+    PLAT->>A: +7 créditos (referido Free)
+    B->>PLAT: Suscribe plan Equipo ($39/mes)
+    PLAT->>A: +30 créditos → subsidizedUntil +30 días
+    B->>PLAT: Renueva suscripción (2.º mes)
+    PLAT->>A: +15 créditos (bono renovación recurrente)
+    PLAT->>PLAT: ¿Hito 5 referidos? → +60 bonus + badge Embajador
+```
+
+---
+
 ## 5. Los 4 Perfiles
 
 ### 🟢 Gratuito — Free
@@ -734,13 +812,46 @@ classDiagram
         VIEWER
     }
 
+    class ReferralCode {
+        +id: string
+        +code: string
+        +ownerId: string
+        +isCustom: boolean
+        +clickCount: int
+        +conversions: int
+        +totalCredits: int
+        +createdAt: DateTime
+    }
+
+    class CreditLedger {
+        +id: string
+        +ownerId: string
+        +credits: int
+        +type: CreditType
+        +description: string
+        +createdAt: DateTime
+    }
+
+    class CreditType {
+        <<enumeration>>
+        REFERRAL
+        SOCIAL_SHARE
+        MILESTONE
+        REDEMPTION
+    }
+
     Organization "1" --> "*" OrgMember
     Organization "1" --> "*" OrgProcess
     Organization "1" --> "*" CatalogSubscription
+    Organization "1" --> "*" ReferralCode
+    Organization "1" --> "*" CreditLedger
     OrgProcess "1" --> "*" ProcessShare
     CatalogSubscription "*" --> "1" PlatformProcess
     OrgMember "*" --> "1" Organization
 ```
+
+> **Campos adicionales en `Organization` para el programa de referidos:**
+> `referralCredits: Int` · `subsidizedUntil: DateTime?` · `totalReferrals: Int` · `badge: String?`
 
 ---
 
@@ -876,6 +987,9 @@ sequenceDiagram
 | **Conflicto de IDs entre plataforma y empresa** — mismo `process.id` en ambos catálogos | Media | 🟡 Medio | Namespacing: `platform:{id}` vs `org:{slug}:{id}` |
 | **Regresión en Home** — modificar el fetch puede romper el catálogo actual | Media | 🔴 Alto | Feature flag: si no hay `?org=` devuelve comportamiento actual sin cambios |
 | **UX compleja** — usuarios no saben qué es "suscripción" vs "proceso propio" | Media | 🟡 Medio | UX clara: separar en dos secciones con labels evidentes |
+| **Fraude en referidos** — cuentas falsas creadas para acumular créditos artificialmente | Media | 🟡 Medio | Verificación de email, cooldown entre registros del mismo IP, límite de créditos/mes por fuente |
+| **Abuso de social sharing** — posteo masivo o repetitivo para acumular créditos | Baja | 🟢 Bajo | Límite de 1 crédito social por plataforma/semana por usuario; revisión manual de URLs |
+| **Subsidio excesivo reduce MRR** — el sistema de créditos puede vaciar ingresos proyectados | Media | 🟡 Medio | Tope de 90 créditos/año (3 meses); excedente se convierte en descuento porcentual, no días |
 
 ---
 
@@ -962,6 +1076,16 @@ Antes de crear el plan de implementación, se deben resolver:
 | 11 | **¿Límite de procesos propios?** | Free=0 · Pro=10 · Team=30 · Enterprise=∞ (propuesto) | Valor diferenciador por plan |
 | 12 | **¿Free puede subir YAMLs locales?** | Sí (solo localStorage) · No (solo catálogo oficial) | Complejidad del Free tier |
 
+**Del programa de referidos (nuevas):**
+
+| # | Decisión | Opciones | Impacto |
+|:---:|---|---|---|
+| 13 | **¿Tope máximo de subsidio anual?** | Sin tope · 3 meses/año · 6 meses/año | Protección del MRR proyectado |
+| 14 | **¿Verificación de social sharing?** | Manual (URL review) · Honor system · OAuth API | Riesgo de fraude vs. fricción de usuario |
+| 15 | **¿Descuento del referido es acumulable?** | Solo 1 código por registro · Acumulable · Solo en plan anual | Complejidad del billing |
+| 16 | **¿Renovación recurrente genera crédito?** | Sí (15 créditos/renovación propuesto) · Solo primer pago · No | Incentivo a retener referidos activos |
+| 17 | **¿Código de referido en plan Free?** | Sí (cualquier registrado) · Solo planes de pago | Velocidad de crecimiento vs. calidad de referidos |
+
 ---
 
 ## 19. Próximos Pasos Recomendados
@@ -969,7 +1093,7 @@ Antes de crear el plan de implementación, se deben resolver:
 1. **Resolver decisiones de monetización** (sección 18, items 7-12): precios, trial, ProcessShare expiry y payment provider antes de comenzar implementación.
 2. **Tomar decisión sobre BD** (sección 18, decisión #1): se recomienda **Turso Opción D** para MVP real o **Opción B** para validar UX en días.
 3. **Si Turso:** crear cuenta en [turso.tech](https://turso.tech) → instalar CLI → provisionar DB `platform` + schema inicial.
-4. **Definir Prisma schema** (`Organization`, `OrgProcess`, `CatalogSubscription`, `ProcessShare`) con tipos SQLite-compatibles + script `migrate-all-orgs.mjs`.
+4. **Definir Prisma schema** (`Organization`, `OrgProcess`, `CatalogSubscription`, `ProcessShare`, `ReferralCode`, `CreditLedger`) con tipos SQLite-compatibles + script `migrate-all-orgs.mjs`.
 5. **Elegir payment provider** (decisión #10): integrar Stripe o LemonSqueezy para billing por perfil.
 6. **Crear `plan-company-process-catalog.md`** con spec técnica detallada (API routes, UI flows, tests, billing hooks) tras tomar las decisiones del punto 18.
 7. **Actualizar `README.features.md`** para incluir este feature con estado 📋 Planificado.
@@ -977,4 +1101,4 @@ Antes de crear el plan de implementación, se deben resolver:
 
 ---
 
-*Documento de análisis pre-diseño · v0.2 · 2026-06-02 — estrategia de monetización + 4 perfiles (Free, Profesional, Equipo, Empresarial) + Turso analysis*
+*Documento de análisis pre-diseño · v0.3 · 2026-06-02 — programa de referidos + sistema de créditos (subsídio de plan + social sharing + bonos por hitos) agregado*
