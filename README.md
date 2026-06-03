@@ -9,27 +9,79 @@
 
 Pensado para equipos de **DevOps, Seguridad, Auditoría y Compliance** que necesitan estandarizar procedimientos, controlar dependencias entre tareas y mantener un registro auditable de cada ejecución.
 
-**Documentación relacionada:**
-[Guía YAML](README.process.md) · [Visor BPMN 2.0](README.bpmn.md) · [Docker Hub](README.dockerhub.md) · [Historial](README.history.md) · [Diagramas](docs/diagrams/) · [Modelo C4](docs/diagrams/c4-model.md)
+**Documentación:**
+[🗺️ Diagramas](README.diagrams.md) · [📋 Features](README.features.md) · [📖 Guía YAML](README.process.md) · [🔷 Visor BPMN](README.bpmn.md) · [🐳 Docker](README.dockerhub.md) · [📜 Historial](README.history.md)
 
 ---
 
 ## Tabla de contenidos
 
-1. [Inicio rápido](#inicio-rápido)
-2. [Características principales](#características-principales)
-3. [Stack tecnológico](#stack-tecnológico)
-4. [Arquitectura](#arquitectura)
-5. [Catálogo de procesos](#catálogo-de-procesos)
-6. [Tipos de tareas](#tipos-de-tareas)
-7. [Exportación declarativa a Excel](#exportación-declarativa-a-excel)
-8. [Evidencias y almacenamiento](#evidencias-y-almacenamiento)
-9. [Desarrollo](#desarrollo)
-10. [Testing](#testing)
-11. [Docker](#docker)
-12. [CI/CD](#cicd)
-13. [Seguridad](#seguridad)
-14. [Licencia](#licencia)
+1. [¿Qué es y para quién es?](#qué-es-y-para-quién-es)
+2. [Inicio rápido](#inicio-rápido)
+3. [Características principales](#características-principales)
+4. [Stack tecnológico](#stack-tecnológico)
+5. [Arquitectura](#arquitectura)
+6. [Catálogo de procesos](#catálogo-de-procesos)
+7. [Tipos de tareas](#tipos-de-tareas)
+8. [Exportación declarativa a Excel](#exportación-declarativa-a-excel)
+9. [Evidencias y almacenamiento](#evidencias-y-almacenamiento)
+10. [Desarrollo](#desarrollo)
+11. [Testing](#testing)
+12. [Docker](#docker)
+13. [CI/CD](#cicd)
+14. [Seguridad](#seguridad)
+15. [Documentación completa](#documentación-completa)
+16. [Licencia](#licencia)
+
+---
+
+## ¿Qué es y para quién es?
+
+### El problema que resuelve
+
+Los equipos de **DevSecOps, Auditoría y Compliance** ejecutan procesos repetitivos (releases, PRs, auditorías, gestión de ambientes) que requieren:
+
+- ✅ **Trazabilidad** — saber quién hizo qué, cuándo y con qué evidencia.
+- ✅ **Estandarización** — el mismo proceso, igual en cada ejecución, sin pasos saltados.
+- ✅ **Reportes automáticos** — Word, Excel y JSON sin copiar-pegar.
+- ✅ **Dependencias entre pasos** — la tarea B no se puede iniciar hasta que A esté lista.
+
+Hoy ese flujo suele vivir en Confluence, Jira, hojas de cálculo o en la memoria de las personas — sin garantía de completitud ni historial.
+
+### La solución
+
+**DevSecOps Process Tracker** convierte cada proceso en un archivo YAML declarativo que define fases, tareas, evidencias, variables y exportaciones. Un motor Next.js lo ejecuta como una aplicación web interactiva que:
+
+1. **Guía** al ejecutor tarea a tarea, con validaciones y dependencias.
+2. **Captura** evidencias (texto, imágenes, formularios, listas, tablas).
+3. **Exporta** automáticamente a Word (reporte auditable) y Excel (template .xlsx) sin código.
+4. **Registra** al autor, tiempos reales y variables capturadas en cada ejecución.
+
+### ¿Para quién?
+
+| Perfil | Qué hace en la plataforma |
+|---|---|
+| **DevSecOps Engineer** | Ejecuta procesos del catálogo, captura evidencias, descarga reportes |
+| **Arquitecto / Tech Lead** | Diseña procesos en el BPMN Studio, exporta a YAML y publica al catálogo |
+| **Auditor / Compliance** | Revisa reportes Word/Excel con trazabilidad completa (autor, timestamps, evidencias) |
+| **SRE / FinOps** | Gestiona ambientes, releases y PRs con flujo estandarizado |
+
+### Conceptos clave
+
+```
+ Proceso YAML
+ ──────────────
+ process
+  └── phases[]          ← Fases del proceso (ej: c1-Validación, c2-Ejecución)
+       └── activities[]  ← Agrupaciones opcionales dentro de una fase
+            └── tasks[]  ← Unidad mínima de trabajo con evidencia y tipo
+                          (standard · check · multicheck · form · dynamic-list
+                           detail-list · detail-table · export-excel)
+```
+
+Cada proceso corre en el **Process Executor** (`/process`) donde el usuario navega fase a fase, completa tareas y descarga reportes al final. El **BPMN Studio** (`/studio`) permite diseñar procesos visualmente y exportar el YAML resultante.
+
+> 💡 **Nuevo en el proyecto?** Comienza por la [Guía YAML](README.process.md) para entender el schema, y luego carga una plantilla del catálogo.
 
 ---
 
@@ -121,10 +173,19 @@ El sistema sigue una arquitectura en capas con lógica de negocio pura (`lib/`),
 
 ### Diagramas
 
-- [Contexto · Contenedores · Componentes (modelo C4)](docs/diagrams/c4-model.md)
-- [Arquitectura del sistema](docs/diagrams/arquitectura-sistema.md)
-- [Flujo del proceso](docs/diagrams/flujo-proceso.md)
-- [Secuencias de datos](docs/diagrams/flujo-datos.md)
+[**README.diagrams.md**](README.diagrams.md) contiene 16 diagramas Mermaid con la arquitectura completa:
+
+| Diagrama | Tipo |
+|---|---|
+| Contexto del sistema (C4 L1) · Contenedores (C4 L2) | `graph TB` |
+| Capas Next.js · Schema YAML · Tipos de tarea | `graph TD/LR` |
+| Modelo de datos runtime (ProcessState) | `classDiagram` |
+| Stores Zustand · Pipeline Excel · Pipeline Word | `graph TB` |
+| Máquinas de estado: Tarea · Proceso (Tray) | `stateDiagram-v2` |
+| Carga/ejecución · Evidencia · BPMN Studio | `sequenceDiagram` |
+| Autenticación OAuth · Colaboración multi-usuario (planificados) | `graph TB` |
+
+Diagramas adicionales (legacy): [C4 model](docs/diagrams/c4-model.md) · [Arquitectura](docs/diagrams/arquitectura-sistema.md) · [Flujo proceso](docs/diagrams/flujo-proceso.md) · [Flujo datos](docs/diagrams/flujo-datos.md)
 
 ---
 
@@ -303,6 +364,23 @@ Los commits siguen **[Conventional Commits](https://www.conventionalcommits.org/
 - **Compresión lz-string** del estado persistido en localStorage.
 
 Overrides explícitos de dependencias transitivas vulnerables en `package.json` (minimatch, brace-expansion, picomatch, tar).
+
+---
+
+## Documentación completa
+
+Todos los documentos del proyecto en un solo lugar:
+
+| Documento | Descripción | Audiencia |
+|---|---|---|
+| [🗺️ README.diagrams.md](README.diagrams.md) | 16 diagramas Mermaid: C4, flujos, estados, secuencias, stores, pipelines | Arquitectos · Desarrolladores |
+| [📋 README.features.md](README.features.md) | Inventario de features con estado, prioridad y esfuerzo estimado (⌨️ · 🧪) | Product · Tech Leads |
+| [📖 README.process.md](README.process.md) | Guía completa del schema YAML: todos los campos, tipos, exports, snippets | Cualquiera que cree procesos |
+| [🔷 README.bpmn.md](README.bpmn.md) | Visor BPMN 2.0: generación automática, token simulation, uso del Studio | Diseñadores de procesos |
+| [🐳 README.dockerhub.md](README.dockerhub.md) | Deploy Docker: volúmenes, variables de entorno, verificación Cosign | SRE · DevOps |
+| [📜 README.history.md](README.history.md) | Historial completo de versiones con descripción detallada de cada cambio | Todos |
+| [📁 docs/features/](docs/features/) | Documentos de diseño por feature (análisis, arquitectura, decisiones) | Contribuidores |
+| [📁 docs/diagrams/](docs/diagrams/) | Diagramas adicionales legacy (C4, flujos, arquitectura) | Arquitectos |
 
 ---
 
